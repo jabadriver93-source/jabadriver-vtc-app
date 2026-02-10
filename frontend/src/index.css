@@ -40,7 +40,7 @@ body {
     margin: 0;
     font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     -webkit-font-smoothing: antialiased;
-    background-color: #050505;
+    background-color: #06080a;
     color: hsl(var(--foreground));
     overflow-x: hidden;
 }
@@ -56,9 +56,9 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #111; }
-::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #555; }
+::-webkit-scrollbar-track { background: #0a0c0e; }
+::-webkit-scrollbar-thumb { background: #1e2428; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #2a3038; }
 
 /* Status badges */
 .status-nouvelle { background-color: hsl(var(--status-new)); color: hsl(0 0% 4%); }
@@ -81,128 +81,231 @@ h1, h2, h3, h4, h5, h6 {
 
 @keyframes glowPulse {
     0%, 100% { text-shadow: 0 0 30px rgba(125, 211, 252, 0.6), 0 0 60px rgba(125, 211, 252, 0.3); }
-    50% { text-shadow: 0 0 40px rgba(125, 211, 252, 0.8), 0 0 80px rgba(125, 211, 252, 0.4); }
+    50% { text-shadow: 0 0 50px rgba(125, 211, 252, 0.9), 0 0 100px rgba(125, 211, 252, 0.5); }
 }
 
-@keyframes shimmer {
-    0% { background-position: -200% center; }
-    100% { background-position: 200% center; }
+@keyframes routeFlow {
+    0% { stroke-dashoffset: 1000; }
+    100% { stroke-dashoffset: 0; }
+}
+
+@keyframes routePulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.8; }
+}
+
+@keyframes markerPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 0.7; }
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 .spinner { animation: spin 1s linear infinite; }
 
 /* ==================== */
-/* VTC HERO - CINEMATIC BAND */
+/* HERO - DARK MAP STYLE */
 /* ==================== */
 
-.hero-vtc {
+.hero-map {
     position: relative;
     min-height: 100vh;
-    background: linear-gradient(180deg, 
-        #0a0a0a 0%, 
-        #080808 100%
-    );
-}
-
-/* Cinematic Image Band */
-.hero-band {
-    position: absolute;
-    top: 80px;
-    left: 0;
-    right: 0;
-    height: 280px;
+    background: #06080a;
     overflow: hidden;
 }
 
-.hero-band-image {
-    position: absolute;
-    inset: -20px;
-    background-image: url('https://images.unsplash.com/photo-1617639533633-105c0a619958?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwyfHxjaGF1ZmZldXIlMjBkcml2ZXIlMjBvcGVuaW5nJTIwY2FyJTIwZG9vciUyMG5pZ2h0JTIwY2l0eSUyMGx1eHVyeSUyMHNlcnZpY2V8ZW58MHx8fHwxNzcwNzMyMjEzfDA&ixlib=rb-4.1.0&q=85&w=1920');
-    background-size: cover;
-    background-position: center 35%;
-    filter: brightness(0.7) contrast(1.1);
-    transition: transform 0.2s ease-out;
-}
-
-.hero-band::before {
-    content: '';
+/* SVG Map Background */
+.hero-map-bg {
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, 
-        rgba(5,5,5,1) 0%, 
-        rgba(5,5,5,0.3) 15%,
-        rgba(5,5,5,0) 30%,
-        rgba(5,5,5,0) 70%,
-        rgba(5,5,5,0.3) 85%,
-        rgba(5,5,5,1) 100%
-    );
-    z-index: 2;
+    overflow: hidden;
 }
 
-.hero-band::after {
-    content: '';
+.hero-map-svg {
+    position: absolute;
+    width: 200%;
+    height: 200%;
+    top: -50%;
+    left: -50%;
+    opacity: 0.6;
+}
+
+/* Map roads - base layer */
+.map-road {
+    fill: none;
+    stroke: #151a1e;
+    stroke-width: 1;
+    stroke-linecap: round;
+}
+
+.map-road-main {
+    stroke: #1a2028;
+    stroke-width: 2;
+}
+
+/* Glowing routes */
+.map-route-glow {
+    fill: none;
+    stroke: #7dd3fc;
+    stroke-width: 2;
+    stroke-linecap: round;
+    filter: drop-shadow(0 0 6px rgba(125, 211, 252, 0.8));
+    stroke-dasharray: 10 20;
+    animation: routeFlow 20s linear infinite;
+}
+
+.map-route-glow-2 {
+    stroke: #38bdf8;
+    stroke-width: 1.5;
+    stroke-dasharray: 5 15;
+    animation: routeFlow 25s linear infinite reverse;
+    opacity: 0.6;
+}
+
+/* Animated route pulse */
+.map-route-pulse {
+    fill: none;
+    stroke: #7dd3fc;
+    stroke-width: 3;
+    stroke-linecap: round;
+    filter: drop-shadow(0 0 10px rgba(125, 211, 252, 1));
+    animation: routePulse 3s ease-in-out infinite;
+}
+
+/* Map overlay for depth */
+.hero-map-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, 
-        rgba(5,5,5,1) 0%, 
-        rgba(5,5,5,0) 20%,
-        rgba(5,5,5,0) 80%,
-        rgba(5,5,5,1) 100%
+    background: radial-gradient(ellipse at center, 
+        rgba(6, 8, 10, 0.4) 0%, 
+        rgba(6, 8, 10, 0.7) 50%,
+        rgba(6, 8, 10, 0.9) 100%
     );
-    z-index: 3;
+    z-index: 1;
 }
 
-/* Mobile band adjustments */
+/* Markers - Start & End points */
+.map-marker {
+    position: absolute;
+    z-index: 5;
+}
+
+.map-marker-start {
+    top: 25%;
+    left: 30%;
+}
+
+.map-marker-end {
+    top: 55%;
+    right: 25%;
+}
+
 @media (max-width: 768px) {
-    .hero-band {
-        top: 70px;
-        height: 200px;
+    .map-marker-start {
+        top: 15%;
+        left: 15%;
     }
-    
-    .hero-band-image {
-        background-position: 60% center;
+    .map-marker-end {
+        top: 20%;
+        right: 10%;
     }
+}
+
+.marker-dot {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    position: relative;
+}
+
+.marker-dot-start {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.6), 0 0 40px rgba(34, 197, 94, 0.3);
+}
+
+.marker-dot-end {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.6), 0 0 40px rgba(239, 68, 68, 0.3);
+}
+
+.marker-ring {
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    border: 2px solid currentColor;
+    animation: markerPulse 2s ease-in-out infinite;
+}
+
+.marker-ring-start {
+    border-color: rgba(34, 197, 94, 0.5);
+}
+
+.marker-ring-end {
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+.marker-label {
+    position: absolute;
+    top: -28px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.marker-label-start {
+    color: #22c55e;
+}
+
+.marker-label-end {
+    color: #ef4444;
 }
 
 /* Hero Content */
-.hero-vtc-content {
+.hero-map-content {
     position: relative;
     z-index: 10;
 }
 
 /* Title Styling */
-.hero-title-vtc {
-    font-size: clamp(3rem, 10vw, 5.5rem);
+.hero-title-map {
+    font-size: clamp(3rem, 10vw, 6rem);
     font-weight: 800;
     color: #ffffff;
     line-height: 1;
     letter-spacing: -0.04em;
     margin: 0;
+    text-shadow: 0 4px 40px rgba(0,0,0,0.8);
 }
 
-.hero-title-accent-vtc {
+.hero-title-accent-map {
     color: #7dd3fc;
     animation: glowPulse 3s ease-in-out infinite;
     position: relative;
     display: inline-block;
 }
 
-/* VTC accent line under title */
+/* Accent line */
 .hero-accent-line {
     width: 80px;
     height: 4px;
     background: linear-gradient(90deg, #7dd3fc, transparent);
     border-radius: 2px;
-    margin: 24px auto 0;
+    margin: 20px auto 0;
+    box-shadow: 0 0 20px rgba(125, 211, 252, 0.5);
 }
 
 /* Subtitle */
-.hero-subtitle-vtc {
+.hero-subtitle-map {
     color: rgba(255, 255, 255, 0.7);
     font-size: clamp(1rem, 2.5vw, 1.2rem);
     font-weight: 400;
-    max-width: 420px;
+    max-width: 450px;
     margin: 0 auto;
     line-height: 1.6;
 }
@@ -211,48 +314,34 @@ h1, h2, h3, h4, h5, h6 {
 /* PREMIUM BADGES */
 /* ==================== */
 
-.badge-vtc {
+.badge-map {
     display: inline-flex;
     align-items: center;
     gap: 12px;
     padding: 14px 22px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(125, 211, 252, 0.15);
+    background: rgba(125, 211, 252, 0.03);
+    border: 1px solid rgba(125, 211, 252, 0.12);
     border-radius: 14px;
     font-size: 14px;
     font-weight: 500;
     color: rgba(255, 255, 255, 0.85);
     position: relative;
-    overflow: hidden;
     transition: all 0.3s ease;
 }
 
-.badge-vtc::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, 
-        transparent 0%, 
-        rgba(125, 211, 252, 0.05) 50%, 
-        transparent 100%
-    );
-    background-size: 200% 100%;
-    animation: shimmer 3s ease-in-out infinite;
-}
-
-.badge-vtc:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(125, 211, 252, 0.3);
+.badge-map:hover {
+    background: rgba(125, 211, 252, 0.08);
+    border-color: rgba(125, 211, 252, 0.25);
     transform: translateY(-2px);
 }
 
-.badge-vtc-icon {
+.badge-map-icon {
     width: 40px;
     height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, rgba(125, 211, 252, 0.2) 0%, rgba(125, 211, 252, 0.05) 100%);
+    background: rgba(125, 211, 252, 0.1);
     border: 1px solid rgba(125, 211, 252, 0.2);
     border-radius: 10px;
     color: #7dd3fc;
@@ -295,23 +384,7 @@ h1, h2, h3, h4, h5, h6 {
     }
 }
 
-/* Admin table styles */
-.table-premium th {
-    text-align: left;
-    padding: 12px 16px;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: hsl(var(--muted-foreground));
-    border-bottom: 1px solid hsl(var(--border));
-}
-
-.table-premium td {
-    padding: 16px;
-    border-bottom: 1px solid hsl(var(--border));
-}
-
+/* Admin styles */
 .action-btn {
     display: inline-flex;
     align-items: center;
@@ -323,7 +396,6 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 13px;
     transition: background-color 0.15s ease, transform 0.1s ease;
 }
-
 .action-btn:active { transform: scale(0.97); }
 
 /* Google Places Autocomplete */
@@ -337,7 +409,6 @@ h1, h2, h3, h4, h5, h6 {
     z-index: 10000 !important;
     overflow: hidden;
 }
-
 .pac-item {
     padding: 16px 20px;
     cursor: pointer;
@@ -345,7 +416,6 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 15px;
     color: #0f172a;
 }
-
 .pac-item:first-child { border-top: none; }
 .pac-item:hover { background-color: #f8fafc; }
 .pac-item-selected { background-color: #f1f5f9; }
