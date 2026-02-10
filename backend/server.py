@@ -126,6 +126,10 @@ class Reservation(BaseModel):
     distance_km: Optional[float] = None
     duration_min: Optional[float] = None
     estimated_price: Optional[float] = None
+    # Pricing breakdown
+    base_price: Optional[float] = None
+    airport_surcharge: Optional[float] = None
+    is_airport_trip: bool = False
     # Invoice fields
     invoice_number: Optional[str] = None
     invoice_date: Optional[str] = None
