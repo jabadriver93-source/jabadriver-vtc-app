@@ -586,6 +586,11 @@ async def send_driver_alert(reservation: Reservation, bon_commande_pdf: bytes = 
             </div>
         """
     
+    # Generate Google Maps URL
+    origin_encoded = quote(reservation.pickup_address)
+    destination_encoded = quote(reservation.dropoff_address)
+    maps_url = f"https://www.google.com/maps/dir/?api=1&origin={origin_encoded}&destination={destination_encoded}"
+    
     html_content = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: #7dd3fc; color: #0a0a0a; padding: 30px; text-align: center;">
@@ -599,12 +604,17 @@ async def send_driver_alert(reservation: Reservation, bon_commande_pdf: bytes = 
                 <p><strong>Téléphone:</strong> <a href="tel:{reservation.phone}">{reservation.phone}</a></p>
                 {f'<p><strong>Email:</strong> {reservation.email}</p>' if reservation.email else ''}
             </div>
-            <div style="background: white; padding: 20px; border-radius: 8px;">
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                 <h3 style="margin-top: 0;">Course</h3>
                 <p><strong>Date:</strong> {reservation.date} à {reservation.time}</p>
                 <p><strong>Départ:</strong> {reservation.pickup_address}</p>
                 <p><strong>Arrivée:</strong> {reservation.dropoff_address}</p>
                 <p><strong>Passagers:</strong> {reservation.passengers}</p>
+            </div>
+            <div style="text-align: center; margin: 20px 0;">
+                <a href="{maps_url}" style="display: inline-block; background-color: #0a0a0a; color: #7dd3fc; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 600;">
+                    📍 Voir l'itinéraire Google Maps
+                </a>
             </div>
         </div>
     </div>
