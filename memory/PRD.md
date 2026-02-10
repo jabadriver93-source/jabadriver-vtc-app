@@ -41,6 +41,16 @@ Application de réservation VTC simple pour un seul chauffeur. Public: clients.
 - **Page confirmation** : Récap complet + message "On vous confirme rapidement"
 - **Admin** : Interface sombre, statistiques, statuts en couleur (nouvelle=bleu, confirmée=vert, effectuée=gris, annulée=rouge)
 
+### V3.0 - Calcul de Prix (2026-02-10)
+- **Clé API Resend** : Configurée et fonctionnelle
+- **Google Maps Directions API** : Intégré pour calcul distance/durée
+- **Tarification** : 1.50€/km + 0.50€/min, minimum 10€
+- **Prix temps réel** : Affiché sous les adresses dès qu'elles sont remplies
+- **Backend** : Sauvegarde distance_km, duration_min, estimated_price
+- **Confirmation** : Affiche le prix estimé dans une carte dédiée
+- **Admin** : Colonnes distance/durée/prix + statistique CA Estimé
+- **Export CSV** : Inclut les nouvelles colonnes de tarification
+
 ## APIs Implemented
 - POST /api/reservations - Créer une réservation
 - GET /api/reservations - Liste avec filtres (date, search, status)
@@ -54,11 +64,11 @@ Application de réservation VTC simple pour un seul chauffeur. Public: clients.
 - Driver Email: `jabadriver93@gmail.com`
 
 ## MOCKED Components
-- **Email Notifications**: Resend API key placeholder (emails ne sont pas envoyés)
+- Aucun - toutes les intégrations sont fonctionnelles
 
 ## Next Tasks (P1)
-1. Configurer une vraie clé API Resend pour activer les emails
-2. Ajouter un système de tarification/estimation de prix
+1. Ajouter autocomplétion des adresses avec Google Places API
+2. Envoi SMS de confirmation via Twilio
 
 ## Backlog (P2)
 - SMS notifications via Twilio
