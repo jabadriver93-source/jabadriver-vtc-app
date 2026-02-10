@@ -259,8 +259,9 @@ export default function BookingPage() {
         <div className="max-w-lg mx-auto">
           <form 
             onSubmit={handleSubmit} 
-            className="card-light p-6 sm:p-8 animate-slideUp"
+            className="card-light p-5 sm:p-6 md:p-8 animate-slideUp overflow-x-hidden"
             data-testid="booking-form"
+            style={{ maxWidth: '100%' }}
           >
             {/* Name */}
             <div className="mb-5">
@@ -401,8 +402,8 @@ export default function BookingPage() {
             </div>
 
             {/* Date & Time */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
-              <div>
+            <div className="flex flex-col md:flex-row gap-3 md:gap-4 mb-5">
+              <div className="flex-1 min-w-0">
                 <label htmlFor="date" className="form-label">
                   Date *
                 </label>
@@ -413,12 +414,12 @@ export default function BookingPage() {
                   value={formData.date}
                   onChange={handleChange}
                   min={today}
-                  className="form-input !pl-4 !pr-4 w-full"
+                  className="form-input-datetime"
                   data-testid="input-date"
                   required
                 />
               </div>
-              <div>
+              <div className="flex-1 min-w-0">
                 <label htmlFor="time" className="form-label">
                   Heure *
                 </label>
@@ -428,7 +429,7 @@ export default function BookingPage() {
                   type="time"
                   value={formData.time}
                   onChange={handleChange}
-                  className="form-input !pl-4 !pr-4 w-full"
+                  className="form-input-datetime"
                   data-testid="input-time"
                   required
                 />
