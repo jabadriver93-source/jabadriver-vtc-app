@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   CheckCircle, MapPin, Calendar, Clock, Users, 
-  Briefcase, MessageSquare, Phone, ArrowLeft, Loader2 
+  Briefcase, MessageSquare, Phone, ArrowLeft, Loader2, Euro, Route
 } from "lucide-react";
 import axios from "axios";
 
@@ -95,6 +95,35 @@ export default function ConfirmationPage() {
               On vous confirme rapidement par téléphone
             </p>
           </div>
+
+          {/* Price Card (if available) */}
+          {reservation.estimated_price && (
+            <div className="bg-gradient-to-r from-[#7dd3fc] to-[#38bdf8] rounded-2xl p-6 mb-8 animate-fadeIn" style={{ animationDelay: '0.15s' }} data-testid="price-card">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[#0a0a0a]/70 text-sm font-medium">Prix estimé</p>
+                  <p className="text-[#0a0a0a] font-extrabold text-4xl" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                    {Math.round(reservation.estimated_price)}€
+                  </p>
+                </div>
+                <div className="text-right">
+                  {reservation.distance_km && (
+                    <p className="text-[#0a0a0a]/70 text-sm flex items-center justify-end gap-1">
+                      <Route className="w-4 h-4" />
+                      {reservation.distance_km} km
+                    </p>
+                  )}
+                  {reservation.duration_min && (
+                    <p className="text-[#0a0a0a]/70 text-sm flex items-center justify-end gap-1">
+                      <Clock className="w-4 h-4" />
+                      {Math.round(reservation.duration_min)} min
+                    </p>
+                  )}
+                </div>
+              </div>
+              <p className="text-[#0a0a0a]/50 text-xs mt-3">Prix estimatif — minimum 10€</p>
+            </div>
+          )}
 
           {/* Reservation Details Card */}
           <div 
