@@ -7,6 +7,7 @@ import {
   User, Euro
 } from "lucide-react";
 import axios from "axios";
+import { Loader } from "@googlemaps/js-api-loader";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const LOGO_URL = "/logo.png";
@@ -20,13 +21,23 @@ const MIN_PRICE = 10;
 // French phone validation regex
 const PHONE_REGEX = /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/;
 
+// Google Maps Loader instance (singleton)
+let googleMapsLoader = null;
+let googleMapsLoaded = false;
+
 export default function BookingPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [phoneError, setPhoneError] = useState("");
   const [priceLoading, setPriceLoading] = useState(false);
   const [priceData, setPriceData] = useState(null);
-  const debounceTimer = useRef(null);
+  const [mapsReady, setMapsReady] = useState(false);
+  
+  const pickupInputRef = useRef(null);
+  const dropoffInputRef = useRef(null);
+  const pickupAutocompleteRef = useRef(null);
+  const dropoffAutocompleteRef = useRef(null);
+  const distanceServiceRef = useRef(null);
   
   const [formData, setFormData] = useState({
     name: "",
@@ -41,33 +52,114 @@ export default function BookingPage() {
     notes: ""
   });
 
-  const validatePhone = (phone) => {
-    if (!phone) return "Le téléphone est obligatoire";
-    const cleaned = phone.replace(/\s/g, "");
-    if (!PHONE_REGEX.test(phone) && !/^(0|\+33|0033)[1-9]\d{8}$/.test(cleaned)) {
-      return "Numéro de téléphone français invalide";
-    }
-    return "";
-  };
+  // Initialize Google Maps API
+  useEffect(() => {
+    const initGoogleMaps = async () => {
+      // Skip if already loaded or no API key
+      if (googleMapsLoaded || !GOOGLE_MAPS_API_KEY) {
+        if (googleMapsLoaded) setMapsReady(true);
+        return;
+      }
 
-  // Calculate price using Google Maps Directions API
+      try {
+        // Create loader only once
+        if (!googleMapsLoader) {
+          googleMapsLoader = new Loader({
+            apiKey: GOOGLE_MAPS_API_KEY,
+            version: "weekly",
+            libraries: ["places"],
+            language: "fr",
+            region: "FR"
+          });
+        }
+
+        // Load the API
+        await googleMapsLoader.load();
+        
+        // Verify places library is available
+        if (window.google && window.google.maps && window.google.maps.places) {
+          googleMapsLoaded = true;
+          setMapsReady(true);
+          console.log("Google Maps Places API loaded successfully");
+        } else {
+          console.error("Google Maps Places not available after load");
+        }
+      } catch (error) {
+        console.error("Failed to load Google Maps:", error);
+        // Fallback: continue without autocomplete
+      }
+    };
+
+    initGoogleMaps();
+  }, []);
+
+  // Initialize Autocomplete when maps is ready and inputs are mounted
+  useEffect(() => {
+    if (!mapsReady || !window.google?.maps?.places) return;
+
+    const initAutocomplete = (inputRef, autocompleteRef, fieldName) => {
+      if (!inputRef.current || autocompleteRef.current) return;
+
+      try {
+        const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
+          types: ["address"],
+          componentRestrictions: { country: "fr" },
+          fields: ["formatted_address", "geometry", "name"]
+        });
+
+        autocomplete.addListener("place_changed", () => {
+          const place = autocomplete.getPlace();
+          if (place && place.formatted_address) {
+            setFormData(prev => ({
+              ...prev,
+              [fieldName]: place.formatted_address
+            }));
+            // Trigger price calculation after selection
+            setTimeout(() => calculatePriceFromForm(), 100);
+          }
+        });
+
+        autocompleteRef.current = autocomplete;
+        console.log(`Autocomplete initialized for ${fieldName}`);
+      } catch (error) {
+        console.error(`Failed to init autocomplete for ${fieldName}:`, error);
+      }
+    };
+
+    // Initialize Distance Matrix Service
+    if (!distanceServiceRef.current) {
+      try {
+        distanceServiceRef.current = new window.google.maps.DistanceMatrixService();
+      } catch (error) {
+        console.error("Failed to init Distance Matrix Service:", error);
+      }
+    }
+
+    // Small delay to ensure DOM is ready
+    const timer = setTimeout(() => {
+      initAutocomplete(pickupInputRef, pickupAutocompleteRef, "pickup_address");
+      initAutocomplete(dropoffInputRef, dropoffAutocompleteRef, "dropoff_address");
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [mapsReady]);
+
+  // Calculate price using Distance Matrix API
   const calculatePrice = useCallback(async (pickup, dropoff) => {
     if (!pickup || !dropoff || pickup.length < 5 || dropoff.length < 5) {
       setPriceData(null);
       return;
     }
 
+    if (!distanceServiceRef.current) {
+      console.warn("Distance Matrix Service not available");
+      return;
+    }
+
     setPriceLoading(true);
-    
+
     try {
-      // Use Google Maps Directions API via CORS proxy or directly
-      const directionsUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(pickup)}&destination=${encodeURIComponent(dropoff)}&key=${GOOGLE_MAPS_API_KEY}`;
-      
-      // Since we can't call Google API directly from browser (CORS), we'll use the Distance Matrix API
-      // which can be loaded via script
-      const service = new window.google.maps.DistanceMatrixService();
-      
-      service.getDistanceMatrix(
+      distanceServiceRef.current.getDistanceMatrix(
         {
           origins: [pickup],
           destinations: [dropoff],
@@ -76,29 +168,27 @@ export default function BookingPage() {
         },
         (response, status) => {
           setPriceLoading(false);
-          
-          if (status === "OK" && response.rows[0].elements[0].status === "OK") {
+
+          if (status === "OK" && 
+              response.rows[0] && 
+              response.rows[0].elements[0] && 
+              response.rows[0].elements[0].status === "OK") {
+            
             const element = response.rows[0].elements[0];
-            const distanceKm = element.distance.value / 1000; // meters to km
-            const durationMin = element.duration.value / 60; // seconds to minutes
-            
-            // Calculate price
+            const distanceKm = element.distance.value / 1000;
+            const durationMin = element.duration.value / 60;
+
             let price = (distanceKm * PRICE_PER_KM) + (durationMin * PRICE_PER_MIN);
-            
-            // Apply minimum
-            if (price < MIN_PRICE) {
-              price = MIN_PRICE;
-            }
-            
-            // Round up to next euro
+            if (price < MIN_PRICE) price = MIN_PRICE;
             price = Math.ceil(price);
-            
+
             setPriceData({
               distance_km: Math.round(distanceKm * 10) / 10,
               duration_min: Math.round(durationMin),
               estimated_price: price
             });
           } else {
+            console.warn("Distance Matrix response:", status, response);
             setPriceData(null);
           }
         }
@@ -110,34 +200,34 @@ export default function BookingPage() {
     }
   }, []);
 
-  // Debounced price calculation
-  useEffect(() => {
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
+  // Helper to get current form values for price calc
+  const calculatePriceFromForm = useCallback(() => {
+    const pickup = pickupInputRef.current?.value || formData.pickup_address;
+    const dropoff = dropoffInputRef.current?.value || formData.dropoff_address;
+    if (pickup && dropoff) {
+      calculatePrice(pickup, dropoff);
     }
+  }, [calculatePrice, formData.pickup_address, formData.dropoff_address]);
+
+  // Debounced price calculation on address change
+  useEffect(() => {
+    if (!mapsReady) return;
     
-    debounceTimer.current = setTimeout(() => {
-      if (formData.pickup_address && formData.dropoff_address) {
-        calculatePrice(formData.pickup_address, formData.dropoff_address);
-      }
+    const timer = setTimeout(() => {
+      calculatePriceFromForm();
     }, 800);
 
-    return () => {
-      if (debounceTimer.current) {
-        clearTimeout(debounceTimer.current);
-      }
-    };
-  }, [formData.pickup_address, formData.dropoff_address, calculatePrice]);
+    return () => clearTimeout(timer);
+  }, [formData.pickup_address, formData.dropoff_address, mapsReady, calculatePriceFromForm]);
 
-  // Load Google Maps script
-  useEffect(() => {
-    if (!window.google) {
-      const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
-      script.async = true;
-      document.head.appendChild(script);
+  const validatePhone = (phone) => {
+    if (!phone) return "Le téléphone est obligatoire";
+    const cleaned = phone.replace(/\s/g, "");
+    if (!PHONE_REGEX.test(phone) && !/^(0|\+33|0033)[1-9]\d{8}$/.test(cleaned)) {
+      return "Numéro de téléphone français invalide";
     }
-  }, []);
+    return "";
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -151,22 +241,32 @@ export default function BookingPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Get actual values from inputs (in case autocomplete updated them)
+    const actualPickup = pickupInputRef.current?.value || formData.pickup_address;
+    const actualDropoff = dropoffInputRef.current?.value || formData.dropoff_address;
+    
+    const submissionData = {
+      ...formData,
+      pickup_address: actualPickup,
+      dropoff_address: actualDropoff
+    };
+
     // Validation
-    const phoneValidation = validatePhone(formData.phone);
+    const phoneValidation = validatePhone(submissionData.phone);
     if (phoneValidation) {
       setPhoneError(phoneValidation);
       toast.error(phoneValidation);
       return;
     }
 
-    if (!formData.name || !formData.pickup_address || 
-        !formData.dropoff_address || !formData.date || !formData.time) {
+    if (!submissionData.name || !actualPickup || !actualDropoff || 
+        !submissionData.date || !submissionData.time) {
       toast.error("Veuillez remplir tous les champs obligatoires");
       return;
     }
 
     // Check date is not in the past
-    const selectedDate = new Date(`${formData.date}T${formData.time}`);
+    const selectedDate = new Date(`${submissionData.date}T${submissionData.time}`);
     if (selectedDate < new Date()) {
       toast.error("La date et l'heure ne peuvent pas être dans le passé");
       return;
@@ -174,9 +274,8 @@ export default function BookingPage() {
 
     setLoading(true);
     try {
-      // Include pricing data in reservation
       const reservationData = {
-        ...formData,
+        ...submissionData,
         distance_km: priceData?.distance_km || null,
         duration_min: priceData?.duration_min || null,
         estimated_price: priceData?.estimated_price || null
@@ -193,7 +292,6 @@ export default function BookingPage() {
     }
   };
 
-  // Get min date (today)
   const today = new Date().toISOString().split('T')[0];
 
   return (
@@ -326,42 +424,46 @@ export default function BookingPage() {
               </div>
             </div>
 
-            {/* Pickup Address */}
+            {/* Pickup Address with Autocomplete */}
             <div className="mb-5">
               <label htmlFor="pickup_address" className="form-label">
                 Adresse de départ *
               </label>
               <div className="relative">
                 <input
+                  ref={pickupInputRef}
                   id="pickup_address"
                   name="pickup_address"
                   type="text"
-                  value={formData.pickup_address}
+                  defaultValue={formData.pickup_address}
                   onChange={handleChange}
-                  placeholder="123 Rue de Paris, 75001 Paris"
+                  placeholder="Entrez une adresse..."
                   className="form-input"
                   data-testid="input-pickup"
+                  autoComplete="off"
                   required
                 />
                 <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500" />
               </div>
             </div>
 
-            {/* Dropoff Address */}
+            {/* Dropoff Address with Autocomplete */}
             <div className="mb-5">
               <label htmlFor="dropoff_address" className="form-label">
                 Adresse d'arrivée *
               </label>
               <div className="relative">
                 <input
+                  ref={dropoffInputRef}
                   id="dropoff_address"
                   name="dropoff_address"
                   type="text"
-                  value={formData.dropoff_address}
+                  defaultValue={formData.dropoff_address}
                   onChange={handleChange}
-                  placeholder="Aéroport CDG Terminal 2E"
+                  placeholder="Entrez une adresse..."
                   className="form-input"
                   data-testid="input-dropoff"
+                  autoComplete="off"
                   required
                 />
                 <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-red-500" />
