@@ -567,14 +567,38 @@ async def send_confirmation_email(reservation: Reservation, bon_commande_pdf: by
     if not reservation.email:
         return
     
+    # Build price display with breakdown
     price_display = ""
-    if reservation.estimated_price:
+    if reservation.estimated_price or reservation.base_price:
+        base_price = reservation.base_price or reservation.estimated_price
+        airport_surcharge = reservation.airport_surcharge or 0
+        final_price = reservation.estimated_price or (base_price + airport_surcharge)
+        
         price_display = f"""
             <tr>
-                <td style="padding: 10px 0; color: #94A3B8;">Prix estimé</td>
-                <td style="padding: 10px 0; color: #0F172A; font-weight: 600;">{int(reservation.estimated_price)}€</td>
+                <td style="padding: 10px 0; color: #94A3B8;">Prix course</td>
+                <td style="padding: 10px 0; color: #0F172A; font-weight: 600;">{int(base_price)}€</td>
             </tr>
         """
+        
+        if reservation.is_airport_trip and airport_surcharge > 0:
+            price_display += f"""
+            <tr>
+                <td style="padding: 10px 0; color: #94A3B8;">Supplément aéroport</td>
+                <td style="padding: 10px 0; color: #0F172A; font-weight: 600;">+ {int(airport_surcharge)}€</td>
+            </tr>
+            <tr>
+                <td style="padding: 10px 0; border-top: 1px solid #E2E8F0; color: #0F172A; font-weight: 700;">TOTAL</td>
+                <td style="padding: 10px 0; border-top: 1px solid #E2E8F0; color: #0F172A; font-weight: 700;">{int(final_price)}€</td>
+            </tr>
+            """
+        else:
+            price_display += f"""
+            <tr>
+                <td style="padding: 10px 0; border-top: 1px solid #E2E8F0; color: #0F172A; font-weight: 700;">TOTAL</td>
+                <td style="padding: 10px 0; border-top: 1px solid #E2E8F0; color: #0F172A; font-weight: 700;">{int(final_price)}€</td>
+            </tr>
+            """
     
     # Generate Google Maps URL
     origin_encoded = quote(reservation.pickup_address)
