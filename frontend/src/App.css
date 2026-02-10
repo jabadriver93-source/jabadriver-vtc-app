@@ -222,11 +222,37 @@
         padding-left: 44px;
         padding-right: 12px;
     }
-    
-    /* Date and time inputs need special handling on mobile */
-    input[type="date"].form-input,
-    input[type="time"].form-input {
-        padding-left: 12px;
-        padding-right: 12px;
+}
+
+/* Date and Time input - dedicated class for perfect mobile handling */
+.form-input-datetime {
+    height: 56px;
+    background-color: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0 12px;
+    font-size: 16px;
+    color: #0f172a;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    display: block;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+.form-input-datetime:focus {
+    border-color: #7dd3fc;
+    box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.2);
+    outline: none;
+}
+
+/* iOS Safari specific fixes */
+@supports (-webkit-touch-callout: none) {
+    .form-input-datetime {
+        min-height: 56px;
     }
 }
