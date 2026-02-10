@@ -336,14 +336,6 @@ export default function BookingPage() {
       {/* Overlay */}
       <div className="hero-map-overlay" />
       
-      {/* Start Marker */}
-      <div className="map-marker map-marker-start">
-        <div className="marker-label marker-label-start">Départ</div>
-        <div className="marker-dot marker-dot-start">
-          <div className="marker-ring marker-ring-start" />
-        </div>
-      </div>
-      
       {/* Content */}
       <div className="hero-map-content">
         {/* Header */}
