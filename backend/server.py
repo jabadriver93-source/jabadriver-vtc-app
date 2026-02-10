@@ -15,6 +15,7 @@ import io
 import csv
 import resend
 import base64
+from urllib.parse import quote
 
 # PDF generation
 from reportlab.lib.pagesizes import A4
