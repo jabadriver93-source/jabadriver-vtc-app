@@ -324,6 +324,7 @@ def main():
     tests = [
         tester.test_root_endpoint,
         tester.test_create_reservation,
+        tester.test_price_calculation_validation,
         tester.test_get_reservations,
         tester.test_get_single_reservation,
         tester.test_update_reservation_status,
@@ -332,7 +333,8 @@ def main():
         tester.test_reservations_with_filters,
         tester.test_csv_export,
         tester.test_invalid_status_update,
-        tester.test_nonexistent_reservation
+        tester.test_nonexistent_reservation,
+        tester.test_phone_validation
     ]
     
     for test in tests:
