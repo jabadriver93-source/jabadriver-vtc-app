@@ -1,29 +1,26 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Response
-from fastapi.responses import StreamingResponse
+from fastapi import FastAPI, APIRouter, HTTPException, Query
+from fastapi.responses import StreamingResponse, Response
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
+import asyncio
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict, EmailStr
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 import uuid
 from datetime import datetime, timezone
-from io import BytesIO
-import aiosmtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.application import MIMEApplication
+import io
+import csv
+import resend
+import base64
 
-# PDF imports
+# PDF generation
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import cm
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
-from reportlab.lib import colors
-from reportlab.lib.enums import TA_CENTER, TA_RIGHT
-
+from reportlab.lib.units import mm
+from reportlab.lib.colors import HexColor
+from reportlab.pdfgen import canvas
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -33,581 +30,880 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Create the main app without a prefix
-app = FastAPI()
+# Resend setup
+resend.api_key = os.environ.get('RESEND_API_KEY', '')
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+DRIVER_EMAIL = os.environ.get('DRIVER_EMAIL', '')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
 
-# Create a router with the /api prefix
+# Company info
+COMPANY_INFO = {
+    "name": "JABA DRIVER",
+    "legal_name": "GREVIN Jahid Baptiste (EI)",
+    "address": "49 Boulevard Marc Chagall, 93600 Aulnay-sous-Bois",
+    "siret": "941 473 217 00011",
+    "email": "jabadriver93@gmail.com",
+    "phone": "06 XX XX XX XX"
+}
+
+app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-
-# ============= MODELS =============
-
+# Models
 class ReservationCreate(BaseModel):
-    client_nom: str
-    client_telephone: str
-    client_email: EmailStr
-    adresse_depart: str
-    adresse_arrivee: str
-    date_course: str  # Format: YYYY-MM-DD
-    heure_course: str  # Format: HH:MM
-    distance_km: float
-    duree_minutes: int
-    prix_estime: float
-    nombre_passagers: int = 1
-
-class ReservationUpdate(BaseModel):
-    prix_final: Optional[float] = None
-    statut: Optional[str] = None
+    name: str
+    phone: str
+    email: Optional[str] = None
+    pickup_address: str
+    dropoff_address: str
+    date: str
+    time: str
+    passengers: int = 1
+    luggage: Optional[str] = None
+    notes: Optional[str] = None
+    distance_km: Optional[float] = None
+    duration_min: Optional[float] = None
+    estimated_price: Optional[float] = None
 
 class Reservation(BaseModel):
     model_config = ConfigDict(extra="ignore")
     
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    numero_reservation: str = Field(default_factory=lambda: f"RES-{datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:8].upper()}")
-    client_nom: str
-    client_telephone: str
-    client_email: EmailStr
-    adresse_depart: str
-    adresse_arrivee: str
-    date_course: str
-    heure_course: str
-    distance_km: float
-    duree_minutes: int
-    prix_estime: float
-    prix_final: Optional[float] = None
-    nombre_passagers: int = 1
-    statut: str = "nouvelle"  # nouvelle, confirmee, terminee, annulee
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    name: str
+    phone: str
+    email: Optional[str] = None
+    pickup_address: str
+    dropoff_address: str
+    date: str
+    time: str
+    passengers: int = 1
+    luggage: Optional[str] = None
+    notes: Optional[str] = None
+    status: str = "nouvelle"
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    distance_km: Optional[float] = None
+    duration_min: Optional[float] = None
+    estimated_price: Optional[float] = None
+    # Invoice fields
+    invoice_number: Optional[str] = None
+    invoice_date: Optional[str] = None
+    final_price: Optional[float] = None
+    invoice_details: Optional[str] = None
+    invoice_generated: bool = False
+    # Bon de commande fields
+    bon_commande_generated: bool = False
+    bon_commande_date: Optional[str] = None
 
+class StatusUpdate(BaseModel):
+    status: str
 
-# ============= INFORMATIONS ENTREPRISE =============
+class AdminLogin(BaseModel):
+    password: str
 
-ENTREPRISE_INFO = {
-    "nom": "JabaDriver VTC",
-    "siret": "123 456 789 00012",
-    "siren": "123 456 789",
-    "adresse": "123 Rue du Transport, 75001 Paris",
-    "telephone": "+33 1 23 45 67 89",
-    "email": "contact@jabadriver-vtc.fr",
-    "tva_mention": "TVA non applicable - art. 293B du CGI"
-}
+class InvoiceCreate(BaseModel):
+    final_price: float
+    invoice_details: Optional[str] = None
 
-
-# ============= PDF SERVICES =============
-
-def generer_bon_commande_pdf(reservation: Reservation) -> BytesIO:
-    """Génère un bon de commande PDF pour une réservation"""
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4)
-    story = []
-    styles = getSampleStyleSheet()
+# ============================================
+# PDF GENERATION - BON DE COMMANDE VTC
+# ============================================
+def generate_bon_commande_pdf(reservation: dict):
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
     
-    # Style personnalisé titre
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=18,
-        textColor=colors.HexColor('#1a56db'),
-        spaceAfter=30,
-        alignment=TA_CENTER
-    )
+    # Colors
+    dark = HexColor("#0a0a0a")
+    accent = HexColor("#7dd3fc")
+    gray = HexColor("#64748b")
+    light_gray = HexColor("#f1f5f9")
     
-    # Style personnalisé pour sous-titre
-    subtitle_style = ParagraphStyle(
-        'CustomSubtitle',
-        parent=styles['Heading2'],
-        fontSize=12,
-        textColor=colors.HexColor('#374151'),
-        spaceAfter=12,
-        spaceBefore=12
-    )
+    y = height - 40
     
-    # En-tête
-    story.append(Paragraph("BON DE COMMANDE", title_style))
-    story.append(Spacer(1, 0.5*cm))
+    # Header
+    c.setFillColor(dark)
+    c.rect(0, height - 100, width, 100, fill=True, stroke=False)
     
-    # Informations entreprise
-    story.append(Paragraph("Informations Entreprise", subtitle_style))
-    entreprise_data = [
-        ["Entreprise:", ENTREPRISE_INFO["nom"]],
-        ["SIREN:", ENTREPRISE_INFO["siren"]],
-        ["SIRET:", ENTREPRISE_INFO["siret"]],
-        ["Adresse:", ENTREPRISE_INFO["adresse"]],
-        ["Téléphone:", ENTREPRISE_INFO["telephone"]],
-        ["Email:", ENTREPRISE_INFO["email"]],
-        ["TVA:", ENTREPRISE_INFO["tva_mention"]],
+    c.setFillColor(HexColor("#ffffff"))
+    c.setFont("Helvetica-Bold", 24)
+    c.drawString(40, height - 45, "BON DE COMMANDE VTC")
+    
+    c.setFont("Helvetica", 11)
+    c.setFillColor(accent)
+    c.drawString(40, height - 65, "Réservation préalable — Transport de personnes")
+    
+    # Reference box
+    c.setFillColor(HexColor("#1a1a1a"))
+    c.roundRect(width - 200, height - 90, 180, 70, 5, fill=True, stroke=False)
+    c.setFillColor(HexColor("#ffffff"))
+    c.setFont("Helvetica", 9)
+    c.drawString(width - 190, height - 45, "N° Bon de commande")
+    c.setFont("Helvetica-Bold", 11)
+    ref_id = reservation.get('id', '')[:8].upper()
+    c.drawString(width - 190, height - 62, f"#{ref_id}")
+    c.setFont("Helvetica", 9)
+    c.setFillColor(gray)
+    created = reservation.get('created_at', '')
+    if created:
+        try:
+            dt = datetime.fromisoformat(created.replace('Z', '+00:00'))
+            c.drawString(width - 190, height - 78, dt.strftime("%d/%m/%Y à %H:%M"))
+        except:
+            c.drawString(width - 190, height - 78, created[:16])
+    
+    y = height - 130
+    
+    # Section: ENTREPRISE
+    c.setFillColor(dark)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(40, y, "ENTREPRISE")
+    y -= 5
+    c.setStrokeColor(accent)
+    c.setLineWidth(2)
+    c.line(40, y, 140, y)
+    y -= 18
+    
+    c.setFont("Helvetica", 10)
+    c.setFillColor(gray)
+    c.drawString(40, y, f"Nom commercial: ")
+    c.setFillColor(dark)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(130, y, COMPANY_INFO["name"])
+    y -= 14
+    
+    c.setFont("Helvetica", 10)
+    c.setFillColor(gray)
+    c.drawString(40, y, f"Exploitant: {COMPANY_INFO['legal_name']}")
+    y -= 14
+    c.drawString(40, y, f"Statut: VTC — Transport de personnes sur réservation")
+    y -= 14
+    c.drawString(40, y, f"Adresse: {COMPANY_INFO['address']}")
+    y -= 14
+    c.drawString(40, y, f"Email: {COMPANY_INFO['email']} | SIRET: {COMPANY_INFO['siret']}")
+    y -= 20
+    
+    # TVA mention
+    c.setFillColor(HexColor("#fef3c7"))
+    c.roundRect(40, y - 20, width - 80, 24, 4, fill=True, stroke=False)
+    c.setFillColor(HexColor("#92400e"))
+    c.setFont("Helvetica-Bold", 9)
+    c.drawString(50, y - 13, "TVA non applicable — article 293 B du CGI")
+    y -= 45
+    
+    # Section: CLIENT
+    c.setFillColor(dark)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(40, y, "CLIENT")
+    y -= 5
+    c.setStrokeColor(accent)
+    c.line(40, y, 100, y)
+    y -= 18
+    
+    c.setFont("Helvetica", 10)
+    c.setFillColor(gray)
+    c.drawString(40, y, f"Nom: ")
+    c.setFillColor(dark)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(75, y, reservation.get('name', ''))
+    y -= 14
+    
+    c.setFont("Helvetica", 10)
+    c.setFillColor(gray)
+    c.drawString(40, y, f"Téléphone: {reservation.get('phone', '')}")
+    y -= 14
+    if reservation.get('email'):
+        c.drawString(40, y, f"Email: {reservation.get('email', '')}")
+        y -= 14
+    y -= 15
+    
+    # Section: DÉTAILS COURSE
+    c.setFillColor(dark)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(40, y, "DÉTAILS DE LA COURSE")
+    y -= 5
+    c.setStrokeColor(accent)
+    c.line(40, y, 200, y)
+    y -= 18
+    
+    # Course box
+    c.setFillColor(light_gray)
+    c.roundRect(40, y - 100, width - 80, 105, 8, fill=True, stroke=False)
+    
+    box_y = y - 15
+    c.setFont("Helvetica-Bold", 10)
+    c.setFillColor(dark)
+    c.drawString(55, box_y, f"Date: {reservation.get('date', '')} à {reservation.get('time', '')}")
+    box_y -= 20
+    
+    c.setFont("Helvetica", 10)
+    c.setFillColor(HexColor("#16a34a"))
+    c.drawString(55, box_y, "●")
+    c.setFillColor(dark)
+    c.drawString(70, box_y, f"Départ: {reservation.get('pickup_address', '')}")
+    box_y -= 16
+    
+    c.setFillColor(HexColor("#dc2626"))
+    c.drawString(55, box_y, "●")
+    c.setFillColor(dark)
+    c.drawString(70, box_y, f"Arrivée: {reservation.get('dropoff_address', '')}")
+    box_y -= 20
+    
+    c.setFillColor(gray)
+    c.drawString(55, box_y, f"Passagers: {reservation.get('passengers', 1)}")
+    
+    distance = reservation.get('distance_km')
+    duration = reservation.get('duration_min')
+    if distance or duration:
+        box_y -= 14
+        info = []
+        if distance:
+            info.append(f"Distance: {distance} km")
+        if duration:
+            info.append(f"Durée: {int(duration)} min")
+        c.drawString(55, box_y, " | ".join(info))
+    
+    y -= 125
+    
+    # Section: TARIF
+    c.setFillColor(dark)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(40, y, "TARIF")
+    y -= 5
+    c.setStrokeColor(accent)
+    c.line(40, y, 85, y)
+    y -= 25
+    
+    # Price box
+    final_price = reservation.get('final_price') or reservation.get('estimated_price')
+    price_label = "Prix convenu" if reservation.get('final_price') else "Prix estimé"
+    
+    c.setFillColor(accent)
+    c.roundRect(40, y - 45, 200, 50, 8, fill=True, stroke=False)
+    c.setFillColor(dark)
+    c.setFont("Helvetica", 10)
+    c.drawString(55, y - 15, price_label)
+    c.setFont("Helvetica-Bold", 24)
+    c.drawString(55, y - 40, f"{int(final_price) if final_price else '--'} €")
+    
+    c.setFillColor(gray)
+    c.setFont("Helvetica-Oblique", 9)
+    c.drawString(260, y - 25, "Tarif fixé avant prise en charge")
+    c.drawString(260, y - 37, "conformément à la réglementation VTC.")
+    
+    y -= 70
+    
+    # Section: MENTIONS RÉGLEMENTAIRES
+    c.setFillColor(dark)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(40, y, "MENTIONS RÉGLEMENTAIRES")
+    y -= 18
+    
+    c.setFont("Helvetica", 9)
+    c.setFillColor(gray)
+    mentions = [
+        "• Transport effectué uniquement sur réservation préalable.",
+        "• Aucune prise en charge à la volée.",
+        "• Tarif déterminé avant la course."
     ]
+    for m in mentions:
+        c.drawString(40, y, m)
+        y -= 12
     
-    entreprise_table = Table(entreprise_data, colWidths=[4*cm, 12*cm])
-    entreprise_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f3f4f6')),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#1f2937')),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey)
-    ]))
-    story.append(entreprise_table)
-    story.append(Spacer(1, 0.8*cm))
+    y -= 15
     
-    # Informations client
-    story.append(Paragraph("Informations Client", subtitle_style))
-    client_data = [
-        ["Nom:", reservation.client_nom],
-        ["Téléphone:", reservation.client_telephone],
-        ["Email:", reservation.client_email],
-    ]
+    # Validation box
+    c.setFillColor(light_gray)
+    c.roundRect(40, y - 50, width - 80, 55, 6, fill=True, stroke=False)
     
-    client_table = Table(client_data, colWidths=[4*cm, 12*cm])
-    client_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f3f4f6')),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#1f2937')),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey)
-    ]))
-    story.append(client_table)
-    story.append(Spacer(1, 0.8*cm))
+    c.setFillColor(dark)
+    c.setFont("Helvetica-Bold", 9)
+    c.drawString(55, y - 18, "VALIDATION")
+    c.setFont("Helvetica", 9)
+    c.setFillColor(gray)
+    c.drawString(55, y - 32, "Bon de commande généré automatiquement suite à réservation.")
     
-    # Détails de la course
-    story.append(Paragraph("Détails de la Course", subtitle_style))
-    course_data = [
-        ["Numéro de réservation:", reservation.numero_reservation],
-        ["Date:", reservation.date_course],
-        ["Heure:", reservation.heure_course],
-        ["Adresse de départ:", reservation.adresse_depart],
-        ["Adresse d'arrivée:", reservation.adresse_arrivee],
-        ["Distance:", f"{reservation.distance_km} km"],
-        ["Durée estimée:", f"{reservation.duree_minutes} min"],
-        ["Nombre de passagers:", str(reservation.nombre_passagers)],
-        ["Prix estimé:", f"{reservation.prix_estime} €"],
-    ]
-    
-    course_table = Table(course_data, colWidths=[5*cm, 11*cm])
-    course_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f3f4f6')),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#1f2937')),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey)
-    ]))
-    story.append(course_table)
-    story.append(Spacer(1, 1*cm))
+    timestamp = datetime.now(timezone.utc).strftime("%d/%m/%Y %H:%M:%S UTC")
+    c.drawString(55, y - 44, f"Horodatage: {timestamp} | Référence: #{ref_id}")
     
     # Footer
-    footer_text = f"Document généré le {datetime.now().strftime('%d/%m/%Y à %H:%M')}"
-    footer_style = ParagraphStyle(
-        'Footer',
-        parent=styles['Normal'],
-        fontSize=8,
-        textColor=colors.grey,
-        alignment=TA_CENTER
-    )
-    story.append(Spacer(1, 2*cm))
-    story.append(Paragraph(footer_text, footer_style))
+    c.setFillColor(dark)
+    c.rect(0, 0, width, 35, fill=True, stroke=False)
+    c.setFillColor(HexColor("#ffffff"))
+    c.setFont("Helvetica", 8)
+    c.drawCentredString(width / 2, 20, f"{COMPANY_INFO['name']} — {COMPANY_INFO['legal_name']} — SIRET: {COMPANY_INFO['siret']}")
+    c.drawCentredString(width / 2, 10, f"{COMPANY_INFO['address']}")
     
-    doc.build(story)
+    c.save()
     buffer.seek(0)
-    return buffer
+    return buffer.getvalue()
 
-
-def generer_facture_pdf(reservation: Reservation) -> BytesIO:
-    """Génère une facture PDF pour une réservation"""
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=A4)
-    story = []
-    styles = getSampleStyleSheet()
+# ============================================
+# PDF GENERATION - FACTURE
+# ============================================
+def generate_invoice_pdf(reservation: dict, invoice_number: str, invoice_date: str, final_price: float, invoice_details: str = None):
+    buffer = io.BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
     
-    # Style personnalisé titre
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=20,
-        textColor=colors.HexColor('#1a56db'),
-        spaceAfter=30,
-        alignment=TA_CENTER
-    )
+    dark = HexColor("#0a0a0a")
+    accent = HexColor("#7dd3fc")
+    gray = HexColor("#64748b")
+    light_gray = HexColor("#f1f5f9")
     
-    subtitle_style = ParagraphStyle(
-        'CustomSubtitle',
-        parent=styles['Heading2'],
-        fontSize=12,
-        textColor=colors.HexColor('#374151'),
-        spaceAfter=12,
-        spaceBefore=12
-    )
+    # Header
+    c.setFillColor(dark)
+    c.rect(0, height - 120, width, 120, fill=True, stroke=False)
     
-    # En-tête
-    story.append(Paragraph("FACTURE", title_style))
-    story.append(Spacer(1, 0.5*cm))
+    c.setFillColor(HexColor("#ffffff"))
+    c.setFont("Helvetica-Bold", 28)
+    c.drawString(40, height - 50, "JABA DRIVER")
     
-    # Informations entreprise
-    story.append(Paragraph("Émetteur", subtitle_style))
-    entreprise_data = [
-        ["Entreprise:", ENTREPRISE_INFO["nom"]],
-        ["SIRET:", ENTREPRISE_INFO["siret"]],
-        ["Adresse:", ENTREPRISE_INFO["adresse"]],
-        ["Téléphone:", ENTREPRISE_INFO["telephone"]],
-        ["Email:", ENTREPRISE_INFO["email"]],
-    ]
+    c.setFont("Helvetica", 10)
+    c.setFillColor(accent)
+    c.drawString(40, height - 70, "Service VTC Premium")
     
-    entreprise_table = Table(entreprise_data, colWidths=[4*cm, 12*cm])
-    entreprise_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f3f4f6')),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#1f2937')),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey)
-    ]))
-    story.append(entreprise_table)
-    story.append(Spacer(1, 0.8*cm))
+    c.setFillColor(HexColor("#ffffff"))
+    c.setFont("Helvetica-Bold", 24)
+    c.drawRightString(width - 40, height - 50, "FACTURE")
     
-    # Informations client
-    story.append(Paragraph("Client", subtitle_style))
-    client_data = [
-        ["Nom:", reservation.client_nom],
-        ["Email:", reservation.client_email],
-        ["Téléphone:", reservation.client_telephone],
-    ]
+    c.setFont("Helvetica", 11)
+    c.setFillColor(HexColor("#94a3b8"))
+    c.drawRightString(width - 40, height - 75, f"N° {invoice_number}")
+    c.drawRightString(width - 40, height - 92, f"Date: {invoice_date}")
     
-    client_table = Table(client_data, colWidths=[4*cm, 12*cm])
-    client_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f3f4f6')),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#1f2937')),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 10),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey)
-    ]))
-    story.append(client_table)
-    story.append(Spacer(1, 0.8*cm))
+    y = height - 160
     
-    # Détails facture
-    story.append(Paragraph("Détails de la prestation", subtitle_style))
+    # Seller
+    c.setFillColor(dark)
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(40, y, "VENDEUR")
+    y -= 18
     
-    prix_final = reservation.prix_final if reservation.prix_final is not None else reservation.prix_estime
+    c.setFont("Helvetica", 10)
+    c.setFillColor(gray)
+    c.drawString(40, y, COMPANY_INFO["name"])
+    y -= 14
+    c.drawString(40, y, COMPANY_INFO["legal_name"])
+    y -= 14
+    c.drawString(40, y, COMPANY_INFO["address"])
+    y -= 14
+    c.drawString(40, y, f"SIRET: {COMPANY_INFO['siret']}")
+    y -= 14
+    c.drawString(40, y, f"Email: {COMPANY_INFO['email']}")
     
-    facture_data = [
-        ["Description", "Quantité", "Prix unitaire", "Total"],
-        [
-            f"Course VTC\n{reservation.adresse_depart}\n→ {reservation.adresse_arrivee}\n{reservation.date_course} à {reservation.heure_course}",
-            "1",
-            f"{prix_final} €",
-            f"{prix_final} €"
-        ],
-    ]
+    # Client
+    y = height - 160
+    c.setFillColor(dark)
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(320, y, "CLIENT")
+    y -= 18
     
-    facture_table = Table(facture_data, colWidths=[9*cm, 2*cm, 2.5*cm, 2.5*cm])
-    facture_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1a56db')),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 11),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
-        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-    ]))
-    story.append(facture_table)
-    story.append(Spacer(1, 0.5*cm))
+    c.setFont("Helvetica", 10)
+    c.setFillColor(gray)
+    c.drawString(320, y, reservation.get("name", ""))
+    y -= 14
+    if reservation.get("email"):
+        c.drawString(320, y, reservation.get("email", ""))
+        y -= 14
+    c.drawString(320, y, reservation.get("phone", ""))
+    
+    y = height - 290
+    c.setStrokeColor(light_gray)
+    c.setLineWidth(1)
+    c.line(40, y, width - 40, y)
+    
+    # Prestation
+    y -= 30
+    c.setFillColor(dark)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(40, y, "PRESTATION")
+    
+    y -= 25
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(40, y, "Transport de personnes – VTC")
+    
+    y -= 20
+    c.setFont("Helvetica", 10)
+    c.setFillColor(gray)
+    c.drawString(40, y, f"Date: {reservation.get('date', '')} à {reservation.get('time', '')}")
+    y -= 16
+    c.drawString(40, y, f"Départ: {reservation.get('pickup_address', '')}")
+    y -= 16
+    c.drawString(40, y, f"Arrivée: {reservation.get('dropoff_address', '')}")
+    y -= 16
+    
+    distance = reservation.get('distance_km')
+    duration = reservation.get('duration_min')
+    if distance or duration:
+        info = []
+        if distance:
+            info.append(f"Distance: {distance} km")
+        if duration:
+            info.append(f"Durée: {int(duration)} min")
+        c.drawString(40, y, " | ".join(info))
+        y -= 16
+    
+    c.drawString(40, y, f"Passagers: {reservation.get('passengers', 1)}")
+    y -= 16
+    c.drawString(40, y, f"Référence: #{reservation.get('id', '')[:8].upper()}")
+    
+    if invoice_details:
+        y -= 25
+        c.setFillColor(dark)
+        c.setFont("Helvetica-Bold", 10)
+        c.drawString(40, y, "Détails / Suppléments:")
+        y -= 16
+        c.setFont("Helvetica", 10)
+        c.setFillColor(gray)
+        for line in invoice_details.split('\n'):
+            c.drawString(40, y, line.strip())
+            y -= 14
     
     # Total
-    total_data = [
-        ["TOTAL HT:", f"{prix_final} €"],
-        ["TVA:", ENTREPRISE_INFO["tva_mention"]],
-        ["TOTAL TTC:", f"{prix_final} €"],
-    ]
+    y -= 40
+    c.setFillColor(light_gray)
+    c.roundRect(40, y - 60, width - 80, 70, 10, fill=True, stroke=False)
     
-    total_table = Table(total_data, colWidths=[12*cm, 4*cm])
-    total_table.setStyle(TableStyle([
-        ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
-        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, -1), 11),
-        ('TEXTCOLOR', (0, -1), (-1, -1), colors.HexColor('#1a56db')),
-        ('LINEABOVE', (0, -1), (-1, -1), 2, colors.HexColor('#1a56db')),
-        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-    ]))
-    story.append(total_table)
-    story.append(Spacer(1, 1*cm))
+    c.setFillColor(dark)
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(60, y - 25, "TOTAL TTC")
     
-    # Mentions légales
-    mentions_text = f"Numéro de réservation: {reservation.numero_reservation}<br/>{ENTREPRISE_INFO['tva_mention']}"
-    mentions_style = ParagraphStyle(
-        'Mentions',
-        parent=styles['Normal'],
-        fontSize=9,
-        textColor=colors.grey,
-        alignment=TA_CENTER
-    )
-    story.append(Paragraph(mentions_text, mentions_style))
+    c.setFont("Helvetica-Bold", 28)
+    c.drawRightString(width - 60, y - 30, f"{final_price:.2f} €")
+    
+    y -= 85
+    c.setFont("Helvetica-Oblique", 9)
+    c.setFillColor(gray)
+    c.drawString(40, y, "TVA non applicable – art. 293 B du CGI")
     
     # Footer
-    footer_text = f"Facture générée le {datetime.now().strftime('%d/%m/%Y à %H:%M')}"
-    footer_style = ParagraphStyle(
-        'Footer',
-        parent=styles['Normal'],
-        fontSize=8,
-        textColor=colors.grey,
-        alignment=TA_CENTER
-    )
-    story.append(Spacer(1, 1*cm))
-    story.append(Paragraph(footer_text, footer_style))
+    c.setFillColor(light_gray)
+    c.rect(0, 0, width, 50, fill=True, stroke=False)
     
-    doc.build(story)
+    c.setFillColor(gray)
+    c.setFont("Helvetica", 8)
+    c.drawCentredString(width / 2, 30, f"{COMPANY_INFO['name']} - {COMPANY_INFO['legal_name']} - SIRET: {COMPANY_INFO['siret']}")
+    c.drawCentredString(width / 2, 18, f"{COMPANY_INFO['address']} - {COMPANY_INFO['email']}")
+    
+    c.save()
     buffer.seek(0)
-    return buffer
+    return buffer.getvalue()
 
-
-# ============= EMAIL SERVICE =============
-
-async def envoyer_email_reservation(reservation: Reservation, pdf_buffer: BytesIO):
-    """Envoie un email à l'admin avec le bon de commande en pièce jointe"""
-    
-    # Configuration email (à adapter selon votre provider)
-    smtp_host = os.environ.get('SMTP_HOST', 'smtp.gmail.com')
-    smtp_port = int(os.environ.get('SMTP_PORT', '587'))
-    smtp_user = os.environ.get('SMTP_USER', '')
-    smtp_password = os.environ.get('SMTP_PASSWORD', '')
-    admin_email = os.environ.get('ADMIN_EMAIL', 'admin@jabadriver-vtc.fr')
-    
-    if not smtp_user or not smtp_password:
-        logger.warning("Email non configuré - SMTP_USER ou SMTP_PASSWORD manquant")
+# ============================================
+# EMAIL FUNCTIONS
+# ============================================
+async def send_confirmation_email(reservation: Reservation, bon_commande_pdf: bytes = None):
+    if not reservation.email:
         return
     
-    # Créer le message
-    message = MIMEMultipart()
-    message['From'] = smtp_user
-    message['To'] = admin_email
-    message['Subject'] = f"Nouvelle réservation VTC - {reservation.numero_reservation}"
+    price_display = ""
+    if reservation.estimated_price:
+        price_display = f"""
+            <tr>
+                <td style="padding: 10px 0; color: #94A3B8;">Prix estimé</td>
+                <td style="padding: 10px 0; color: #0F172A; font-weight: 600;">{int(reservation.estimated_price)}€</td>
+            </tr>
+        """
     
-    # Corps du message
-    body = f"""
-Bonjour,
-
-Une nouvelle réservation VTC vient d'être effectuée :
-
-Numéro de réservation : {reservation.numero_reservation}
-Client : {reservation.client_nom}
-Téléphone : {reservation.client_telephone}
-Email : {reservation.client_email}
-
-Date de la course : {reservation.date_course}
-Heure : {reservation.heure_course}
-
-Départ : {reservation.adresse_depart}
-Arrivée : {reservation.adresse_arrivee}
-
-Distance : {reservation.distance_km} km
-Durée estimée : {reservation.duree_minutes} min
-Nombre de passagers : {reservation.nombre_passagers}
-Prix estimé : {reservation.prix_estime} €
-
-Le bon de commande est joint à cet email.
-
-Cordialement,
-Système JabaDriver VTC
-"""
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #0a0a0a; color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0;">JABA DRIVER</h1>
+            <p style="color: #7dd3fc; margin: 10px 0 0 0;">Service VTC Premium</p>
+        </div>
+        <div style="padding: 30px; background-color: #F8FAFC;">
+            <h2 style="color: #0a0a0a;">Confirmation de réservation</h2>
+            <p>Bonjour <strong>{reservation.name}</strong>,</p>
+            <p>Votre réservation a bien été enregistrée. Vous trouverez ci-joint votre bon de commande.</p>
+            <div style="background: white; padding: 20px; border-radius: 12px; margin: 20px 0;">
+                <table style="width: 100%;">
+                    <tr>
+                        <td style="padding: 10px 0; color: #94A3B8;">Date & Heure</td>
+                        <td style="padding: 10px 0; font-weight: 600;">{reservation.date} à {reservation.time}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px 0; color: #94A3B8;">Départ</td>
+                        <td style="padding: 10px 0;">{reservation.pickup_address}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 10px 0; color: #94A3B8;">Arrivée</td>
+                        <td style="padding: 10px 0;">{reservation.dropoff_address}</td>
+                    </tr>
+                    {price_display}
+                </table>
+            </div>
+            <p>Merci de votre confiance !</p>
+        </div>
+    </div>
+    """
     
-    message.attach(MIMEText(body, 'plain'))
-    
-    # Attacher le PDF
-    pdf_attachment = MIMEApplication(pdf_buffer.read(), _subtype='pdf')
-    pdf_attachment.add_header(
-        'Content-Disposition', 
-        'attachment', 
-        filename=f'bon_commande_{reservation.numero_reservation}.pdf'
-    )
-    message.attach(pdf_attachment)
-    
-    # Envoyer l'email
     try:
-        await aiosmtplib.send(
-            message,
-            hostname=smtp_host,
-            port=smtp_port,
-            username=smtp_user,
-            password=smtp_password,
-            start_tls=True
-        )
-        logger.info(f"Email envoyé pour réservation {reservation.numero_reservation}")
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [reservation.email],
+            "subject": f"JABA DRIVER - Confirmation réservation du {reservation.date}",
+            "html": html_content
+        }
+        
+        if bon_commande_pdf:
+            params["attachments"] = [{
+                "filename": f"bon_commande_{reservation.id[:8].upper()}.pdf",
+                "content": base64.b64encode(bon_commande_pdf).decode('utf-8')
+            }]
+        
+        await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"Confirmation email sent to {reservation.email}")
     except Exception as e:
-        logger.error(f"Erreur envoi email : {str(e)}")
+        logger.error(f"Failed to send confirmation email: {str(e)}")
 
+async def send_driver_alert(reservation: Reservation, bon_commande_pdf: bytes = None):
+    if not DRIVER_EMAIL:
+        return
+    
+    price_info = ""
+    if reservation.estimated_price:
+        distance_str = f"{reservation.distance_km:.1f} km" if reservation.distance_km else "N/A"
+        duration_str = f"{int(reservation.duration_min)} min" if reservation.duration_min else "N/A"
+        price_info = f"""
+            <div style="background: #7dd3fc; color: #0a0a0a; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                <p style="margin: 0; font-size: 14px;">Prix estimé</p>
+                <p style="margin: 5px 0 0 0; font-size: 28px; font-weight: bold;">{int(reservation.estimated_price)}€</p>
+                <p style="margin: 5px 0 0 0; font-size: 12px;">{distance_str} • {duration_str}</p>
+            </div>
+        """
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #7dd3fc; color: #0a0a0a; padding: 30px; text-align: center;">
+            <h1 style="margin: 0;">🚗 NOUVELLE RÉSERVATION</h1>
+        </div>
+        <div style="padding: 30px; background: #F8FAFC;">
+            {price_info}
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+                <h3 style="margin-top: 0;">Client</h3>
+                <p><strong>Nom:</strong> {reservation.name}</p>
+                <p><strong>Téléphone:</strong> <a href="tel:{reservation.phone}">{reservation.phone}</a></p>
+                {f'<p><strong>Email:</strong> {reservation.email}</p>' if reservation.email else ''}
+            </div>
+            <div style="background: white; padding: 20px; border-radius: 8px;">
+                <h3 style="margin-top: 0;">Course</h3>
+                <p><strong>Date:</strong> {reservation.date} à {reservation.time}</p>
+                <p><strong>Départ:</strong> {reservation.pickup_address}</p>
+                <p><strong>Arrivée:</strong> {reservation.dropoff_address}</p>
+                <p><strong>Passagers:</strong> {reservation.passengers}</p>
+            </div>
+        </div>
+    </div>
+    """
+    
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [DRIVER_EMAIL],
+            "subject": f"🚗 Nouvelle réservation - {reservation.name} - {reservation.date} {reservation.time}",
+            "html": html_content
+        }
+        
+        if bon_commande_pdf:
+            params["attachments"] = [{
+                "filename": f"bon_commande_{reservation.id[:8].upper()}.pdf",
+                "content": base64.b64encode(bon_commande_pdf).decode('utf-8')
+            }]
+        
+        await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"Driver alert sent to {DRIVER_EMAIL}")
+    except Exception as e:
+        logger.error(f"Failed to send driver alert: {str(e)}")
 
-# ============= API ROUTES =============
+async def send_invoice_email(reservation: dict, pdf_data: bytes):
+    client_email = reservation.get("email")
+    if not client_email:
+        raise ValueError("Client email not available")
+    
+    invoice_number = reservation.get("invoice_number", "")
+    final_price = reservation.get("final_price", 0)
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #0a0a0a; color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0;">JABA DRIVER</h1>
+            <p style="color: #7dd3fc; margin: 10px 0 0 0;">Service VTC Premium</p>
+        </div>
+        <div style="padding: 30px; background: #F8FAFC;">
+            <h2>Votre facture</h2>
+            <p>Bonjour <strong>{reservation.get('name', '')}</strong>,</p>
+            <p>Veuillez trouver ci-joint votre facture n° <strong>{invoice_number}</strong> pour un montant de <strong>{final_price:.2f} €</strong>.</p>
+            <p>Merci pour votre confiance !</p>
+            <p style="margin-top: 30px;">Cordialement,<br/>JABA DRIVER</p>
+        </div>
+    </div>
+    """
+    
+    params = {
+        "from": SENDER_EMAIL,
+        "to": [client_email],
+        "subject": f"JABA DRIVER - Facture {invoice_number}",
+        "html": html_content,
+        "attachments": [{
+            "filename": f"facture_{invoice_number}.pdf",
+            "content": base64.b64encode(pdf_data).decode('utf-8')
+        }]
+    }
+    
+    await asyncio.to_thread(resend.Emails.send, params)
+    logger.info(f"Invoice email sent to {client_email}")
 
+# ============================================
+# ROUTES
+# ============================================
 @api_router.get("/")
 async def root():
-    return {"message": "API JabaDriver VTC"}
-
+    return {"message": "JABA DRIVER API"}
 
 @api_router.post("/reservations", response_model=Reservation)
-async def creer_reservation(input: ReservationCreate):
-    """Créer une nouvelle réservation et envoyer email avec bon de commande"""
+async def create_reservation(input: ReservationCreate):
+    reservation_dict = input.model_dump()
+    reservation = Reservation(**reservation_dict)
     
-    # Créer l'objet réservation
-    reservation = Reservation(**input.model_dump())
+    # Generate bon de commande automatically
+    reservation_data = reservation.model_dump()
+    bon_commande_pdf = generate_bon_commande_pdf(reservation_data)
     
-    # Sauvegarder dans MongoDB
-    doc = reservation.model_dump()
-    doc['created_at'] = doc['created_at'].isoformat()
-    doc['updated_at'] = doc['updated_at'].isoformat()
+    # Update reservation with bon de commande info
+    reservation_data["bon_commande_generated"] = True
+    reservation_data["bon_commande_date"] = datetime.now(timezone.utc).isoformat()
     
-    await db.reservations.insert_one(doc)
+    await db.reservations.insert_one(reservation_data)
     
-    # Générer le bon de commande PDF
-    try:
-        pdf_buffer = generer_bon_commande_pdf(reservation)
-        
-        # Envoyer l'email avec le PDF
-        await envoyer_email_reservation(reservation, pdf_buffer)
-    except Exception as e:
-        logger.error(f"Erreur génération PDF ou envoi email : {str(e)}")
+    # Send emails with bon de commande attached
+    reservation_obj = Reservation(**reservation_data)
+    asyncio.create_task(send_confirmation_email(reservation_obj, bon_commande_pdf))
+    asyncio.create_task(send_driver_alert(reservation_obj, bon_commande_pdf))
     
-    return reservation
-
+    return reservation_obj
 
 @api_router.get("/reservations", response_model=List[Reservation])
-async def lister_reservations():
-    """Lister toutes les réservations"""
-    reservations = await db.reservations.find({}, {"_id": 0}).to_list(1000)
+async def get_reservations(
+    date: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    status: Optional[str] = Query(None)
+):
+    query = {}
+    if date:
+        query["date"] = date
+    if status:
+        query["status"] = status
+    if search:
+        query["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"phone": {"$regex": search, "$options": "i"}}
+        ]
     
-    # Convert ISO string timestamps back to datetime objects
-    for res in reservations:
-        if isinstance(res['created_at'], str):
-            res['created_at'] = datetime.fromisoformat(res['created_at'])
-        if isinstance(res['updated_at'], str):
-            res['updated_at'] = datetime.fromisoformat(res['updated_at'])
-    
-    # Trier par date de création décroissante
-    reservations.sort(key=lambda x: x['created_at'], reverse=True)
-    
+    reservations = await db.reservations.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
     return reservations
 
-
 @api_router.get("/reservations/{reservation_id}", response_model=Reservation)
-async def obtenir_reservation(reservation_id: str):
-    """Obtenir une réservation par son ID"""
+async def get_reservation(reservation_id: str):
     reservation = await db.reservations.find_one({"id": reservation_id}, {"_id": 0})
-    
     if not reservation:
         raise HTTPException(status_code=404, detail="Réservation non trouvée")
-    
-    # Convert ISO string timestamps back to datetime objects
-    if isinstance(reservation['created_at'], str):
-        reservation['created_at'] = datetime.fromisoformat(reservation['created_at'])
-    if isinstance(reservation['updated_at'], str):
-        reservation['updated_at'] = datetime.fromisoformat(reservation['updated_at'])
-    
     return reservation
 
-
-@api_router.patch("/reservations/{reservation_id}", response_model=Reservation)
-async def modifier_reservation(reservation_id: str, input: ReservationUpdate):
-    """Modifier une réservation (prix final, statut)"""
+@api_router.patch("/reservations/{reservation_id}/status")
+async def update_reservation_status(reservation_id: str, update: StatusUpdate):
+    valid_statuses = ["nouvelle", "confirmée", "effectuée", "annulée"]
+    if update.status not in valid_statuses:
+        raise HTTPException(status_code=400, detail="Statut invalide")
     
+    result = await db.reservations.update_one(
+        {"id": reservation_id},
+        {"$set": {"status": update.status}}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Réservation non trouvée")
+    
+    return {"message": "Statut mis à jour", "status": update.status}
+
+@api_router.post("/admin/login")
+async def admin_login(login: AdminLogin):
+    if login.password == ADMIN_PASSWORD:
+        return {"success": True}
+    raise HTTPException(status_code=401, detail="Mot de passe incorrect")
+
+# Bon de commande routes
+@api_router.get("/reservations/{reservation_id}/bon-commande-pdf")
+async def download_bon_commande(reservation_id: str):
     reservation = await db.reservations.find_one({"id": reservation_id}, {"_id": 0})
     if not reservation:
         raise HTTPException(status_code=404, detail="Réservation non trouvée")
     
-    # Préparer les updates
-    update_data = {}
-    if input.prix_final is not None:
-        update_data["prix_final"] = input.prix_final
-    if input.statut is not None:
-        update_data["statut"] = input.statut
+    pdf_data = generate_bon_commande_pdf(reservation)
+    filename = f"bon_commande_{reservation_id[:8].upper()}.pdf"
     
-    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    return Response(
+        content=pdf_data,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+# Invoice routes
+async def generate_invoice_number():
+    year = datetime.now().year
+    last_invoice = await db.reservations.find_one(
+        {"invoice_number": {"$regex": f"^{year}-"}},
+        sort=[("invoice_number", -1)]
+    )
     
-    # Mettre à jour dans MongoDB
+    if last_invoice and last_invoice.get("invoice_number"):
+        try:
+            last_num = int(last_invoice["invoice_number"].split("-")[1])
+            new_num = last_num + 1
+        except:
+            new_num = 1
+    else:
+        new_num = 1
+    
+    return f"{year}-{new_num:05d}"
+
+@api_router.post("/reservations/{reservation_id}/invoice")
+async def create_invoice(reservation_id: str, invoice_data: InvoiceCreate):
+    reservation = await db.reservations.find_one({"id": reservation_id}, {"_id": 0})
+    if not reservation:
+        raise HTTPException(status_code=404, detail="Réservation non trouvée")
+    
+    if invoice_data.final_price < 10:
+        raise HTTPException(status_code=400, detail="Prix minimum 10€")
+    
+    invoice_number = reservation.get("invoice_number")
+    if not invoice_number:
+        invoice_number = await generate_invoice_number()
+    
+    invoice_date = datetime.now().strftime("%d/%m/%Y")
+    
     await db.reservations.update_one(
         {"id": reservation_id},
-        {"$set": update_data}
+        {"$set": {
+            "invoice_number": invoice_number,
+            "invoice_date": invoice_date,
+            "final_price": invoice_data.final_price,
+            "invoice_details": invoice_data.invoice_details,
+            "invoice_generated": True
+        }}
     )
     
-    # Récupérer la réservation mise à jour
-    updated_reservation = await db.reservations.find_one({"id": reservation_id}, {"_id": 0})
-    
-    # Convert ISO string timestamps
-    if isinstance(updated_reservation['created_at'], str):
-        updated_reservation['created_at'] = datetime.fromisoformat(updated_reservation['created_at'])
-    if isinstance(updated_reservation['updated_at'], str):
-        updated_reservation['updated_at'] = datetime.fromisoformat(updated_reservation['updated_at'])
-    
-    return updated_reservation
+    return {
+        "invoice_number": invoice_number,
+        "invoice_date": invoice_date,
+        "final_price": invoice_data.final_price
+    }
 
-
-@api_router.get("/reservations/{reservation_id}/bon-commande-pdf")
-async def telecharger_bon_commande(reservation_id: str):
-    """Télécharger le bon de commande PDF d'une réservation"""
-    
+@api_router.get("/reservations/{reservation_id}/invoice/pdf")
+async def download_invoice_pdf(reservation_id: str):
     reservation = await db.reservations.find_one({"id": reservation_id}, {"_id": 0})
     if not reservation:
         raise HTTPException(status_code=404, detail="Réservation non trouvée")
     
-    # Convert ISO string timestamps
-    if isinstance(reservation['created_at'], str):
-        reservation['created_at'] = datetime.fromisoformat(reservation['created_at'])
-    if isinstance(reservation['updated_at'], str):
-        reservation['updated_at'] = datetime.fromisoformat(reservation['updated_at'])
+    if not reservation.get("invoice_generated"):
+        raise HTTPException(status_code=400, detail="Facture non générée")
     
-    reservation_obj = Reservation(**reservation)
-    pdf_buffer = generer_bon_commande_pdf(reservation_obj)
+    pdf_data = generate_invoice_pdf(
+        reservation,
+        reservation.get("invoice_number", ""),
+        reservation.get("invoice_date", ""),
+        reservation.get("final_price", 0),
+        reservation.get("invoice_details")
+    )
     
-    return StreamingResponse(
-        pdf_buffer,
+    filename = f"facture_{reservation.get('invoice_number', 'unknown')}.pdf"
+    
+    return Response(
+        content=pdf_data,
         media_type="application/pdf",
-        headers={
-            "Content-Disposition": f"attachment; filename=bon_commande_{reservation_obj.numero_reservation}.pdf"
-        }
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
-
-@api_router.get("/reservations/{reservation_id}/facture-pdf")
-async def telecharger_facture(reservation_id: str):
-    """Télécharger la facture PDF d'une réservation"""
-    
+@api_router.post("/reservations/{reservation_id}/invoice/send")
+async def send_invoice(reservation_id: str):
     reservation = await db.reservations.find_one({"id": reservation_id}, {"_id": 0})
     if not reservation:
         raise HTTPException(status_code=404, detail="Réservation non trouvée")
     
-    # Convert ISO string timestamps
-    if isinstance(reservation['created_at'], str):
-        reservation['created_at'] = datetime.fromisoformat(reservation['created_at'])
-    if isinstance(reservation['updated_at'], str):
-        reservation['updated_at'] = datetime.fromisoformat(reservation['updated_at'])
+    if not reservation.get("invoice_generated"):
+        raise HTTPException(status_code=400, detail="Facture non générée")
     
-    reservation_obj = Reservation(**reservation)
-    pdf_buffer = generer_facture_pdf(reservation_obj)
+    if not reservation.get("email"):
+        raise HTTPException(status_code=400, detail="Email client non renseigné")
+    
+    try:
+        pdf_data = generate_invoice_pdf(
+            reservation,
+            reservation.get("invoice_number", ""),
+            reservation.get("invoice_date", ""),
+            reservation.get("final_price", 0),
+            reservation.get("invoice_details")
+        )
+        
+        await send_invoice_email(reservation, pdf_data)
+        return {"message": f"Facture envoyée à {reservation.get('email')}"}
+    except Exception as e:
+        logger.error(f"Failed to send invoice: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur d'envoi: {str(e)}")
+
+@api_router.get("/reservations/export/csv")
+async def export_reservations_csv(
+    date: Optional[str] = Query(None),
+    status: Optional[str] = Query(None)
+):
+    query = {}
+    if date:
+        query["date"] = date
+    if status:
+        query["status"] = status
+    
+    reservations = await db.reservations.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    writer.writerow([
+        "ID", "Nom", "Téléphone", "Email", "Départ", "Arrivée", 
+        "Date", "Heure", "Passagers", "Statut",
+        "Distance", "Durée", "Prix estimé", 
+        "N° Facture", "Prix final", "Créé le"
+    ])
+    
+    for r in reservations:
+        writer.writerow([
+            r.get("id", "")[:8],
+            r.get("name", ""),
+            r.get("phone", ""),
+            r.get("email", ""),
+            r.get("pickup_address", ""),
+            r.get("dropoff_address", ""),
+            r.get("date", ""),
+            r.get("time", ""),
+            r.get("passengers", ""),
+            r.get("status", ""),
+            r.get("distance_km", ""),
+            r.get("duration_min", ""),
+            r.get("estimated_price", ""),
+            r.get("invoice_number", ""),
+            r.get("final_price", ""),
+            r.get("created_at", "")[:10] if r.get("created_at") else ""
+        ])
+    
+    output.seek(0)
     
     return StreamingResponse(
-        pdf_buffer,
-        media_type="application/pdf",
-        headers={
-            "Content-Disposition": f"attachment; filename=facture_{reservation_obj.numero_reservation}.pdf"
-        }
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=reservations_{datetime.now().strftime('%Y%m%d')}.csv"}
     )
 
-
-# Include the router in the main app
 app.include_router(api_router)
 
 app.add_middleware(
