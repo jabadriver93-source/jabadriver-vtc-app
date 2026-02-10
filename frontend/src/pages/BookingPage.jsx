@@ -1,16 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { 
   MapPin, Calendar, Users, Briefcase, MessageSquare, 
   Phone, Mail, Loader2, Clock, CheckCircle, Shield, CreditCard,
-  User
+  User, Euro
 } from "lucide-react";
 import axios from "axios";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const LOGO_URL = "/logo.png";
+const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+
+// Pricing constants
+const PRICE_PER_KM = 1.50;
+const PRICE_PER_MIN = 0.50;
+const MIN_PRICE = 10;
 
 // French phone validation regex
 const PHONE_REGEX = /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/;
@@ -19,6 +24,10 @@ export default function BookingPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [phoneError, setPhoneError] = useState("");
+  const [priceLoading, setPriceLoading] = useState(false);
+  const [priceData, setPriceData] = useState(null);
+  const debounceTimer = useRef(null);
+  
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -40,6 +49,95 @@ export default function BookingPage() {
     }
     return "";
   };
+
+  // Calculate price using Google Maps Directions API
+  const calculatePrice = useCallback(async (pickup, dropoff) => {
+    if (!pickup || !dropoff || pickup.length < 5 || dropoff.length < 5) {
+      setPriceData(null);
+      return;
+    }
+
+    setPriceLoading(true);
+    
+    try {
+      // Use Google Maps Directions API via CORS proxy or directly
+      const directionsUrl = `https://maps.googleapis.com/maps/api/directions/json?origin=${encodeURIComponent(pickup)}&destination=${encodeURIComponent(dropoff)}&key=${GOOGLE_MAPS_API_KEY}`;
+      
+      // Since we can't call Google API directly from browser (CORS), we'll use the Distance Matrix API
+      // which can be loaded via script
+      const service = new window.google.maps.DistanceMatrixService();
+      
+      service.getDistanceMatrix(
+        {
+          origins: [pickup],
+          destinations: [dropoff],
+          travelMode: window.google.maps.TravelMode.DRIVING,
+          unitSystem: window.google.maps.UnitSystem.METRIC,
+        },
+        (response, status) => {
+          setPriceLoading(false);
+          
+          if (status === "OK" && response.rows[0].elements[0].status === "OK") {
+            const element = response.rows[0].elements[0];
+            const distanceKm = element.distance.value / 1000; // meters to km
+            const durationMin = element.duration.value / 60; // seconds to minutes
+            
+            // Calculate price
+            let price = (distanceKm * PRICE_PER_KM) + (durationMin * PRICE_PER_MIN);
+            
+            // Apply minimum
+            if (price < MIN_PRICE) {
+              price = MIN_PRICE;
+            }
+            
+            // Round up to next euro
+            price = Math.ceil(price);
+            
+            setPriceData({
+              distance_km: Math.round(distanceKm * 10) / 10,
+              duration_min: Math.round(durationMin),
+              estimated_price: price
+            });
+          } else {
+            setPriceData(null);
+          }
+        }
+      );
+    } catch (error) {
+      console.error("Price calculation error:", error);
+      setPriceLoading(false);
+      setPriceData(null);
+    }
+  }, []);
+
+  // Debounced price calculation
+  useEffect(() => {
+    if (debounceTimer.current) {
+      clearTimeout(debounceTimer.current);
+    }
+    
+    debounceTimer.current = setTimeout(() => {
+      if (formData.pickup_address && formData.dropoff_address) {
+        calculatePrice(formData.pickup_address, formData.dropoff_address);
+      }
+    }, 800);
+
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
+  }, [formData.pickup_address, formData.dropoff_address, calculatePrice]);
+
+  // Load Google Maps script
+  useEffect(() => {
+    if (!window.google) {
+      const script = document.createElement("script");
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+      script.async = true;
+      document.head.appendChild(script);
+    }
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -76,7 +174,15 @@ export default function BookingPage() {
 
     setLoading(true);
     try {
-      const response = await axios.post(`${API}/reservations`, formData);
+      // Include pricing data in reservation
+      const reservationData = {
+        ...formData,
+        distance_km: priceData?.distance_km || null,
+        duration_min: priceData?.duration_min || null,
+        estimated_price: priceData?.estimated_price || null
+      };
+      
+      const response = await axios.post(`${API}/reservations`, reservationData);
       toast.success("Réservation enregistrée !");
       navigate(`/confirmation/${response.data.id}`);
     } catch (error) {
@@ -87,7 +193,7 @@ export default function BookingPage() {
     }
   };
 
-  // Get min date (today) and min time
+  // Get min date (today)
   const today = new Date().toISOString().split('T')[0];
 
   return (
@@ -259,6 +365,39 @@ export default function BookingPage() {
                 />
                 <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-red-500" />
               </div>
+            </div>
+
+            {/* Price Estimation */}
+            <div className="mb-6 p-4 bg-gradient-to-r from-[#0a0a0a] to-[#1a1a1a] rounded-xl border border-white/10" data-testid="price-estimation">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-[#7dd3fc] rounded-xl flex items-center justify-center">
+                    <Euro className="w-5 h-5 text-[#0a0a0a]" />
+                  </div>
+                  <div>
+                    <p className="text-white/60 text-sm">Prix estimé de la course</p>
+                    {priceLoading ? (
+                      <div className="flex items-center gap-2 mt-1">
+                        <Loader2 className="w-4 h-4 text-[#7dd3fc] spinner" />
+                        <span className="text-white/40 text-sm">Calcul en cours...</span>
+                      </div>
+                    ) : priceData ? (
+                      <p className="text-white font-bold text-2xl" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                        {priceData.estimated_price}€
+                      </p>
+                    ) : (
+                      <p className="text-white/40 text-sm mt-1">Entrez les adresses pour estimer</p>
+                    )}
+                  </div>
+                </div>
+                {priceData && (
+                  <div className="text-right">
+                    <p className="text-white/40 text-xs">{priceData.distance_km} km</p>
+                    <p className="text-white/40 text-xs">{priceData.duration_min} min</p>
+                  </div>
+                )}
+              </div>
+              <p className="text-white/30 text-xs mt-3">Prix estimatif — minimum 10€</p>
             </div>
 
             {/* Date & Time */}
