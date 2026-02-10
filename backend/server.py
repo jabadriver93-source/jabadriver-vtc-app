@@ -150,6 +150,10 @@ class InvoiceCreate(BaseModel):
     final_price: float
     invoice_details: Optional[str] = None
 
+class AirportSurchargeUpdate(BaseModel):
+    is_airport_trip: bool
+    airport_surcharge: Optional[float] = None
+
 # ============================================
 # PDF GENERATION - BON DE COMMANDE VTC
 # ============================================
