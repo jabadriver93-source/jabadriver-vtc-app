@@ -509,6 +509,11 @@ async def send_confirmation_email(reservation: Reservation, bon_commande_pdf: by
             </tr>
         """
     
+    # Generate Google Maps URL
+    origin_encoded = quote(reservation.pickup_address)
+    destination_encoded = quote(reservation.dropoff_address)
+    maps_url = f"https://www.google.com/maps/dir/?api=1&origin={origin_encoded}&destination={destination_encoded}"
+    
     html_content = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background-color: #0a0a0a; color: white; padding: 30px; text-align: center;">
@@ -535,6 +540,11 @@ async def send_confirmation_email(reservation: Reservation, bon_commande_pdf: by
                     </tr>
                     {price_display}
                 </table>
+            </div>
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{maps_url}" style="display: inline-block; background-color: #7dd3fc; color: #0a0a0a; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 600;">
+                    📍 Voir l'itinéraire Google Maps
+                </a>
             </div>
             <p>Merci de votre confiance !</p>
         </div>
