@@ -216,6 +216,18 @@ class VTCBookingAPITester:
             "PATCH",
             f"reservations/{self.test_reservation_id}/status",
             400,
+            data={"status": "invalid_status"}
+        )
+
+    def test_nonexistent_reservation(self):
+        """Test getting non-existent reservation"""
+        return self.run_test(
+            "Get Non-existent Reservation",
+            "GET",
+            "reservations/nonexistent-id",
+            404
+        )
+
     def test_phone_validation(self):
         """Test French phone number validation"""
         tomorrow = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
