@@ -1,27 +1,26 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { 
-  Car, Search, Calendar, Phone, MapPin, Users, Briefcase, 
+  Search, Calendar, Phone, MapPin, Users, Briefcase, 
   MessageSquare, Download, LogOut, Loader2, Clock, RefreshCw,
   ExternalLink
 } from "lucide-react";
 import axios from "axios";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const LOGO_URL = "/logo.png";
 
 const STATUS_OPTIONS = [
-  { value: "nouvelle", label: "Nouvelle", color: "bg-blue-500" },
-  { value: "confirmée", label: "Confirmée", color: "bg-green-500" },
-  { value: "effectuée", label: "Effectuée", color: "bg-slate-700" },
-  { value: "annulée", label: "Annulée", color: "bg-red-500" }
+  { value: "nouvelle", label: "Nouvelle", bgColor: "bg-[#7dd3fc]", textColor: "text-[#0a0a0a]" },
+  { value: "confirmée", label: "Confirmée", bgColor: "bg-emerald-500", textColor: "text-white" },
+  { value: "effectuée", label: "Effectuée", bgColor: "bg-slate-500", textColor: "text-white" },
+  { value: "annulée", label: "Annulée", bgColor: "bg-red-500", textColor: "text-white" }
 ];
 
-const getStatusColor = (status) => {
+const getStatusStyle = (status) => {
   const found = STATUS_OPTIONS.find(s => s.value === status);
-  return found ? found.color : "bg-slate-500";
+  return found ? `${found.bgColor} ${found.textColor}` : "bg-slate-500 text-white";
 };
 
 export default function AdminDashboard() {
@@ -52,7 +51,7 @@ export default function AdminDashboard() {
       setReservations(response.data);
     } catch (error) {
       console.error("Error fetching reservations:", error);
-      toast.error("Erreur lors du chargement des réservations");
+      toast.error("Erreur lors du chargement");
     } finally {
       setLoading(false);
     }
@@ -72,7 +71,7 @@ export default function AdminDashboard() {
       toast.success("Statut mis à jour");
     } catch (error) {
       console.error("Error updating status:", error);
-      toast.error("Erreur lors de la mise à jour du statut");
+      toast.error("Erreur");
     } finally {
       setUpdatingId(null);
     }
@@ -108,123 +107,115 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-[#0a0a0a]">
       {/* Header */}
-      <header className="admin-header px-6 py-4 sticky top-0 z-50">
+      <header className="px-5 py-4 border-b border-white/10 sticky top-0 z-50 bg-[#0a0a0a]">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Car className="w-7 h-7 text-white" />
-            <span className="text-xl font-extrabold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
-              JABADRIVER
+            <img src={LOGO_URL} alt="JABA DRIVER" className="h-9 w-auto" />
+            <span className="text-lg font-bold text-white tracking-tight hidden sm:block" style={{ fontFamily: 'Manrope, sans-serif' }}>
+              JABA DRIVER
             </span>
-            <span className="text-sm text-white/50 hidden sm:inline ml-2">Admin</span>
+            <span className="text-xs text-[#7dd3fc] font-medium ml-1 hidden sm:block">Admin</span>
           </div>
           <div className="flex items-center gap-2">
-            <Button 
-              variant="ghost" 
-              size="sm"
+            <button 
               onClick={fetchReservations}
-              className="text-white/70 hover:text-white hover:bg-white/10"
+              className="p-2.5 text-white/50 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
               data-testid="refresh-btn"
             >
-              <RefreshCw className="w-4 h-4" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              size="sm"
+              <RefreshCw className="w-5 h-5" />
+            </button>
+            <button 
               onClick={handleLogout}
-              className="text-white/70 hover:text-white hover:bg-white/10"
+              className="inline-flex items-center gap-2 px-3 py-2 text-white/50 hover:text-white hover:bg-white/5 rounded-lg transition-colors text-sm font-medium"
               data-testid="logout-btn"
             >
-              <LogOut className="w-4 h-4 mr-1" />
+              <LogOut className="w-4 h-4" />
               <span className="hidden sm:inline">Déconnexion</span>
-            </Button>
+            </button>
           </div>
         </div>
       </header>
 
       {/* Filters */}
-      <div className="bg-white border-b border-slate-200 px-6 py-4 sticky top-[64px] z-40">
+      <div className="px-5 py-4 border-b border-white/10 sticky top-[65px] z-40 bg-[#0a0a0a]/95 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col sm:flex-row gap-3">
             {/* Search */}
             <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <Input
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
+              <input
                 type="text"
-                placeholder="Rechercher par nom ou téléphone..."
+                placeholder="Rechercher nom ou téléphone..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-12 h-12 bg-slate-100 border-transparent focus:border-blue-500 rounded-full"
+                className="search-input-admin"
                 data-testid="search-input"
               />
             </div>
             
             {/* Date Filter */}
-            <div className="relative">
-              <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-              <Input
-                type="date"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-                className="pl-12 h-12 bg-slate-100 border-transparent focus:border-blue-500 rounded-full w-full sm:w-auto"
-                data-testid="date-filter"
-              />
-            </div>
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              className="filter-input-admin w-full sm:w-auto"
+              data-testid="date-filter"
+            />
 
             {/* Status Filter */}
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-12 bg-slate-100 border-2 border-transparent focus:border-blue-500 rounded-full px-4 text-slate-700 cursor-pointer"
+              className="filter-input-admin w-full sm:w-auto"
               data-testid="status-filter"
             >
-              <option value="">Tous les statuts</option>
+              <option value="">Tous statuts</option>
               {STATUS_OPTIONS.map(s => (
                 <option key={s.value} value={s.value}>{s.label}</option>
               ))}
             </select>
 
             {/* Export Button */}
-            <Button
+            <button
               onClick={handleExport}
-              variant="outline"
-              className="h-12 rounded-full px-6 border-2"
+              className="export-btn"
               data-testid="export-btn"
             >
-              <Download className="w-4 h-4 mr-2" />
-              Export CSV
-            </Button>
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">Export CSV</span>
+            </button>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <main className="px-6 py-6">
+      <main className="px-5 py-6">
         <div className="max-w-6xl mx-auto">
           {/* Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-            <div className="bg-white rounded-xl p-4 border border-slate-100">
-              <p className="text-sm text-slate-500 mb-1">Total</p>
-              <p className="text-2xl font-bold text-slate-900" data-testid="stat-total">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+            <div className="card-dark p-4">
+              <p className="text-xs text-white/40 mb-1 uppercase tracking-wider">Total</p>
+              <p className="text-2xl font-bold text-white" data-testid="stat-total">
                 {reservations.length}
               </p>
             </div>
-            <div className="bg-white rounded-xl p-4 border border-slate-100">
-              <p className="text-sm text-slate-500 mb-1">Nouvelles</p>
-              <p className="text-2xl font-bold text-blue-600" data-testid="stat-new">
+            <div className="card-dark p-4">
+              <p className="text-xs text-white/40 mb-1 uppercase tracking-wider">Nouvelles</p>
+              <p className="text-2xl font-bold text-[#7dd3fc]" data-testid="stat-new">
                 {reservations.filter(r => r.status === "nouvelle").length}
               </p>
             </div>
-            <div className="bg-white rounded-xl p-4 border border-slate-100">
-              <p className="text-sm text-slate-500 mb-1">Confirmées</p>
-              <p className="text-2xl font-bold text-green-600" data-testid="stat-confirmed">
+            <div className="card-dark p-4">
+              <p className="text-xs text-white/40 mb-1 uppercase tracking-wider">Confirmées</p>
+              <p className="text-2xl font-bold text-emerald-500" data-testid="stat-confirmed">
                 {reservations.filter(r => r.status === "confirmée").length}
               </p>
             </div>
-            <div className="bg-white rounded-xl p-4 border border-slate-100">
-              <p className="text-sm text-slate-500 mb-1">Effectuées</p>
-              <p className="text-2xl font-bold text-slate-700" data-testid="stat-done">
+            <div className="card-dark p-4">
+              <p className="text-xs text-white/40 mb-1 uppercase tracking-wider">Effectuées</p>
+              <p className="text-2xl font-bold text-slate-400" data-testid="stat-done">
                 {reservations.filter(r => r.status === "effectuée").length}
               </p>
             </div>
@@ -233,99 +224,96 @@ export default function AdminDashboard() {
           {/* Reservations List */}
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <Loader2 className="w-8 h-8 text-slate-400 spinner" />
+              <Loader2 className="w-8 h-8 text-[#7dd3fc] spinner" />
             </div>
           ) : reservations.length === 0 ? (
-            <div className="text-center py-20 bg-white rounded-2xl border border-slate-100">
-              <Calendar className="w-12 h-12 text-slate-300 mx-auto mb-4" />
-              <p className="text-slate-500">Aucune réservation trouvée</p>
+            <div className="text-center py-20 card-dark">
+              <Calendar className="w-12 h-12 text-white/20 mx-auto mb-4" />
+              <p className="text-white/40">Aucune réservation trouvée</p>
             </div>
           ) : (
             <div className="space-y-4" data-testid="reservations-list">
               {reservations.map((reservation, index) => (
                 <div 
                   key={reservation.id} 
-                  className="reservation-card animate-fadeIn"
+                  className="reservation-row animate-fadeIn"
                   style={{ animationDelay: `${index * 50}ms` }}
                   data-testid={`reservation-${reservation.id}`}
                 >
                   {/* Header */}
-                  <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-lg font-bold text-slate-900" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                      <h3 className="text-lg font-bold text-white" style={{ fontFamily: 'Manrope, sans-serif' }}>
                         {reservation.name}
                       </h3>
-                      <p className="text-sm text-slate-500 flex items-center gap-2 mt-1">
+                      <p className="text-sm text-white/40 flex items-center gap-2 mt-1">
                         <Clock className="w-4 h-4" />
                         Créé le {formatCreatedAt(reservation.created_at)}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {/* Status Badge */}
-                      <span className={`${getStatusColor(reservation.status)} text-white text-xs font-semibold px-3 py-1.5 rounded-full`}>
-                        {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
-                      </span>
-                    </div>
+                    <span className={`${getStatusStyle(reservation.status)} text-xs font-semibold px-3 py-1.5 rounded-full`}>
+                      {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
+                    </span>
                   </div>
 
                   {/* Details Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {/* Date & Time */}
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <Calendar className="w-5 h-5 text-blue-600" />
+                      <div className="w-10 h-10 bg-[#7dd3fc]/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <Calendar className="w-5 h-5 text-[#7dd3fc]" />
                       </div>
                       <div>
-                        <p className="text-sm text-slate-500">Date & Heure</p>
-                        <p className="font-semibold text-slate-900">{formatDate(reservation.date)} à {reservation.time}</p>
+                        <p className="text-xs text-white/40">Date & Heure</p>
+                        <p className="font-semibold text-white">{formatDate(reservation.date)} à {reservation.time}</p>
                       </div>
                     </div>
 
                     {/* Passengers */}
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <Users className="w-5 h-5 text-slate-600" />
+                      <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <Users className="w-5 h-5 text-white/60" />
                       </div>
                       <div>
-                        <p className="text-sm text-slate-500">Passagers</p>
-                        <p className="font-semibold text-slate-900">{reservation.passengers}</p>
+                        <p className="text-xs text-white/40">Passagers</p>
+                        <p className="font-semibold text-white">{reservation.passengers}</p>
                       </div>
                     </div>
 
                     {/* Pickup */}
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <MapPin className="w-5 h-5 text-green-600" />
+                      <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <MapPin className="w-5 h-5 text-emerald-500" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm text-slate-500">Départ</p>
-                        <p className="font-medium text-slate-900 truncate">{reservation.pickup_address}</p>
+                        <p className="text-xs text-white/40">Départ</p>
+                        <p className="font-medium text-white truncate">{reservation.pickup_address}</p>
                       </div>
                     </div>
 
                     {/* Dropoff */}
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                        <MapPin className="w-5 h-5 text-red-600" />
+                      <div className="w-10 h-10 bg-red-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <MapPin className="w-5 h-5 text-red-500" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm text-slate-500">Arrivée</p>
-                        <p className="font-medium text-slate-900 truncate">{reservation.dropoff_address}</p>
+                        <p className="text-xs text-white/40">Arrivée</p>
+                        <p className="font-medium text-white truncate">{reservation.dropoff_address}</p>
                       </div>
                     </div>
                   </div>
 
                   {/* Optional Info */}
                   {(reservation.luggage || reservation.notes) && (
-                    <div className="flex flex-wrap gap-4 mb-4 pt-4 border-t border-slate-100">
+                    <div className="flex flex-wrap gap-4 pt-4 border-t border-white/10">
                       {reservation.luggage && (
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <div className="flex items-center gap-2 text-sm text-white/50">
                           <Briefcase className="w-4 h-4" />
                           {reservation.luggage}
                         </div>
                       )}
                       {reservation.notes && (
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <div className="flex items-center gap-2 text-sm text-white/50">
                           <MessageSquare className="w-4 h-4" />
                           {reservation.notes}
                         </div>
@@ -334,13 +322,13 @@ export default function AdminDashboard() {
                   )}
 
                   {/* Actions */}
-                  <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-slate-100">
+                  <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-white/10">
                     {/* Status Change */}
                     <select
                       value={reservation.status}
                       onChange={(e) => handleStatusChange(reservation.id, e.target.value)}
                       disabled={updatingId === reservation.id}
-                      className="h-10 bg-slate-100 border-2 border-transparent focus:border-blue-500 rounded-full px-4 text-sm font-medium cursor-pointer"
+                      className="status-select-admin"
                       data-testid={`status-select-${reservation.id}`}
                     >
                       {STATUS_OPTIONS.map(s => (
@@ -351,7 +339,7 @@ export default function AdminDashboard() {
                     {/* Call Button */}
                     <a
                       href={`tel:${reservation.phone}`}
-                      className="action-btn bg-green-100 text-green-700 hover:bg-green-200"
+                      className="action-btn bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
                       data-testid={`call-btn-${reservation.id}`}
                     >
                       <Phone className="w-4 h-4" />
@@ -361,7 +349,7 @@ export default function AdminDashboard() {
                     {/* Maps Button */}
                     <button
                       onClick={() => openGoogleMaps(reservation.pickup_address, reservation.dropoff_address)}
-                      className="action-btn bg-blue-100 text-blue-700 hover:bg-blue-200"
+                      className="action-btn bg-[#7dd3fc]/20 text-[#7dd3fc] hover:bg-[#7dd3fc]/30"
                       data-testid={`maps-btn-${reservation.id}`}
                     >
                       <ExternalLink className="w-4 h-4" />

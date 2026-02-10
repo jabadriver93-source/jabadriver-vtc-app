@@ -1,18 +1,24 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Car, MapPin, Calendar, Users, Briefcase, MessageSquare, Phone, Mail, Loader2 } from "lucide-react";
+import { 
+  MapPin, Calendar, Users, Briefcase, MessageSquare, 
+  Phone, Mail, Loader2, Clock, CheckCircle, Shield, CreditCard,
+  User
+} from "lucide-react";
 import axios from "axios";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const LOGO_URL = "/logo.png";
+
+// French phone validation regex
+const PHONE_REGEX = /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/;
 
 export default function BookingPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [phoneError, setPhoneError] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -26,18 +32,45 @@ export default function BookingPage() {
     notes: ""
   });
 
+  const validatePhone = (phone) => {
+    if (!phone) return "Le téléphone est obligatoire";
+    const cleaned = phone.replace(/\s/g, "");
+    if (!PHONE_REGEX.test(phone) && !/^(0|\+33|0033)[1-9]\d{8}$/.test(cleaned)) {
+      return "Numéro de téléphone français invalide";
+    }
+    return "";
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    
+    if (name === "phone") {
+      setPhoneError("");
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     // Validation
-    if (!formData.name || !formData.phone || !formData.pickup_address || 
+    const phoneValidation = validatePhone(formData.phone);
+    if (phoneValidation) {
+      setPhoneError(phoneValidation);
+      toast.error(phoneValidation);
+      return;
+    }
+
+    if (!formData.name || !formData.pickup_address || 
         !formData.dropoff_address || !formData.date || !formData.time) {
       toast.error("Veuillez remplir tous les champs obligatoires");
+      return;
+    }
+
+    // Check date is not in the past
+    const selectedDate = new Date(`${formData.date}T${formData.time}`);
+    if (selectedDate < new Date()) {
+      toast.error("La date et l'heure ne peuvent pas être dans le passé");
       return;
     }
 
@@ -54,23 +87,23 @@ export default function BookingPage() {
     }
   };
 
-  // Get min date (today)
+  // Get min date (today) and min time
   const today = new Date().toISOString().split('T')[0];
 
   return (
-    <div className="min-h-screen hero-bg">
+    <div className="min-h-screen bg-[#0a0a0a]">
       {/* Header */}
-      <header className="px-6 py-6">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
+      <header className="px-5 py-5 border-b border-white/10">
+        <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Car className="w-8 h-8 text-white" />
-            <span className="text-2xl font-extrabold text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
-              JABADRIVER
+            <img src={LOGO_URL} alt="JABA DRIVER" className="h-10 w-auto" />
+            <span className="text-xl font-bold text-white tracking-tight hidden sm:block" style={{ fontFamily: 'Manrope, sans-serif' }}>
+              JABA DRIVER
             </span>
           </div>
           <a 
             href="/admin" 
-            className="text-white/60 hover:text-white text-sm transition-colors"
+            className="text-white/40 hover:text-white/70 text-sm font-medium transition-colors"
             data-testid="admin-link"
           >
             Admin
@@ -78,81 +111,108 @@ export default function BookingPage() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="px-6 pb-12 pt-4">
-        <div className="max-w-lg mx-auto">
-          {/* Hero Text */}
-          <div className="text-center mb-8 animate-fadeIn">
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-white mb-3" style={{ fontFamily: 'Manrope, sans-serif' }}>
-              Réservez votre VTC
-            </h1>
-            <p className="text-white/70 text-base sm:text-lg">
-              Service premium, confort et ponctualité garantis
-            </p>
-          </div>
+      {/* Hero Section */}
+      <section className="px-5 pt-12 pb-8 sm:pt-16 sm:pb-12">
+        <div className="max-w-5xl mx-auto text-center">
+          <h1 
+            className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white mb-4 animate-fadeIn"
+            style={{ fontFamily: 'Manrope, sans-serif', lineHeight: 1.1 }}
+          >
+            Réservez votre <span className="text-[#7dd3fc]">VTC</span>
+          </h1>
+          <p className="text-white/60 text-base sm:text-lg mb-10 max-w-xl mx-auto animate-fadeIn" style={{ animationDelay: '0.1s' }}>
+            Service premium, votre chauffeur privé en Île-de-France
+          </p>
 
-          {/* Booking Form */}
+          {/* Badges */}
+          <div className="flex flex-wrap justify-center gap-3 sm:gap-4 animate-fadeIn" style={{ animationDelay: '0.2s' }}>
+            <div className="hero-badge">
+              <div className="hero-badge-icon">
+                <Clock className="w-5 h-5" />
+              </div>
+              <span>Ponctualité</span>
+            </div>
+            <div className="hero-badge">
+              <div className="hero-badge-icon">
+                <Shield className="w-5 h-5" />
+              </div>
+              <span>Confort</span>
+            </div>
+            <div className="hero-badge">
+              <div className="hero-badge-icon">
+                <CreditCard className="w-5 h-5" />
+              </div>
+              <span>Prix clair</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Form Section */}
+      <section className="px-5 pb-32 sm:pb-12">
+        <div className="max-w-lg mx-auto">
           <form 
             onSubmit={handleSubmit} 
-            className="glass-card rounded-2xl p-6 sm:p-8 booking-form animate-slideUp"
+            className="card-light p-6 sm:p-8 animate-slideUp"
             data-testid="booking-form"
           >
             {/* Name */}
             <div className="mb-5">
-              <Label htmlFor="name" className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-2 block">
+              <label htmlFor="name" className="form-label">
                 Nom complet *
-              </Label>
+              </label>
               <div className="relative">
-                <Input
+                <input
                   id="name"
                   name="name"
                   type="text"
                   value={formData.name}
                   onChange={handleChange}
                   placeholder="Jean Dupont"
-                  className="pl-12 h-14 bg-slate-100/50 border-transparent focus:border-blue-500 rounded-xl"
+                  className="form-input"
                   data-testid="input-name"
                   required
                 />
-                <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               </div>
             </div>
 
             {/* Phone */}
             <div className="mb-5">
-              <Label htmlFor="phone" className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-2 block">
+              <label htmlFor="phone" className="form-label">
                 Téléphone *
-              </Label>
+              </label>
               <div className="relative">
-                <Input
+                <input
                   id="phone"
                   name="phone"
                   type="tel"
                   value={formData.phone}
                   onChange={handleChange}
                   placeholder="06 12 34 56 78"
-                  className="pl-12 h-14 bg-slate-100/50 border-transparent focus:border-blue-500 rounded-xl"
+                  className={`form-input ${phoneError ? 'input-error' : ''}`}
                   data-testid="input-phone"
                   required
                 />
                 <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               </div>
+              {phoneError && <p className="error-message">{phoneError}</p>}
             </div>
 
             {/* Email */}
             <div className="mb-5">
-              <Label htmlFor="email" className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-2 block">
+              <label htmlFor="email" className="form-label">
                 Email (optionnel)
-              </Label>
+              </label>
               <div className="relative">
-                <Input
+                <input
                   id="email"
                   name="email"
                   type="email"
                   value={formData.email}
                   onChange={handleChange}
                   placeholder="jean@example.com"
-                  className="pl-12 h-14 bg-slate-100/50 border-transparent focus:border-blue-500 rounded-xl"
+                  className="form-input"
                   data-testid="input-email"
                 />
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -161,39 +221,39 @@ export default function BookingPage() {
 
             {/* Pickup Address */}
             <div className="mb-5">
-              <Label htmlFor="pickup_address" className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-2 block">
+              <label htmlFor="pickup_address" className="form-label">
                 Adresse de départ *
-              </Label>
+              </label>
               <div className="relative">
-                <Input
+                <input
                   id="pickup_address"
                   name="pickup_address"
                   type="text"
                   value={formData.pickup_address}
                   onChange={handleChange}
                   placeholder="123 Rue de Paris, 75001 Paris"
-                  className="pl-12 h-14 bg-slate-100/50 border-transparent focus:border-blue-500 rounded-xl"
+                  className="form-input"
                   data-testid="input-pickup"
                   required
                 />
-                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-green-500" />
+                <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500" />
               </div>
             </div>
 
             {/* Dropoff Address */}
             <div className="mb-5">
-              <Label htmlFor="dropoff_address" className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-2 block">
+              <label htmlFor="dropoff_address" className="form-label">
                 Adresse d'arrivée *
-              </Label>
+              </label>
               <div className="relative">
-                <Input
+                <input
                   id="dropoff_address"
                   name="dropoff_address"
                   type="text"
                   value={formData.dropoff_address}
                   onChange={handleChange}
                   placeholder="Aéroport CDG Terminal 2E"
-                  className="pl-12 h-14 bg-slate-100/50 border-transparent focus:border-blue-500 rounded-xl"
+                  className="form-input"
                   data-testid="input-dropoff"
                   required
                 />
@@ -204,35 +264,34 @@ export default function BookingPage() {
             {/* Date & Time */}
             <div className="grid grid-cols-2 gap-4 mb-5">
               <div>
-                <Label htmlFor="date" className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-2 block">
+                <label htmlFor="date" className="form-label">
                   Date *
-                </Label>
+                </label>
                 <div className="relative">
-                  <Input
+                  <input
                     id="date"
                     name="date"
                     type="date"
                     value={formData.date}
                     onChange={handleChange}
                     min={today}
-                    className="pl-12 h-14 bg-slate-100/50 border-transparent focus:border-blue-500 rounded-xl"
+                    className="form-input !pl-4"
                     data-testid="input-date"
                     required
                   />
-                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 </div>
               </div>
               <div>
-                <Label htmlFor="time" className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-2 block">
+                <label htmlFor="time" className="form-label">
                   Heure *
-                </Label>
-                <Input
+                </label>
+                <input
                   id="time"
                   name="time"
                   type="time"
                   value={formData.time}
                   onChange={handleChange}
-                  className="h-14 bg-slate-100/50 border-transparent focus:border-blue-500 rounded-xl"
+                  className="form-input !pl-4"
                   data-testid="input-time"
                   required
                 />
@@ -241,18 +300,17 @@ export default function BookingPage() {
 
             {/* Passengers */}
             <div className="mb-5">
-              <Label htmlFor="passengers" className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-2 block">
+              <label htmlFor="passengers" className="form-label">
                 Nombre de passagers
-              </Label>
+              </label>
               <div className="relative">
                 <select
                   id="passengers"
                   name="passengers"
                   value={formData.passengers}
                   onChange={handleChange}
-                  className="w-full pl-12 h-14 bg-slate-100/50 border-2 border-transparent focus:border-blue-500 rounded-xl appearance-none cursor-pointer"
+                  className="form-input form-select"
                   data-testid="input-passengers"
-                  style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 16px center' }}
                 >
                   {[1, 2, 3, 4, 5, 6, 7].map(n => (
                     <option key={n} value={n}>{n} passager{n > 1 ? 's' : ''}</option>
@@ -264,18 +322,18 @@ export default function BookingPage() {
 
             {/* Luggage */}
             <div className="mb-5">
-              <Label htmlFor="luggage" className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-2 block">
+              <label htmlFor="luggage" className="form-label">
                 Bagages (optionnel)
-              </Label>
+              </label>
               <div className="relative">
-                <Input
+                <input
                   id="luggage"
                   name="luggage"
                   type="text"
                   value={formData.luggage}
                   onChange={handleChange}
-                  placeholder="2 valises, 1 sac"
-                  className="pl-12 h-14 bg-slate-100/50 border-transparent focus:border-blue-500 rounded-xl"
+                  placeholder="2 valises, 1 sac cabine"
+                  className="form-input"
                   data-testid="input-luggage"
                 />
                 <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -284,47 +342,71 @@ export default function BookingPage() {
 
             {/* Notes */}
             <div className="mb-6">
-              <Label htmlFor="notes" className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-2 block">
+              <label htmlFor="notes" className="form-label">
                 Note au chauffeur (optionnel)
-              </Label>
+              </label>
               <div className="relative">
-                <Textarea
+                <textarea
                   id="notes"
                   name="notes"
                   value={formData.notes}
                   onChange={handleChange}
-                  placeholder="Instructions spéciales, numéro de vol..."
-                  className="pl-12 pt-4 min-h-[100px] bg-slate-100/50 border-transparent focus:border-blue-500 rounded-xl resize-none"
+                  placeholder="Instructions spéciales, numéro de vol, siège bébé..."
+                  className="form-input form-textarea"
                   data-testid="input-notes"
                 />
                 <MessageSquare className="absolute left-4 top-4 w-5 h-5 text-slate-400" />
               </div>
             </div>
 
-            {/* Submit Button */}
-            <Button
+            {/* Desktop Submit Button */}
+            <div className="hidden sm:block">
+              <button
+                type="submit"
+                disabled={loading}
+                className="submit-btn"
+                data-testid="submit-booking"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 spinner" />
+                    Réservation en cours...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-5 h-5" />
+                    Confirmer la réservation
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+
+          {/* Mobile Sticky Submit Button */}
+          <div className="sm:hidden sticky-btn-mobile">
+            <button
               type="submit"
+              form="booking-form"
               disabled={loading}
-              className="w-full h-14 bg-slate-900 hover:bg-slate-800 text-white rounded-full font-semibold text-base btn-active"
-              data-testid="submit-booking"
+              onClick={handleSubmit}
+              className="submit-btn"
+              data-testid="submit-booking-mobile"
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-5 h-5 mr-2 spinner" />
+                  <Loader2 className="w-5 h-5 spinner" />
                   Réservation en cours...
                 </>
               ) : (
-                "Réserver maintenant"
+                <>
+                  <CheckCircle className="w-5 h-5" />
+                  Confirmer la réservation
+                </>
               )}
-            </Button>
-          </form>
-
-          {/* Footer */}
-          <p className="text-center text-white/50 text-sm mt-8">
-            En réservant, vous acceptez nos conditions générales
-          </p>
+            </button>
+          </div>
         </div>
-      </main>
+      </section>
     </div>
   );
 }

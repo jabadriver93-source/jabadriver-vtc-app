@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=JetBrains+Mono:wght@400&family=Manrope:wght@600;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Manrope:wght@600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,35 +6,42 @@
 
 @layer base {
     :root {
-        --background: 0 0% 100%;
-        --foreground: 222 47% 11%;
-        --card: 0 0% 100%;
-        --card-foreground: 222 47% 11%;
-        --popover: 0 0% 100%;
-        --popover-foreground: 222 47% 11%;
-        --primary: 222 47% 11%;
-        --primary-foreground: 210 40% 98%;
-        --secondary: 210 40% 96%;
-        --secondary-foreground: 222 47% 11%;
-        --muted: 215 16% 47%;
-        --muted-foreground: 215 16% 47%;
-        --accent: 217 91% 60%;
-        --accent-foreground: 0 0% 100%;
-        --destructive: 0 84% 60%;
+        /* Dark Premium Theme */
+        --background: 0 0% 4%;
+        --foreground: 0 0% 98%;
+        --card: 0 0% 8%;
+        --card-foreground: 0 0% 98%;
+        --popover: 0 0% 8%;
+        --popover-foreground: 0 0% 98%;
+        --primary: 0 0% 98%;
+        --primary-foreground: 0 0% 4%;
+        --secondary: 0 0% 14%;
+        --secondary-foreground: 0 0% 98%;
+        --muted: 0 0% 25%;
+        --muted-foreground: 0 0% 60%;
+        --accent: 199 89% 70%;
+        --accent-foreground: 0 0% 4%;
+        --destructive: 0 72% 51%;
         --destructive-foreground: 0 0% 98%;
-        --border: 214 32% 91%;
-        --input: 214 32% 91%;
-        --ring: 217 91% 60%;
-        --radius: 0.5rem;
+        --border: 0 0% 18%;
+        --input: 0 0% 18%;
+        --ring: 199 89% 70%;
+        --radius: 1rem;
 
-        --success: 160 84% 39%;
-        --warning: 38 92% 50%;
-        --info: 217 91% 60%;
+        /* Status Colors */
+        --status-new: 199 89% 70%;
+        --status-confirmed: 142 71% 45%;
+        --status-done: 0 0% 45%;
+        --status-cancelled: 0 72% 51%;
     }
 }
 
 * {
     box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
 }
 
 body {
@@ -48,11 +55,8 @@ body {
 
 h1, h2, h3, h4, h5, h6 {
     font-family: 'Manrope', sans-serif;
+    font-weight: 700;
     letter-spacing: -0.02em;
-}
-
-code, .mono {
-    font-family: 'JetBrains Mono', monospace;
 }
 
 @layer base {
@@ -77,77 +81,153 @@ code, .mono {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--foreground));
+    background: hsl(var(--foreground) / 0.5);
 }
 
-/* Status badge colors */
+/* Status badges */
 .status-nouvelle {
-    background-color: hsl(217 91% 60%);
-    color: white;
+    background-color: hsl(var(--status-new));
+    color: hsl(0 0% 4%);
 }
 
 .status-confirmée {
-    background-color: hsl(160 84% 39%);
+    background-color: hsl(var(--status-confirmed));
     color: white;
 }
 
 .status-effectuée {
-    background-color: hsl(var(--foreground));
+    background-color: hsl(var(--status-done));
     color: white;
 }
 
 .status-annulée {
-    background-color: hsl(0 84% 60%);
+    background-color: hsl(var(--status-cancelled));
     color: white;
 }
 
-/* Animation classes */
+/* Animations */
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-fadeIn {
-    animation: fadeIn 0.3s ease-out forwards;
+    animation: fadeIn 0.4s ease-out forwards;
 }
 
 @keyframes slideUp {
-    from { opacity: 0; transform: translateY(20px); }
+    from { opacity: 0; transform: translateY(30px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-slideUp {
-    animation: slideUp 0.4s ease-out forwards;
+    animation: slideUp 0.5s ease-out forwards;
 }
 
-/* Card hover effect */
-.card-hover {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 20px hsl(var(--accent) / 0.3); }
+    50% { box-shadow: 0 0 30px hsl(var(--accent) / 0.5); }
 }
 
-.card-hover:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+.animate-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
 }
 
-/* Button active state */
-.btn-active:active {
-    transform: scale(0.98);
+/* Card styles */
+.card-light {
+    background: hsl(0 0% 100%);
+    border-radius: 16px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
-/* Input focus ring */
+.card-dark {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    border-radius: 16px;
+}
+
+/* Input focus */
 input:focus, textarea:focus, select:focus {
     outline: none;
-    border-color: hsl(var(--accent)) !important;
-    box-shadow: 0 0 0 3px hsla(217, 91%, 60%, 0.15);
 }
 
-/* Hero background */
-.hero-bg {
-    background-image: linear-gradient(to bottom, rgba(15, 23, 42, 0.85), rgba(15, 23, 42, 0.95)), 
-                      url('https://images.unsplash.com/photo-1764089859662-7b4773dff85b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MDV8MHwxfHNlYXJjaHwyfHxsdXh1cnklMjBibGFjayUyMGNhciUyMHNlZGFuJTIwY2hhdWZmZXVyJTIwc2VydmljZXxlbnwwfHx8fDE3NzA3MjQwNjV8MA&ixlib=rb-4.1.0&q=85');
-    background-size: cover;
-    background-position: center;
+/* Spinner */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+/* Sticky button mobile */
+@media (max-width: 640px) {
+    .sticky-btn-mobile {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        padding: 16px;
+        background: linear-gradient(to top, hsl(0 0% 100%) 80%, transparent);
+        z-index: 50;
+    }
+}
+
+/* Badge style */
+.badge-premium {
+    background: hsl(var(--secondary));
+    border: 1px solid hsl(var(--border));
+    border-radius: 50px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: hsl(var(--foreground));
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Table styles */
+.table-premium {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table-premium th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: hsl(var(--muted-foreground));
+    border-bottom: 1px solid hsl(var(--border));
+}
+
+.table-premium td {
+    padding: 16px;
+    border-bottom: 1px solid hsl(var(--border));
+}
+
+.table-premium tbody tr:hover {
+    background: hsl(var(--secondary) / 0.5);
+}
+
+/* Action button */
+.action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 13px;
+    transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.action-btn:active {
+    transform: scale(0.97);
 }
 
 @layer base {
