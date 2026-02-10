@@ -326,18 +326,6 @@ export default function BookingPage() {
 
   const today = new Date().toISOString().split('T')[0];
 
-  // Parallax effect on scroll
-  const [scrollY, setScrollY] = useState(0);
-  
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrollY(window.scrollY);
-    };
-    
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   return (
     <div className="hero-map">
       {/* SVG Map Background */}
