@@ -165,10 +165,93 @@ export default function InvoiceModal({ reservation, onClose, onInvoiceGenerated 
             </div>
           </div>
           
-          {/* Price Input */}
+          {/* Airport Surcharge Section */}
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+            <div className="flex items-start justify-between gap-4 mb-3">
+              <div className="flex items-center gap-2">
+                <Plane className="w-5 h-5 text-amber-600" />
+                <div>
+                  <h3 className="text-sm font-semibold text-amber-900">Supplément aéroport</h3>
+                  <p className="text-xs text-amber-700 mt-0.5">
+                    Détecté: {reservation.is_airport_trip ? 'Oui ✈️' : 'Non'}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Toggle */}
+              <button
+                onClick={() => setIsAirportTrip(!isAirportTrip)}
+                disabled={isInvoiceGenerated}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  isAirportTrip ? 'bg-amber-600' : 'bg-slate-300'
+                } ${isInvoiceGenerated ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                data-testid="airport-surcharge-toggle"
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    isAirportTrip ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+            
+            {isAirportTrip && (
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-amber-900">
+                  Montant du supplément (€)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={airportSurcharge}
+                    onChange={(e) => setAirportSurcharge(e.target.value)}
+                    disabled={isInvoiceGenerated}
+                    className={`flex-1 h-10 px-3 rounded-lg border-2 ${
+                      isInvoiceGenerated 
+                        ? 'bg-amber-50 border-amber-200 text-amber-500' 
+                        : 'bg-white border-amber-300 focus:border-amber-500 text-slate-900'
+                    } outline-none transition-colors`}
+                    data-testid="airport-surcharge-amount"
+                  />
+                  <button
+                    onClick={handleUpdateAirportSurcharge}
+                    disabled={updatingSurcharge || isInvoiceGenerated}
+                    className="px-4 h-10 bg-amber-600 text-white rounded-lg font-semibold hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+                  >
+                    {updatingSurcharge ? 'Mise à jour...' : 'Appliquer'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Price Breakdown */}
+          <div className="bg-slate-50 rounded-xl p-4">
+            <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">Calcul du prix</h3>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-600">Prix de base:</span>
+                <span className="font-semibold text-slate-900">{parseFloat(basePrice).toFixed(2)}€</span>
+              </div>
+              {isAirportTrip && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-amber-700">Supplément aéroport:</span>
+                  <span className="font-semibold text-amber-700">+ {parseFloat(airportSurcharge).toFixed(2)}€</span>
+                </div>
+              )}
+              <div className="flex justify-between text-base pt-2 border-t border-slate-200">
+                <span className="font-bold text-slate-900">TOTAL:</span>
+                <span className="font-bold text-[#0ea5e9] text-lg">{finalPrice.toFixed(2)}€</span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Price Input - Keep for invoice generation */}
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">
-              Prix final (€) *
+              Prix final pour facture (€) *
             </label>
             <div className="relative">
               <input
@@ -187,11 +270,9 @@ export default function InvoiceModal({ reservation, onClose, onInvoiceGenerated 
               />
               <Euro className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             </div>
-            {reservation.estimated_price && (
-              <p className="text-xs text-slate-500 mt-1">
-                Prix estimé: {reservation.estimated_price}€
-              </p>
-            )}
+            <p className="text-xs text-slate-500 mt-1">
+              Prix calculé automatiquement. Vous pouvez le modifier manuellement si nécessaire.
+            </p>
           </div>
           
           {/* Details Input */}
