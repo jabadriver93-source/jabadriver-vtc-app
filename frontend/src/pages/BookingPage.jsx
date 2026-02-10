@@ -7,6 +7,7 @@ import {
   User, Euro
 } from "lucide-react";
 import axios from "axios";
+import MapBackground from "@/components/MapBackground";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const LOGO_URL = "/logo.png";
