@@ -1,4 +1,4 @@
-# JABADRIVER - Application de Réservation VTC
+# JABA DRIVER - Application de Réservation VTC
 
 ## Problem Statement Original
 Application de réservation VTC simple pour un seul chauffeur. Public: clients.
@@ -22,22 +22,24 @@ Application de réservation VTC simple pour un seul chauffeur. Public: clients.
 - [x] Bouton itinéraire Google Maps
 - [x] Notifications email (MOCKED)
 - [x] Export CSV des réservations
+- [x] Validation téléphone FR
+- [x] Date/heure obligatoire, pas dans le passé
 
-## What's Been Implemented (2026-01-10)
-- Page de réservation avec formulaire complet (nom, téléphone, email, adresses, date/heure, passagers, bagages, notes)
-- Page de confirmation avec détails de la réservation
-- Page admin login avec authentification par mot de passe
-- Dashboard admin avec:
-  - Statistiques (total, nouvelles, confirmées, effectuées)
-  - Liste des réservations triées par date de création
-  - Filtres par date et statut
-  - Recherche par nom ou téléphone
-  - Changement de statut par dropdown
-  - Bouton "Appeler" avec lien tel:
-  - Bouton "Itinéraire" ouvrant Google Maps
-  - Export CSV
-- Design premium avec Manrope + DM Sans fonts
-- Mobile-first responsive design
+## What's Been Implemented
+
+### V1.0 (2026-01-10)
+- Fonctionnalités de base complètes
+
+### V2.0 - Design Premium (2026-02-10)
+- **Theme sombre premium** : Fond #0a0a0a avec accent bleu clair #7dd3fc
+- **Logo JABA DRIVER** : Intégré en header et favicon
+- **Hero section** : Grand titre + sous-titre + 3 badges (Ponctualité/Confort/Prix clair)
+- **Formulaire** : Card claire, arrondis 16px, ombre douce, icônes, labels au-dessus
+- **Bouton mobile** : Sticky en bas "Confirmer la réservation"
+- **Validation téléphone FR** : Format français obligatoire
+- **Validation date/heure** : Obligatoire et pas dans le passé
+- **Page confirmation** : Récap complet + message "On vous confirme rapidement"
+- **Admin** : Interface sombre, statistiques, statuts en couleur (nouvelle=bleu, confirmée=vert, effectuée=gris, annulée=rouge)
 
 ## APIs Implemented
 - POST /api/reservations - Créer une réservation
