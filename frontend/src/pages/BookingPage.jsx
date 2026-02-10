@@ -367,26 +367,10 @@ export default function BookingPage() {
               Réservez votre
             </h1>
             <h1 
-              className="hero-title-map flex items-center justify-center gap-3 sm:gap-4 animate-fadeIn"
+              className="hero-title-map animate-fadeIn"
               style={{ fontFamily: 'Manrope, sans-serif', animationDelay: '0.1s' }}
             >
-              {/* Départ marker - left */}
-              <span className="relative flex-shrink-0">
-                <span className="marker-label marker-label-start" style={{ top: '-24px', left: '50%', transform: 'translateX(-50%)' }}>Départ</span>
-                <span className="marker-dot marker-dot-start" style={{ width: '18px', height: '18px' }}>
-                  <span className="marker-ring marker-ring-start" style={{ inset: '-7px' }} />
-                </span>
-              </span>
-              
               <span className="hero-title-accent-map">VTC</span>
-              
-              {/* Arrivée marker - right */}
-              <span className="relative flex-shrink-0">
-                <span className="marker-label marker-label-end" style={{ top: '-24px', left: '50%', transform: 'translateX(-50%)' }}>Arrivée</span>
-                <span className="marker-dot marker-dot-end" style={{ width: '18px', height: '18px' }}>
-                  <span className="marker-ring marker-ring-end" style={{ inset: '-7px' }} />
-                </span>
-              </span>
             </h1>
             <div className="hero-accent-line animate-fadeIn" style={{ animationDelay: '0.2s' }} />
             
