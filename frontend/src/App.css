@@ -1,12 +1,12 @@
-/* JABA DRIVER Premium Styles */
+/* JABA DRIVER Premium Night Styles */
 
-/* Form inputs - Light theme for form card */
+/* Form inputs - Light theme for glass card */
 .form-input {
     height: 56px;
     background-color: #f8fafc;
     border: 2px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 0 16px 0 48px;
+    border-radius: 14px;
+    padding: 0 16px 0 50px;
     font-size: 16px;
     color: #0f172a;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -17,7 +17,8 @@
 
 .form-input:focus {
     border-color: #7dd3fc;
-    box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.2);
+    box-shadow: 0 0 0 4px rgba(125, 211, 252, 0.15);
+    outline: none;
 }
 
 .form-input::placeholder {
@@ -27,7 +28,7 @@
 .form-textarea {
     height: auto;
     min-height: 100px;
-    padding: 16px 16px 16px 48px;
+    padding: 16px 16px 16px 50px;
     resize: none;
 }
 
@@ -35,20 +36,20 @@
     appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: right 16px center;
-    padding-right: 48px;
+    background-position: right 18px center;
+    padding-right: 50px;
     cursor: pointer;
 }
 
 /* Labels */
 .form-label {
     display: block;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     color: #64748b;
     margin-bottom: 8px;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.08em;
 }
 
 /* Hero badges */
@@ -59,11 +60,16 @@
     padding: 12px 20px;
     background: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
     font-size: 14px;
     font-weight: 500;
     color: white;
+    transition: background-color 0.2s ease;
+}
+
+.hero-badge:hover {
+    background: rgba(255, 255, 255, 0.12);
 }
 
 .hero-badge-icon {
@@ -72,43 +78,88 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: hsl(199 89% 70%);
+    background: #7dd3fc;
     border-radius: 10px;
     color: #0a0a0a;
 }
 
-/* Submit button */
+/* Submit button - Accent color */
 .submit-btn {
     width: 100%;
-    height: 56px;
-    background: #0a0a0a;
-    color: white;
+    height: 58px;
+    background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 100%);
+    color: #0a0a0a;
     border: none;
-    border-radius: 14px;
+    border-radius: 16px;
     font-size: 16px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
-    transition: background-color 0.2s ease, transform 0.1s ease;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: 0 10px 30px rgba(125, 211, 252, 0.3);
 }
 
 .submit-btn:hover {
-    background: #1a1a1a;
+    transform: translateY(-2px);
+    box-shadow: 0 15px 40px rgba(125, 211, 252, 0.4);
 }
 
 .submit-btn:active {
-    transform: scale(0.98);
+    transform: translateY(0);
 }
 
 .submit-btn:disabled {
-    background: #64748b;
+    background: #94a3b8;
     cursor: not-allowed;
+    box-shadow: none;
 }
 
-/* Admin reservation card */
+/* Date and Time input */
+.form-input-datetime {
+    height: 56px;
+    background-color: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 0 14px;
+    font-size: 16px;
+    color: #0f172a;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    display: block;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+.form-input-datetime:focus {
+    border-color: #7dd3fc;
+    box-shadow: 0 0 0 4px rgba(125, 211, 252, 0.15);
+    outline: none;
+}
+
+/* iOS Safari fixes */
+@supports (-webkit-touch-callout: none) {
+    .form-input-datetime {
+        min-height: 56px;
+    }
+}
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+    .form-input, .form-textarea, .form-select {
+        font-size: 16px;
+        padding-left: 46px;
+        padding-right: 14px;
+    }
+}
+
+/* Admin styles */
 .reservation-row {
     display: grid;
     gap: 16px;
@@ -123,7 +174,6 @@
     border-color: hsl(0 0% 25%);
 }
 
-/* Status select in admin */
 .status-select-admin {
     height: 40px;
     background: hsl(0 0% 14%);
@@ -145,7 +195,6 @@
     border-color: hsl(199 89% 70%);
 }
 
-/* Search input admin */
 .search-input-admin {
     height: 48px;
     background: hsl(0 0% 14%);
@@ -166,7 +215,6 @@
     border-color: hsl(199 89% 70%);
 }
 
-/* Filter input admin */
 .filter-input-admin {
     height: 48px;
     background: hsl(0 0% 14%);
@@ -183,7 +231,6 @@
     border-color: hsl(199 89% 70%);
 }
 
-/* Export button */
 .export-btn {
     height: 48px;
     background: hsl(199 89% 70%);
@@ -204,7 +251,7 @@
     background: hsl(199 89% 75%);
 }
 
-/* Phone number validation error */
+/* Validation error */
 .input-error {
     border-color: #ef4444 !important;
 }
@@ -212,97 +259,13 @@
 .error-message {
     color: #ef4444;
     font-size: 12px;
-    margin-top: 4px;
+    margin-top: 6px;
 }
 
-/* Mobile optimizations */
-@media (max-width: 640px) {
-    .form-input, .form-textarea, .form-select {
-        font-size: 16px; /* Prevents zoom on iOS */
-        padding-left: 44px;
-        padding-right: 12px;
-    }
-}
-
-/* Date and Time input - dedicated class for perfect mobile handling */
-.form-input-datetime {
-    height: 56px;
-    background-color: #f8fafc;
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 0 12px;
-    font-size: 16px;
-    color: #0f172a;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-    box-sizing: border-box;
-    display: block;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-}
-
-.form-input-datetime:focus {
-    border-color: #7dd3fc;
-    box-shadow: 0 0 0 3px rgba(125, 211, 252, 0.2);
-    outline: none;
-}
-
-/* iOS Safari specific fixes */
-@supports (-webkit-touch-callout: none) {
-    .form-input-datetime {
-        min-height: 56px;
-    }
-}
-
-/* Google Places Autocomplete dropdown styling */
-.pac-container {
-    background-color: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-    margin-top: 4px;
-    font-family: 'DM Sans', sans-serif;
-    z-index: 10000 !important;
-}
-
-.pac-item {
-    padding: 12px 16px;
-    cursor: pointer;
-    border-top: 1px solid #f1f5f9;
-    font-size: 14px;
-    color: #0f172a;
-}
-
-.pac-item:first-child {
-    border-top: none;
-    border-radius: 12px 12px 0 0;
-}
-
-.pac-item:last-child {
-    border-radius: 0 0 12px 12px;
-}
-
-.pac-item:hover {
-    background-color: #f8fafc;
-}
-
-.pac-item-selected {
-    background-color: #f1f5f9;
-}
-
-.pac-icon {
-    display: none;
-}
-
-.pac-item-query {
-    font-weight: 600;
-    color: #0f172a;
-}
-
-.pac-matched {
-    color: #7dd3fc;
-    font-weight: 600;
+/* Price card styling */
+.price-card {
+    background: linear-gradient(135deg, rgba(125, 211, 252, 0.1) 0%, rgba(56, 189, 248, 0.05) 100%);
+    border: 1px solid rgba(125, 211, 252, 0.2);
+    border-radius: 16px;
+    padding: 20px;
 }
