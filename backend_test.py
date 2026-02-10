@@ -88,6 +88,13 @@ class VTCBookingAPITester:
         if success and 'id' in response:
             self.test_reservation_id = response['id']
             print(f"   Created reservation ID: {self.test_reservation_id}")
+            
+            # Verify pricing data is saved
+            if 'estimated_price' in response and response['estimated_price'] == 69:
+                print(f"✅ Pricing data saved correctly: {response['estimated_price']}€")
+            else:
+                print(f"⚠️  Pricing data issue: {response.get('estimated_price', 'None')}")
+            
             return True
         return False
 
