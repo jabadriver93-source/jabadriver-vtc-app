@@ -669,10 +669,23 @@ async def send_driver_alert(reservation: Reservation, bon_commande_pdf: bytes = 
     if reservation.estimated_price:
         distance_str = f"{reservation.distance_km:.1f} km" if reservation.distance_km else "N/A"
         duration_str = f"{int(reservation.duration_min)} min" if reservation.duration_min else "N/A"
+        
+        base_price = reservation.base_price or reservation.estimated_price
+        airport_surcharge = reservation.airport_surcharge or 0
+        final_price = reservation.estimated_price or (base_price + airport_surcharge)
+        
+        # Build price breakdown
+        price_breakdown = f"<p style='margin: 5px 0 0 0; font-size: 28px; font-weight: bold;'>{int(final_price)}€</p>"
+        if reservation.is_airport_trip and airport_surcharge > 0:
+            price_breakdown = f"""
+                <p style='margin: 5px 0 0 0; font-size: 14px;'>Course: {int(base_price)}€ + Aéroport: {int(airport_surcharge)}€</p>
+                <p style='margin: 5px 0 0 0; font-size: 28px; font-weight: bold;'>{int(final_price)}€</p>
+            """
+        
         price_info = f"""
             <div style="background: #7dd3fc; color: #0a0a0a; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
-                <p style="margin: 0; font-size: 14px;">Prix estimé</p>
-                <p style="margin: 5px 0 0 0; font-size: 28px; font-weight: bold;">{int(reservation.estimated_price)}€</p>
+                <p style="margin: 0; font-size: 14px;">Prix total</p>
+                {price_breakdown}
                 <p style="margin: 5px 0 0 0; font-size: 12px;">{distance_str} • {duration_str}</p>
             </div>
         """
