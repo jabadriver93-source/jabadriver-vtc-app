@@ -344,14 +344,6 @@ export default function BookingPage() {
         </div>
       </div>
       
-      {/* End Marker */}
-      <div className="map-marker map-marker-end">
-        <div className="marker-label marker-label-end">Arrivée</div>
-        <div className="marker-dot marker-dot-end">
-          <div className="marker-ring marker-ring-end" />
-        </div>
-      </div>
-      
       {/* Content */}
       <div className="hero-map-content">
         {/* Header */}
