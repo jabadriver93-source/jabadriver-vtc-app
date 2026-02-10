@@ -37,6 +37,9 @@ SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
 DRIVER_EMAIL = os.environ.get('DRIVER_EMAIL', '')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
 
+# Pricing configuration
+AIRPORT_SURCHARGE = 10.0  # Supplément aéroport en euros
+
 # Company info
 COMPANY_INFO = {
     "name": "JABA DRIVER",
