@@ -7,7 +7,6 @@ import {
   User, Euro
 } from "lucide-react";
 import axios from "axios";
-import { Loader } from "@googlemaps/js-api-loader";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const LOGO_URL = "/logo.png";
@@ -21,9 +20,9 @@ const MIN_PRICE = 10;
 // French phone validation regex
 const PHONE_REGEX = /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/;
 
-// Google Maps Loader instance (singleton)
-let googleMapsLoader = null;
+// Track if Google Maps script is loaded
 let googleMapsLoaded = false;
+let googleMapsLoading = false;
 
 export default function BookingPage() {
   const navigate = useNavigate();
@@ -52,48 +51,64 @@ export default function BookingPage() {
     notes: ""
   });
 
-  // Initialize Google Maps API
+  // Load Google Maps script manually
   useEffect(() => {
-    const initGoogleMaps = async () => {
-      // Skip if already loaded or no API key
-      if (googleMapsLoaded || !GOOGLE_MAPS_API_KEY) {
-        if (googleMapsLoaded) setMapsReady(true);
+    const loadGoogleMaps = () => {
+      if (googleMapsLoaded) {
+        setMapsReady(true);
+        return;
+      }
+      
+      if (googleMapsLoading) {
         return;
       }
 
-      try {
-        // Create loader only once
-        if (!googleMapsLoader) {
-          googleMapsLoader = new Loader({
-            apiKey: GOOGLE_MAPS_API_KEY,
-            version: "weekly",
-            libraries: ["places"],
-            language: "fr",
-            region: "FR"
-          });
-        }
-
-        // Load the API
-        await googleMapsLoader.load();
-        
-        // Verify places library is available
-        if (window.google && window.google.maps && window.google.maps.places) {
-          googleMapsLoaded = true;
-          setMapsReady(true);
-          console.log("Google Maps Places API loaded successfully");
-        } else {
-          console.error("Google Maps Places not available after load");
-        }
-      } catch (error) {
-        console.error("Failed to load Google Maps:", error);
-        // Fallback: continue without autocomplete
+      if (!GOOGLE_MAPS_API_KEY) {
+        console.warn("Google Maps API key not configured");
+        return;
       }
+
+      // Check if already loaded
+      if (window.google?.maps?.places) {
+        googleMapsLoaded = true;
+        setMapsReady(true);
+        return;
+      }
+
+      googleMapsLoading = true;
+
+      const script = document.createElement("script");
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&language=fr&region=FR&callback=initGoogleMapsCallback`;
+      script.async = true;
+      script.defer = true;
+
+      // Global callback for Google Maps
+      window.initGoogleMapsCallback = () => {
+        googleMapsLoaded = true;
+        googleMapsLoading = false;
+        setMapsReady(true);
+        console.log("Google Maps Places API loaded successfully");
+      };
+
+      script.onerror = () => {
+        googleMapsLoading = false;
+        console.error("Failed to load Google Maps script");
+      };
+
+      document.head.appendChild(script);
     };
 
-    initGoogleMaps();
+    loadGoogleMaps();
+
+    return () => {
+      // Cleanup callback
+      if (window.initGoogleMapsCallback) {
+        delete window.initGoogleMapsCallback;
+      }
+    };
   }, []);
 
-  // Initialize Autocomplete when maps is ready and inputs are mounted
+  // Initialize Autocomplete when maps is ready
   useEffect(() => {
     if (!mapsReady || !window.google?.maps?.places) return;
 
@@ -110,12 +125,17 @@ export default function BookingPage() {
         autocomplete.addListener("place_changed", () => {
           const place = autocomplete.getPlace();
           if (place && place.formatted_address) {
+            // Update form data
             setFormData(prev => ({
               ...prev,
               [fieldName]: place.formatted_address
             }));
-            // Trigger price calculation after selection
-            setTimeout(() => calculatePriceFromForm(), 100);
+            // Update input value directly
+            if (inputRef.current) {
+              inputRef.current.value = place.formatted_address;
+            }
+            // Trigger price recalculation
+            setTimeout(() => triggerPriceCalculation(), 200);
           }
         });
 
@@ -139,13 +159,23 @@ export default function BookingPage() {
     const timer = setTimeout(() => {
       initAutocomplete(pickupInputRef, pickupAutocompleteRef, "pickup_address");
       initAutocomplete(dropoffInputRef, dropoffAutocompleteRef, "dropoff_address");
-    }, 100);
+    }, 200);
 
     return () => clearTimeout(timer);
   }, [mapsReady]);
 
+  // Function to trigger price calculation
+  const triggerPriceCalculation = useCallback(() => {
+    const pickup = pickupInputRef.current?.value;
+    const dropoff = dropoffInputRef.current?.value;
+    
+    if (pickup && dropoff && pickup.length > 5 && dropoff.length > 5) {
+      calculatePrice(pickup, dropoff);
+    }
+  }, []);
+
   // Calculate price using Distance Matrix API
-  const calculatePrice = useCallback(async (pickup, dropoff) => {
+  const calculatePrice = useCallback((pickup, dropoff) => {
     if (!pickup || !dropoff || pickup.length < 5 || dropoff.length < 5) {
       setPriceData(null);
       return;
@@ -170,9 +200,7 @@ export default function BookingPage() {
           setPriceLoading(false);
 
           if (status === "OK" && 
-              response.rows[0] && 
-              response.rows[0].elements[0] && 
-              response.rows[0].elements[0].status === "OK") {
+              response?.rows?.[0]?.elements?.[0]?.status === "OK") {
             
             const element = response.rows[0].elements[0];
             const distanceKm = element.distance.value / 1000;
@@ -188,7 +216,7 @@ export default function BookingPage() {
               estimated_price: price
             });
           } else {
-            console.warn("Distance Matrix response:", status, response);
+            console.warn("Distance Matrix response:", status);
             setPriceData(null);
           }
         }
@@ -200,25 +228,16 @@ export default function BookingPage() {
     }
   }, []);
 
-  // Helper to get current form values for price calc
-  const calculatePriceFromForm = useCallback(() => {
-    const pickup = pickupInputRef.current?.value || formData.pickup_address;
-    const dropoff = dropoffInputRef.current?.value || formData.dropoff_address;
-    if (pickup && dropoff) {
-      calculatePrice(pickup, dropoff);
-    }
-  }, [calculatePrice, formData.pickup_address, formData.dropoff_address]);
-
-  // Debounced price calculation on address change
+  // Debounced price calculation on manual address input
   useEffect(() => {
     if (!mapsReady) return;
     
     const timer = setTimeout(() => {
-      calculatePriceFromForm();
-    }, 800);
+      triggerPriceCalculation();
+    }, 1000);
 
     return () => clearTimeout(timer);
-  }, [formData.pickup_address, formData.dropoff_address, mapsReady, calculatePriceFromForm]);
+  }, [formData.pickup_address, formData.dropoff_address, mapsReady, triggerPriceCalculation]);
 
   const validatePhone = (phone) => {
     if (!phone) return "Le téléphone est obligatoire";
@@ -552,9 +571,13 @@ export default function BookingPage() {
                   className="form-input form-select"
                   data-testid="input-passengers"
                 >
-                  {[1, 2, 3, 4, 5, 6, 7].map(n => (
-                    <option key={n} value={n}>{n} passager{n > 1 ? 's' : ''}</option>
-                  ))}
+                  <option value={1}>1 passager</option>
+                  <option value={2}>2 passagers</option>
+                  <option value={3}>3 passagers</option>
+                  <option value={4}>4 passagers</option>
+                  <option value={5}>5 passagers</option>
+                  <option value={6}>6 passagers</option>
+                  <option value={7}>7 passagers</option>
                 </select>
                 <Users className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               </div>
