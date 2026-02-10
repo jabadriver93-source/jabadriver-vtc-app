@@ -64,13 +64,17 @@ class VTCBookingAPITester:
             "name": "Jean Dupont",
             "phone": "0612345678",
             "email": "jean.dupont@test.com",
-            "pickup_address": "123 Rue de Paris, 75001 Paris",
-            "dropoff_address": "Aéroport CDG Terminal 2E",
+            "pickup_address": "Gare du Nord, Paris",
+            "dropoff_address": "Aéroport Charles de Gaulle, Roissy-en-France",
             "date": tomorrow,
             "time": "14:30",
             "passengers": 2,
             "luggage": "2 valises",
-            "notes": "Vol Air France AF1234"
+            "notes": "Vol Air France AF1234",
+            # Test pricing data
+            "distance_km": 31.1,
+            "duration_min": 44,
+            "estimated_price": 69
         }
         
         success, response = self.run_test(
