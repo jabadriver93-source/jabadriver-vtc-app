@@ -216,6 +216,41 @@ class VTCBookingAPITester:
             "PATCH",
             f"reservations/{self.test_reservation_id}/status",
             400,
+    def test_phone_validation(self):
+        """Test French phone number validation"""
+        tomorrow = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
+        
+        # Test valid French phone numbers
+        valid_phones = ["0612345678", "06 12 34 56 78", "+33612345678", "0033612345678"]
+        
+        print(f"\n🔍 Testing Phone Validation...")
+        
+        # Test valid phones (should work)
+        for phone in valid_phones:
+            reservation_data = {
+                "name": "Test User",
+                "phone": phone,
+                "pickup_address": "Paris",
+                "dropoff_address": "CDG",
+                "date": tomorrow,
+                "time": "15:00",
+                "passengers": 1
+            }
+            
+            success, _ = self.run_test(
+                f"Valid Phone: {phone}",
+                "POST",
+                "reservations",
+                200,
+                data=reservation_data
+            )
+            
+            if not success:
+                print(f"❌ Valid phone {phone} was rejected")
+                return False
+        
+        print("✅ All valid phone numbers accepted")
+        return True
             data={"status": "invalid_status"}
         )
 
