@@ -325,8 +325,30 @@ export default function BookingPage() {
 
   const today = new Date().toISOString().split('T')[0];
 
+  // Parallax effect on scroll
+  const [scrollY, setScrollY] = useState(0);
+  
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+    
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <div className="hero-night-bg">
+    <div className="hero-cinematic">
+      {/* Parallax Background */}
+      <div 
+        className="hero-bg-parallax"
+        style={{ transform: `translateY(${scrollY * 0.15}px) scale(1.1)` }}
+      />
+      
+      {/* Cinematic Overlay */}
+      <div className="hero-overlay" />
+      
+      {/* Content */}
       <div className="hero-content">
         {/* Header */}
         <header className="px-5 py-5">
