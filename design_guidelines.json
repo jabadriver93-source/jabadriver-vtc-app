@@ -1,0 +1,165 @@
+{
+  "identity": {
+    "name": "JABADRIVER",
+    "tone": "Premium, Professional, Efficient, Trustworthy",
+    "archetype": "Swiss & High-Contrast (Archetype 4) with a Premium Twist",
+    "audience": "French VTC clients (B2B & B2C)"
+  },
+  "typography": {
+    "headings": {
+      "family": "Manrope, sans-serif",
+      "weights": ["600", "800"],
+      "usage": "Use for all section titles, hero text, and modal headers. Tight tracking (-0.02em)."
+    },
+    "body": {
+      "family": "DM Sans, sans-serif",
+      "weights": ["400", "500"],
+      "usage": "Use for all paragraphs, inputs, and labels. Normal tracking."
+    },
+    "mono": {
+      "family": "JetBrains Mono, monospace",
+      "usage": "Use for reservation IDs, time stamps, and pricing."
+    }
+  },
+  "colors": {
+    "palette": {
+      "background": {
+        "light": "#FFFFFF",
+        "dark": "#020617"
+      },
+      "foreground": {
+        "light": "#0F172A",
+        "dark": "#F8FAFC"
+      },
+      "primary": {
+        "DEFAULT": "#0F172A",
+        "foreground": "#F8FAFC",
+        "description": "Deep Midnight Blue/Slate 900. Use for main CTAs, headers, and active states."
+      },
+      "secondary": {
+        "DEFAULT": "#F1F5F9",
+        "foreground": "#0F172A",
+        "description": "Slate 100. Use for card backgrounds, inputs, and secondary buttons."
+      },
+      "accent": {
+        "DEFAULT": "#2563EB",
+        "foreground": "#FFFFFF",
+        "description": "Electric Blue. Use sparingly for links, active icons, and focus rings."
+      },
+      "muted": {
+        "DEFAULT": "#94A3B8",
+        "foreground": "#FFFFFF",
+        "description": "Slate 400. Use for placeholder text and disabled states."
+      },
+      "status": {
+        "success": "#10B981",
+        "warning": "#F59E0B",
+        "error": "#EF4444",
+        "info": "#3B82F6"
+      }
+    },
+    "gradients": {
+      "hero_overlay": "linear-gradient(to bottom, rgba(15, 23, 42, 0.8), rgba(15, 23, 42, 0.95))",
+      "glass": "rgba(255, 255, 255, 0.7)"
+    }
+  },
+  "layout": {
+    "spacing": {
+      "container_padding": "p-6 md:p-12 lg:p-24",
+      "section_gap": "gap-12 md:gap-24",
+      "element_gap": "gap-4 md:gap-6"
+    },
+    "grid": {
+      "marketing": "grid-cols-1 md:grid-cols-12 gap-8",
+      "dashboard": "grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
+    },
+    "radius": {
+      "default": "rounded-lg",
+      "button": "rounded-full",
+      "card": "rounded-xl"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-8 rounded-full font-medium transition-all active:scale-95",
+      "secondary": "bg-secondary text-secondary-foreground hover:bg-secondary/80 h-12 px-8 rounded-full font-medium transition-all active:scale-95",
+      "outline": "border-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground h-12 px-8 rounded-full font-medium transition-all"
+    },
+    "inputs": {
+      "default": "h-14 bg-secondary/50 border-transparent focus:border-primary focus:ring-0 rounded-lg px-4 text-lg transition-all placeholder:text-muted-foreground/50",
+      "label": "text-sm font-medium text-muted-foreground mb-2 block uppercase tracking-wider"
+    },
+    "cards": {
+      "dashboard": "bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all p-6 rounded-xl",
+      "booking": "bg-white/80 backdrop-blur-xl border border-white/20 shadow-2xl p-8 rounded-2xl"
+    }
+  },
+  "visual_enhancers": {
+    "shadows": {
+      "soft": "shadow-[0_8px_30px_rgb(0,0,0,0.04)]",
+      "glow": "shadow-[0_0_20px_rgba(37,99,235,0.3)]"
+    },
+    "textures": {
+      "noise": "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E\")"
+    }
+  },
+  "image_urls": {
+    "hero_bg": {
+      "url": "https://images.unsplash.com/photo-1764089859662-7b4773dff85b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MDV8MHwxfHNlYXJjaHwyfHxsdXh1cnklMjBibGFjayUyMGNhciUyMHNlZGFuJTIwY2hhdWZmZXVyJTIwc2VydmljZXxlbnwwfHx8fDE3NzA3MjQwNjV8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Black Mercedes-Benz S-Class sedan driving on road. Use as hero background with overlay.",
+      "category": "hero"
+    },
+    "driver_profile": {
+      "url": "https://images.unsplash.com/photo-1764173040019-303a847d4b38?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzR8MHwxfHNlYXJjaHwyfHxwcm9mZXNzaW9uYWwlMjBkcml2ZXIlMjBob2xkaW5nJTIwY2FyJTIwZG9vcnxlbnwwfHx8fDE3NzA3MjQwNjl8MA&ixlib=rb-4.1.0&q=85",
+      "description": "Professional elderly driver standing by car door. Use for 'About' or 'Driver' section.",
+      "category": "content"
+    },
+    "map_texture": {
+      "url": "https://images.unsplash.com/photo-1556014927-a7fe1ee5e4a1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjd8MHwxfHNlYXJjaHwzfHxwYXJpcyUyMHN0cmVldCUyMG1hcCUyMGFic3RyYWN0fGVufDB8fHx8MTc3MDcyNDA3NHww&ixlib=rb-4.1.0&q=85",
+      "description": "Aerial view of Paris. Use as subtle background texture for contact or map sections.",
+      "category": "texture"
+    }
+  },
+  "instructions_to_main_agent": {
+    "general": [
+      "Implement a 'Swiss & High-Contrast' design system.",
+      "Use 'Manrope' for all headings and 'DM Sans' for body text.",
+      "Prioritize mobile-first layout for both client and admin views.",
+      "Ensure all interactive elements have 'data-testid' attributes.",
+      "Use 'sonner' for toast notifications.",
+      "Do NOT use generic gradients. Use solid colors or subtle noise textures."
+    ],
+    "booking_flow": [
+      "Create a single-column, step-by-step booking form.",
+      "Use large, touch-friendly inputs (h-14).",
+      "Implement progressive disclosure: only show relevant fields.",
+      "Use the 'hero_bg' image with a dark overlay for the booking page background."
+    ],
+    "admin_dashboard": [
+      "Design a card-based list view for reservations (mobile-optimized).",
+      "Include quick actions (Call, Map) as prominent buttons on each card.",
+      "Use color-coded badges for status (New=Blue, Confirmed=Green, Cancelled=Red).",
+      "Ensure the dashboard is usable on a phone screen."
+    ]
+  },
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy",
+    "Use glass-morphism effects with backdrop filters (12-24px blur)",
+    "You MUST NOT apply universal transition. Eg: transition: all. This results in breaking transforms. Always add transitions for specific interactive elements like button, input excluding transforms",
+    "You MUST NOT center align the app container, ie do not add .App { text-align: center; } in the css file. This disrupts the human natural reading flow of text",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style",
+    "NEVER: use AI assistant Emoji characters like 🤖🧠💭💡🔮🎯📚🎭🎬🎪🎉🎊🎁🎀🎂🍰🎈🎨🎰💰💵💳🏦💎🪙💸🤑📊📈📉💹🔢🏆🥇 etc for icons.",
+    "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations. Static = dead.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations: separates good from extraordinary.",
+    "Main agent relies on these image URLs. Missing categories (especially sponsor logos) = main agent will use placeholder text which is FORBIDDEN",
+    "Prioritize using pre-existing components from src/components/ui when applicable",
+    "Create new components that match the style and conventions of existing components when needed",
+    "Examine existing components to understand the project's component patterns before creating new ones",
+    "Components MUST use named exports (export const ComponentName = ...)",
+    "Pages MUST use default exports (export default function PageName() {...})",
+    "Use 'sonner' for toasts. Sonner component are located in /app/src/components/ui/sonner.tsx"
+  ]
+}
