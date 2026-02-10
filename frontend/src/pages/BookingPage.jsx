@@ -401,24 +401,22 @@ export default function BookingPage() {
             </div>
 
             {/* Date & Time */}
-            <div className="grid grid-cols-2 gap-4 mb-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
               <div>
                 <label htmlFor="date" className="form-label">
                   Date *
                 </label>
-                <div className="relative">
-                  <input
-                    id="date"
-                    name="date"
-                    type="date"
-                    value={formData.date}
-                    onChange={handleChange}
-                    min={today}
-                    className="form-input !pl-4"
-                    data-testid="input-date"
-                    required
-                  />
-                </div>
+                <input
+                  id="date"
+                  name="date"
+                  type="date"
+                  value={formData.date}
+                  onChange={handleChange}
+                  min={today}
+                  className="form-input !pl-4 !pr-4 w-full"
+                  data-testid="input-date"
+                  required
+                />
               </div>
               <div>
                 <label htmlFor="time" className="form-label">
@@ -430,7 +428,7 @@ export default function BookingPage() {
                   type="time"
                   value={formData.time}
                   onChange={handleChange}
-                  className="form-input !pl-4"
+                  className="form-input !pl-4 !pr-4 w-full"
                   data-testid="input-time"
                   required
                 />

@@ -11,6 +11,8 @@
     color: #0f172a;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
     width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .form-input:focus {
@@ -217,5 +219,14 @@
 @media (max-width: 640px) {
     .form-input, .form-textarea, .form-select {
         font-size: 16px; /* Prevents zoom on iOS */
+        padding-left: 44px;
+        padding-right: 12px;
+    }
+    
+    /* Date and time inputs need special handling on mobile */
+    input[type="date"].form-input,
+    input[type="time"].form-input {
+        padding-left: 12px;
+        padding-right: 12px;
     }
 }
