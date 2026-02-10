@@ -367,17 +367,24 @@ export default function BookingPage() {
               Réservez votre
             </h1>
             <h1 
-              className="hero-title-map animate-fadeIn"
+              className="hero-title-map flex items-center justify-center gap-3 sm:gap-4 animate-fadeIn"
               style={{ fontFamily: 'Manrope, sans-serif', animationDelay: '0.1s' }}
             >
+              {/* Départ marker - left */}
+              <span className="relative flex-shrink-0">
+                <span className="marker-label marker-label-start" style={{ top: '-24px', left: '50%', transform: 'translateX(-50%)' }}>Départ</span>
+                <span className="marker-dot marker-dot-start" style={{ width: '18px', height: '18px' }}>
+                  <span className="marker-ring marker-ring-start" style={{ inset: '-7px' }} />
+                </span>
+              </span>
+              
               <span className="hero-title-accent-map">VTC</span>
-              {/* Arrivée marker next to VTC */}
-              <span className="inline-flex items-center ml-3 sm:ml-4 align-middle">
-                <span className="relative">
-                  <span className="marker-label marker-label-end" style={{ top: '-24px' }}>Arrivée</span>
-                  <span className="marker-dot marker-dot-end" style={{ width: '16px', height: '16px' }}>
-                    <span className="marker-ring marker-ring-end" style={{ inset: '-6px' }} />
-                  </span>
+              
+              {/* Arrivée marker - right */}
+              <span className="relative flex-shrink-0">
+                <span className="marker-label marker-label-end" style={{ top: '-24px', left: '50%', transform: 'translateX(-50%)' }}>Arrivée</span>
+                <span className="marker-dot marker-dot-end" style={{ width: '18px', height: '18px' }}>
+                  <span className="marker-ring marker-ring-end" style={{ inset: '-7px' }} />
                 </span>
               </span>
             </h1>
