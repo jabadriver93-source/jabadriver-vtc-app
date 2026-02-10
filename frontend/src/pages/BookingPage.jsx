@@ -255,8 +255,8 @@ export default function BookingPage() {
       </section>
 
       {/* Form Section */}
-      <section className="px-5 pb-32 sm:pb-12">
-        <div className="max-w-lg mx-auto">
+      <section className="px-4 sm:px-5 pb-32 sm:pb-12 overflow-x-hidden">
+        <div className="max-w-lg mx-auto w-full">
           <form 
             onSubmit={handleSubmit} 
             className="card-light p-5 sm:p-6 md:p-8 animate-slideUp overflow-x-hidden"
