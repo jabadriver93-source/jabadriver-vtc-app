@@ -1,38 +1,52 @@
-import { useEffect } from "react";
-import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+import { useState } from 'react';
+import '@/App.css';
+import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
+import ReservationPage from '@/pages/ReservationPage';
+import AdminDashboard from '@/pages/AdminDashboard';
+import { Toaster } from '@/components/ui/sonner';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+export const API = `${BACKEND_URL}/api`;
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
-
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
-
+const HomePage = () => {
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="container mx-auto px-4 py-16">
+        <div className="text-center mb-12">
+          <h1 className="text-5xl font-bold text-gray-900 mb-4" data-testid="home-title">
+            🚕 JabaDriver VTC
+          </h1>
+          <p className="text-xl text-gray-700 mb-8">
+            Votre service de transport avec chauffeur professionnel
+          </p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+          <Link to="/reservation" data-testid="reservation-link">
+            <div className="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition-shadow cursor-pointer border-2 border-transparent hover:border-blue-500">
+              <div className="text-4xl mb-4">📝</div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Nouvelle Réservation
+              </h2>
+              <p className="text-gray-600">
+                Réservez votre course VTC en quelques clics
+              </p>
+            </div>
+          </Link>
+
+          <Link to="/admin" data-testid="admin-link">
+            <div className="bg-white rounded-lg shadow-lg p-8 hover:shadow-xl transition-shadow cursor-pointer border-2 border-transparent hover:border-indigo-500">
+              <div className="text-4xl mb-4">⚙️</div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Dashboard Admin
+              </h2>
+              <p className="text-gray-600">
+                Gérer les réservations et générer les documents
+              </p>
+            </div>
+          </Link>
+        </div>
+      </div>
     </div>
   );
 };
@@ -42,11 +56,12 @@ function App() {
     <div className="App">
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/reservation" element={<ReservationPage />} />
+          <Route path="/admin" element={<AdminDashboard />} />
         </Routes>
       </BrowserRouter>
+      <Toaster richColors position="top-right" />
     </div>
   );
 }
