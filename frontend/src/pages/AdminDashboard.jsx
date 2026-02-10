@@ -275,10 +275,17 @@ export default function AdminDashboard() {
                           {reservation.invoice_number}
                         </div>
                       )}
-                      {/* Price Badge */}
+                      {/* Price Badge with breakdown */}
                       {(reservation.final_price || reservation.estimated_price) && (
-                        <div className="bg-[#7dd3fc] text-[#0a0a0a] font-bold px-4 py-1.5 rounded-full text-sm" data-testid={`price-${reservation.id}`}>
-                          {Math.round(reservation.final_price || reservation.estimated_price)}€
+                        <div className="bg-[#7dd3fc] text-[#0a0a0a] font-bold px-4 py-1.5 rounded-full text-sm flex items-center gap-1.5" data-testid={`price-${reservation.id}`}>
+                          {reservation.is_airport_trip && reservation.airport_surcharge > 0 ? (
+                            <span title={`Course: ${Math.round(reservation.base_price || 0)}€ + Aéroport: ${Math.round(reservation.airport_surcharge)}€`}>
+                              {Math.round(reservation.final_price || reservation.estimated_price)}€
+                              <span className="text-[10px] ml-1">✈️</span>
+                            </span>
+                          ) : (
+                            <span>{Math.round(reservation.final_price || reservation.estimated_price)}€</span>
+                          )}
                         </div>
                       )}
                       {/* Status Badge */}
