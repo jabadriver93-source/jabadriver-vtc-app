@@ -56,6 +56,41 @@ api_router = APIRouter(prefix="/api")
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# Helper functions
+def detect_airport(address: str) -> bool:
+    """Détecte si l'adresse contient un aéroport"""
+    if not address:
+        return False
+    
+    address_lower = address.lower()
+    airport_keywords = [
+        'aéroport', 'aeroport', 'airport',
+        'cdg', 'charles de gaulle', 'charles-de-gaulle',
+        'orly',
+        'beauvais', 'tillé'
+    ]
+    
+    return any(keyword in address_lower for keyword in airport_keywords)
+
+def calculate_price_with_surcharge(estimated_price: float, pickup_address: str, dropoff_address: str, apply_surcharge: bool = True) -> dict:
+    """Calcule le prix avec supplément aéroport si applicable"""
+    base_price = estimated_price or 0.0
+    airport_surcharge = 0.0
+    is_airport_trip = False
+    
+    if apply_surcharge and (detect_airport(pickup_address) or detect_airport(dropoff_address)):
+        is_airport_trip = True
+        airport_surcharge = AIRPORT_SURCHARGE
+    
+    final_price = base_price + airport_surcharge
+    
+    return {
+        'base_price': base_price,
+        'airport_surcharge': airport_surcharge,
+        'is_airport_trip': is_airport_trip,
+        'final_price': final_price
+    }
+
 # Models
 class ReservationCreate(BaseModel):
     name: str
