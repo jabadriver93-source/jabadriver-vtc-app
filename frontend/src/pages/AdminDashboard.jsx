@@ -4,9 +4,10 @@ import { toast } from "sonner";
 import { 
   Search, Calendar, Phone, MapPin, Users, Briefcase, 
   MessageSquare, Download, LogOut, Loader2, Clock, RefreshCw,
-  ExternalLink, Euro, Route
+  ExternalLink, Euro, Route, FileText
 } from "lucide-react";
 import axios from "axios";
+import InvoiceModal from "@/components/InvoiceModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const LOGO_URL = "/logo.png";
@@ -31,8 +32,8 @@ export default function AdminDashboard() {
   const [dateFilter, setDateFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [updatingId, setUpdatingId] = useState(null);
+  const [invoiceModalReservation, setInvoiceModalReservation] = useState(null);
 
-  // Check auth
   useEffect(() => {
     const auth = sessionStorage.getItem("adminAuth");
     if (!auth) {
@@ -96,6 +97,13 @@ export default function AdminDashboard() {
     window.open(url, '_blank');
   };
 
+  const handleInvoiceGenerated = (reservationId, invoiceData) => {
+    setReservations(prev =>
+      prev.map(r => r.id === reservationId ? { ...r, ...invoiceData } : r)
+    );
+    setInvoiceModalReservation(prev => prev ? { ...prev, ...invoiceData } : null);
+  };
+
   const formatDate = (dateStr) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
@@ -106,15 +114,14 @@ export default function AdminDashboard() {
     return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   };
 
-  // Calculate totals
   const totalRevenue = reservations
-    .filter(r => r.status !== "annulée" && r.estimated_price)
-    .reduce((sum, r) => sum + (r.estimated_price || 0), 0);
+    .filter(r => r.status !== "annulée" && (r.final_price || r.estimated_price))
+    .reduce((sum, r) => sum + (r.final_price || r.estimated_price || 0), 0);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
       {/* Header */}
-      <header className="px-5 py-4 border-b border-white/10 sticky top-0 z-50 bg-[#0a0a0a]">
+      <header className="px-5 py-4 border-b border-white/10 sticky top-0 z-40 bg-[#0a0a0a]">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src={LOGO_URL} alt="JABA DRIVER" className="h-9 w-auto" />
@@ -144,10 +151,9 @@ export default function AdminDashboard() {
       </header>
 
       {/* Filters */}
-      <div className="px-5 py-4 border-b border-white/10 sticky top-[65px] z-40 bg-[#0a0a0a]/95 backdrop-blur-sm">
+      <div className="px-5 py-4 border-b border-white/10 sticky top-[65px] z-30 bg-[#0a0a0a]/95 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col sm:flex-row gap-3">
-            {/* Search */}
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
               <input
@@ -160,7 +166,6 @@ export default function AdminDashboard() {
               />
             </div>
             
-            {/* Date Filter */}
             <input
               type="date"
               value={dateFilter}
@@ -169,7 +174,6 @@ export default function AdminDashboard() {
               data-testid="date-filter"
             />
 
-            {/* Status Filter */}
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
@@ -182,7 +186,6 @@ export default function AdminDashboard() {
               ))}
             </select>
 
-            {/* Export Button */}
             <button
               onClick={handleExport}
               className="export-btn"
@@ -265,10 +268,17 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
+                      {/* Invoice Badge */}
+                      {reservation.invoice_generated && (
+                        <div className="bg-emerald-500/20 text-emerald-400 text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1">
+                          <FileText className="w-3 h-3" />
+                          {reservation.invoice_number}
+                        </div>
+                      )}
                       {/* Price Badge */}
-                      {reservation.estimated_price && (
+                      {(reservation.final_price || reservation.estimated_price) && (
                         <div className="bg-[#7dd3fc] text-[#0a0a0a] font-bold px-4 py-1.5 rounded-full text-sm" data-testid={`price-${reservation.id}`}>
-                          {Math.round(reservation.estimated_price)}€
+                          {Math.round(reservation.final_price || reservation.estimated_price)}€
                         </div>
                       )}
                       {/* Status Badge */}
@@ -280,7 +290,6 @@ export default function AdminDashboard() {
 
                   {/* Details Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {/* Date & Time */}
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-[#7dd3fc]/20 rounded-xl flex items-center justify-center flex-shrink-0">
                         <Calendar className="w-5 h-5 text-[#7dd3fc]" />
@@ -291,7 +300,6 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    {/* Distance & Duration */}
                     {(reservation.distance_km || reservation.duration_min) && (
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -308,7 +316,6 @@ export default function AdminDashboard() {
                       </div>
                     )}
 
-                    {/* Passengers */}
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center flex-shrink-0">
                         <Users className="w-5 h-5 text-white/60" />
@@ -319,7 +326,6 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    {/* Pickup */}
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
                         <MapPin className="w-5 h-5 text-emerald-500" />
@@ -330,7 +336,6 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    {/* Dropoff */}
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-red-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
                         <MapPin className="w-5 h-5 text-red-500" />
@@ -342,7 +347,6 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  {/* Optional Info */}
                   {(reservation.luggage || reservation.notes) && (
                     <div className="flex flex-wrap gap-4 pt-4 border-t border-white/10">
                       {reservation.luggage && (
@@ -362,7 +366,6 @@ export default function AdminDashboard() {
 
                   {/* Actions */}
                   <div className="flex flex-wrap items-center gap-3 pt-4 border-t border-white/10">
-                    {/* Status Change */}
                     <select
                       value={reservation.status}
                       onChange={(e) => handleStatusChange(reservation.id, e.target.value)}
@@ -375,7 +378,6 @@ export default function AdminDashboard() {
                       ))}
                     </select>
 
-                    {/* Call Button */}
                     <a
                       href={`tel:${reservation.phone}`}
                       className="action-btn bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
@@ -385,7 +387,6 @@ export default function AdminDashboard() {
                       {reservation.phone}
                     </a>
 
-                    {/* Maps Button */}
                     <button
                       onClick={() => openGoogleMaps(reservation.pickup_address, reservation.dropoff_address)}
                       className="action-btn bg-[#7dd3fc]/20 text-[#7dd3fc] hover:bg-[#7dd3fc]/30"
@@ -394,6 +395,20 @@ export default function AdminDashboard() {
                       <ExternalLink className="w-4 h-4" />
                       Itinéraire
                     </button>
+
+                    {/* Invoice Button */}
+                    <button
+                      onClick={() => setInvoiceModalReservation(reservation)}
+                      className={`action-btn ${
+                        reservation.invoice_generated 
+                          ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30' 
+                          : 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
+                      }`}
+                      data-testid={`invoice-btn-${reservation.id}`}
+                    >
+                      <FileText className="w-4 h-4" />
+                      {reservation.invoice_generated ? 'Voir facture' : 'Facture'}
+                    </button>
                   </div>
                 </div>
               ))}
@@ -401,6 +416,15 @@ export default function AdminDashboard() {
           )}
         </div>
       </main>
+
+      {/* Invoice Modal */}
+      {invoiceModalReservation && (
+        <InvoiceModal
+          reservation={invoiceModalReservation}
+          onClose={() => setInvoiceModalReservation(null)}
+          onInvoiceGenerated={handleInvoiceGenerated}
+        />
+      )}
     </div>
   );
 }
