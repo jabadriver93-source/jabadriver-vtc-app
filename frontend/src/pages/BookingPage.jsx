@@ -326,72 +326,73 @@ export default function BookingPage() {
   const today = new Date().toISOString().split('T')[0];
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a]">
-      {/* Header */}
-      <header className="px-5 py-5 border-b border-white/10">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={LOGO_URL} alt="JABA DRIVER" className="h-10 w-auto" />
-            <span className="text-xl font-bold text-white tracking-tight hidden sm:block" style={{ fontFamily: 'Manrope, sans-serif' }}>
-              JABA DRIVER
-            </span>
+    <div className="hero-night-bg">
+      <div className="hero-content">
+        {/* Header */}
+        <header className="px-5 py-5">
+          <div className="max-w-5xl mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img src={LOGO_URL} alt="JABA DRIVER" className="h-11 w-auto drop-shadow-lg" />
+              <span className="text-xl font-bold text-white tracking-tight hidden sm:block drop-shadow-lg" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                JABA DRIVER
+              </span>
+            </div>
+            <a 
+              href="/admin" 
+              className="text-white/50 hover:text-white/80 text-sm font-medium transition-colors"
+              data-testid="admin-link"
+            >
+              Admin
+            </a>
           </div>
-          <a 
-            href="/admin" 
-            className="text-white/40 hover:text-white/70 text-sm font-medium transition-colors"
-            data-testid="admin-link"
-          >
-            Admin
-          </a>
-        </div>
-      </header>
+        </header>
 
-      {/* Hero Section */}
-      <section className="px-5 pt-12 pb-8 sm:pt-16 sm:pb-12">
-        <div className="max-w-5xl mx-auto text-center">
-          <h1 
-            className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white mb-4 animate-fadeIn"
-            style={{ fontFamily: 'Manrope, sans-serif', lineHeight: 1.1 }}
-          >
-            Réservez votre <span className="text-[#7dd3fc]">VTC</span>
-          </h1>
-          <p className="text-white/60 text-base sm:text-lg mb-10 max-w-xl mx-auto animate-fadeIn" style={{ animationDelay: '0.1s' }}>
-            Service premium, votre chauffeur privé en Île-de-France
-          </p>
+        {/* Hero Section */}
+        <section className="px-5 pt-8 pb-6 sm:pt-12 sm:pb-10">
+          <div className="max-w-5xl mx-auto text-center">
+            <h1 
+              className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white mb-4 animate-fadeIn drop-shadow-xl"
+              style={{ fontFamily: 'Manrope, sans-serif', lineHeight: 1.1 }}
+            >
+              Réservez votre <span className="text-[#7dd3fc]">VTC</span>
+            </h1>
+            <p className="text-white/70 text-base sm:text-lg mb-8 max-w-xl mx-auto animate-fadeIn drop-shadow-md" style={{ animationDelay: '0.1s' }}>
+              Service premium, votre chauffeur privé en Île-de-France
+            </p>
 
-          {/* Badges */}
-          <div className="flex flex-wrap justify-center gap-3 sm:gap-4 animate-fadeIn" style={{ animationDelay: '0.2s' }}>
-            <div className="hero-badge">
-              <div className="hero-badge-icon">
-                <Clock className="w-5 h-5" />
+            {/* Badges */}
+            <div className="flex flex-wrap justify-center gap-3 sm:gap-4 animate-fadeIn" style={{ animationDelay: '0.2s' }}>
+              <div className="hero-badge">
+                <div className="hero-badge-icon">
+                  <Clock className="w-5 h-5" />
+                </div>
+                <span>Ponctualité</span>
               </div>
-              <span>Ponctualité</span>
-            </div>
-            <div className="hero-badge">
-              <div className="hero-badge-icon">
-                <Shield className="w-5 h-5" />
+              <div className="hero-badge">
+                <div className="hero-badge-icon">
+                  <Shield className="w-5 h-5" />
+                </div>
+                <span>Confort</span>
               </div>
-              <span>Confort</span>
-            </div>
-            <div className="hero-badge">
-              <div className="hero-badge-icon">
-                <CreditCard className="w-5 h-5" />
+              <div className="hero-badge">
+                <div className="hero-badge-icon">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <span>Prix clair</span>
               </div>
-              <span>Prix clair</span>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Form Section */}
-      <section className="px-4 sm:px-5 pb-32 sm:pb-12 overflow-x-hidden">
-        <div className="max-w-lg mx-auto w-full">
-          <form 
-            onSubmit={handleSubmit} 
-            className="card-light p-5 sm:p-6 md:p-8 animate-slideUp overflow-x-hidden"
-            data-testid="booking-form"
-            style={{ maxWidth: '100%' }}
-          >
+        {/* Form Section */}
+        <section className="px-4 sm:px-5 pb-32 sm:pb-16 overflow-x-hidden">
+          <div className="max-w-lg mx-auto w-full">
+            <form 
+              onSubmit={handleSubmit} 
+              className="glass-card p-6 sm:p-8 animate-slideUp overflow-x-hidden"
+              data-testid="booking-form"
+              style={{ maxWidth: '100%' }}
+            >
             {/* Name */}
             <div className="mb-5">
               <label htmlFor="name" className="form-label">
@@ -502,36 +503,36 @@ export default function BookingPage() {
             </div>
 
             {/* Price Estimation */}
-            <div className="mb-6 p-4 bg-gradient-to-r from-[#0a0a0a] to-[#1a1a1a] rounded-xl border border-white/10" data-testid="price-estimation">
+            <div className="mb-6 price-card" data-testid="price-estimation">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#7dd3fc] rounded-xl flex items-center justify-center">
+                  <div className="w-11 h-11 bg-gradient-to-br from-[#7dd3fc] to-[#38bdf8] rounded-xl flex items-center justify-center shadow-lg">
                     <Euro className="w-5 h-5 text-[#0a0a0a]" />
                   </div>
                   <div>
-                    <p className="text-white/60 text-sm">Prix estimé de la course</p>
+                    <p className="text-slate-500 text-sm font-medium">Prix estimé</p>
                     {priceLoading ? (
                       <div className="flex items-center gap-2 mt-1">
-                        <Loader2 className="w-4 h-4 text-[#7dd3fc] spinner" />
-                        <span className="text-white/40 text-sm">Calcul en cours...</span>
+                        <Loader2 className="w-4 h-4 text-[#0ea5e9] spinner" />
+                        <span className="text-slate-400 text-sm">Calcul...</span>
                       </div>
                     ) : priceData ? (
-                      <p className="text-white font-bold text-2xl" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                      <p className="text-slate-900 font-bold text-2xl" style={{ fontFamily: 'Manrope, sans-serif' }}>
                         {priceData.estimated_price}€
                       </p>
                     ) : (
-                      <p className="text-white/40 text-sm mt-1">Entrez les adresses pour estimer</p>
+                      <p className="text-slate-400 text-sm mt-0.5">Entrez les adresses</p>
                     )}
                   </div>
                 </div>
                 {priceData && (
                   <div className="text-right">
-                    <p className="text-white/40 text-xs">{priceData.distance_km} km</p>
-                    <p className="text-white/40 text-xs">{priceData.duration_min} min</p>
+                    <p className="text-slate-400 text-xs font-medium">{priceData.distance_km} km</p>
+                    <p className="text-slate-400 text-xs font-medium">{priceData.duration_min} min</p>
                   </div>
                 )}
               </div>
-              <p className="text-white/30 text-xs mt-3">Prix estimatif — minimum 10€</p>
+              <p className="text-slate-400 text-xs mt-3 pt-3 border-t border-slate-200">Prix estimatif — minimum 10€</p>
             </div>
 
             {/* Date & Time */}
@@ -682,6 +683,7 @@ export default function BookingPage() {
           </div>
         </div>
       </section>
+      </div>
     </div>
   );
 }
