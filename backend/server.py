@@ -54,6 +54,10 @@ class ReservationCreate(BaseModel):
     passengers: int = 1
     luggage: Optional[str] = None
     notes: Optional[str] = None
+    # New pricing fields
+    distance_km: Optional[float] = None
+    duration_min: Optional[float] = None
+    estimated_price: Optional[float] = None
 
 class Reservation(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -71,6 +75,10 @@ class Reservation(BaseModel):
     notes: Optional[str] = None
     status: str = "nouvelle"
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    # New pricing fields
+    distance_km: Optional[float] = None
+    duration_min: Optional[float] = None
+    estimated_price: Optional[float] = None
 
 class StatusUpdate(BaseModel):
     status: str
@@ -84,35 +92,46 @@ async def send_confirmation_email(reservation: Reservation):
     if not reservation.email:
         return
     
+    # Format price display
+    price_display = ""
+    if reservation.estimated_price:
+        price_display = f"""
+            <tr>
+                <td style="padding: 10px 0; color: #94A3B8; font-size: 14px;">Prix estimé</td>
+                <td style="padding: 10px 0; color: #0F172A; font-weight: 600; font-size: 18px;">{int(reservation.estimated_price)}€</td>
+            </tr>
+        """
+    
     html_content = f"""
     <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background-color: #0F172A; color: white; padding: 30px; text-align: center;">
-            <h1 style="margin: 0; font-size: 28px;">JABADRIVER</h1>
-            <p style="margin: 10px 0 0 0; font-size: 14px;">Service VTC Premium</p>
+        <div style="background-color: #0a0a0a; color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0; font-size: 28px;">JABA DRIVER</h1>
+            <p style="margin: 10px 0 0 0; font-size: 14px; color: #7dd3fc;">Service VTC Premium</p>
         </div>
         <div style="padding: 30px; background-color: #F8FAFC;">
-            <h2 style="color: #0F172A; margin-top: 0;">Confirmation de réservation</h2>
+            <h2 style="color: #0a0a0a; margin-top: 0;">Confirmation de réservation</h2>
             <p style="color: #64748B;">Bonjour <strong>{reservation.name}</strong>,</p>
             <p style="color: #64748B;">Votre réservation a bien été enregistrée. Voici les détails :</p>
             
-            <div style="background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <div style="background-color: white; padding: 20px; border-radius: 12px; margin: 20px 0;">
                 <table style="width: 100%; border-collapse: collapse;">
                     <tr>
                         <td style="padding: 10px 0; color: #94A3B8; font-size: 14px;">Date & Heure</td>
-                        <td style="padding: 10px 0; color: #0F172A; font-weight: 600;">{reservation.date} à {reservation.time}</td>
+                        <td style="padding: 10px 0; color: #0a0a0a; font-weight: 600;">{reservation.date} à {reservation.time}</td>
                     </tr>
                     <tr>
                         <td style="padding: 10px 0; color: #94A3B8; font-size: 14px;">Départ</td>
-                        <td style="padding: 10px 0; color: #0F172A;">{reservation.pickup_address}</td>
+                        <td style="padding: 10px 0; color: #0a0a0a;">{reservation.pickup_address}</td>
                     </tr>
                     <tr>
                         <td style="padding: 10px 0; color: #94A3B8; font-size: 14px;">Arrivée</td>
-                        <td style="padding: 10px 0; color: #0F172A;">{reservation.dropoff_address}</td>
+                        <td style="padding: 10px 0; color: #0a0a0a;">{reservation.dropoff_address}</td>
                     </tr>
                     <tr>
                         <td style="padding: 10px 0; color: #94A3B8; font-size: 14px;">Passagers</td>
-                        <td style="padding: 10px 0; color: #0F172A;">{reservation.passengers}</td>
+                        <td style="padding: 10px 0; color: #0a0a0a;">{reservation.passengers}</td>
                     </tr>
+                    {price_display}
                 </table>
             </div>
             
@@ -120,7 +139,7 @@ async def send_confirmation_email(reservation: Reservation):
             <p style="color: #64748B; font-size: 14px;">Merci de votre confiance !</p>
         </div>
         <div style="text-align: center; padding: 20px; color: #94A3B8; font-size: 12px;">
-            <p>JABADRIVER - Service VTC Premium</p>
+            <p>JABA DRIVER - Service VTC Premium</p>
         </div>
     </div>
     """
@@ -129,7 +148,7 @@ async def send_confirmation_email(reservation: Reservation):
         params = {
             "from": SENDER_EMAIL,
             "to": [reservation.email],
-            "subject": f"JABADRIVER - Confirmation de votre réservation du {reservation.date}",
+            "subject": f"JABA DRIVER - Confirmation de votre réservation du {reservation.date}",
             "html": html_content
         }
         await asyncio.to_thread(resend.Emails.send, params)
@@ -142,21 +161,35 @@ async def send_driver_alert(reservation: Reservation):
     if not DRIVER_EMAIL:
         return
     
+    # Format price display
+    price_info = ""
+    if reservation.estimated_price:
+        distance_str = f"{reservation.distance_km:.1f} km" if reservation.distance_km else "N/A"
+        duration_str = f"{int(reservation.duration_min)} min" if reservation.duration_min else "N/A"
+        price_info = f"""
+            <div style="background-color: #7dd3fc; color: #0a0a0a; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                <p style="margin: 0; font-size: 14px;">Prix estimé</p>
+                <p style="margin: 5px 0 0 0; font-size: 28px; font-weight: bold;">{int(reservation.estimated_price)}€</p>
+                <p style="margin: 5px 0 0 0; font-size: 12px;">{distance_str} • {duration_str}</p>
+            </div>
+        """
+    
     html_content = f"""
     <div style="font-family: 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background-color: #2563EB; color: white; padding: 30px; text-align: center;">
+        <div style="background-color: #7dd3fc; color: #0a0a0a; padding: 30px; text-align: center;">
             <h1 style="margin: 0; font-size: 28px;">🚗 NOUVELLE RÉSERVATION</h1>
         </div>
         <div style="padding: 30px; background-color: #F8FAFC;">
+            {price_info}
             <div style="background-color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                <h3 style="color: #0F172A; margin-top: 0;">Client</h3>
+                <h3 style="color: #0a0a0a; margin-top: 0;">Client</h3>
                 <p style="margin: 5px 0;"><strong>Nom:</strong> {reservation.name}</p>
-                <p style="margin: 5px 0;"><strong>Téléphone:</strong> <a href="tel:{reservation.phone}" style="color: #2563EB;">{reservation.phone}</a></p>
+                <p style="margin: 5px 0;"><strong>Téléphone:</strong> <a href="tel:{reservation.phone}" style="color: #7dd3fc;">{reservation.phone}</a></p>
                 {f'<p style="margin: 5px 0;"><strong>Email:</strong> {reservation.email}</p>' if reservation.email else ''}
             </div>
             
             <div style="background-color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
-                <h3 style="color: #0F172A; margin-top: 0;">Course</h3>
+                <h3 style="color: #0a0a0a; margin-top: 0;">Course</h3>
                 <p style="margin: 5px 0;"><strong>Date:</strong> {reservation.date} à {reservation.time}</p>
                 <p style="margin: 5px 0;"><strong>Départ:</strong> {reservation.pickup_address}</p>
                 <p style="margin: 5px 0;"><strong>Arrivée:</strong> {reservation.dropoff_address}</p>
@@ -166,7 +199,7 @@ async def send_driver_alert(reservation: Reservation):
             </div>
             
             <a href="https://www.google.com/maps/dir/?api=1&origin={reservation.pickup_address}&destination={reservation.dropoff_address}" 
-               style="display: block; background-color: #0F172A; color: white; text-align: center; padding: 15px; border-radius: 50px; text-decoration: none; font-weight: 600;">
+               style="display: block; background-color: #0a0a0a; color: white; text-align: center; padding: 15px; border-radius: 50px; text-decoration: none; font-weight: 600;">
                 Voir l'itinéraire sur Google Maps
             </a>
         </div>
@@ -188,7 +221,7 @@ async def send_driver_alert(reservation: Reservation):
 # Routes
 @api_router.get("/")
 async def root():
-    return {"message": "JABADRIVER API"}
+    return {"message": "JABA DRIVER API"}
 
 @api_router.post("/reservations", response_model=Reservation)
 async def create_reservation(input: ReservationCreate):
@@ -278,10 +311,11 @@ async def export_reservations_csv(
     output = io.StringIO()
     writer = csv.writer(output)
     
-    # Header
+    # Header with new columns
     writer.writerow([
         "ID", "Nom", "Téléphone", "Email", "Départ", "Arrivée", 
-        "Date", "Heure", "Passagers", "Bagages", "Notes", "Statut", "Créé le"
+        "Date", "Heure", "Passagers", "Bagages", "Notes", "Statut",
+        "Distance (km)", "Durée (min)", "Prix estimé (€)", "Créé le"
     ])
     
     # Data
@@ -299,6 +333,9 @@ async def export_reservations_csv(
             r.get("luggage", ""),
             r.get("notes", ""),
             r.get("status", ""),
+            r.get("distance_km", ""),
+            r.get("duration_min", ""),
+            r.get("estimated_price", ""),
             r.get("created_at", "")
         ])
     
