@@ -195,8 +195,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .map-marker-end {
-    top: 55%;
-    right: 25%;
+    top: 25%;
+    right: 30%;
 }
 
 @media (max-width: 768px) {
