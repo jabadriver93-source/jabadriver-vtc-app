@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { 
   Search, Calendar, Phone, MapPin, Users, Briefcase, 
   MessageSquare, Download, LogOut, Loader2, Clock, RefreshCw,
-  ExternalLink
+  ExternalLink, Euro, Route
 } from "lucide-react";
 import axios from "axios";
 
@@ -106,6 +106,11 @@ export default function AdminDashboard() {
     return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   };
 
+  // Calculate totals
+  const totalRevenue = reservations
+    .filter(r => r.status !== "annulée" && r.estimated_price)
+    .reduce((sum, r) => sum + (r.estimated_price || 0), 0);
+
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
       {/* Header */}
@@ -194,7 +199,7 @@ export default function AdminDashboard() {
       <main className="px-5 py-6">
         <div className="max-w-6xl mx-auto">
           {/* Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
             <div className="card-dark p-4">
               <p className="text-xs text-white/40 mb-1 uppercase tracking-wider">Total</p>
               <p className="text-2xl font-bold text-white" data-testid="stat-total">
@@ -217,6 +222,12 @@ export default function AdminDashboard() {
               <p className="text-xs text-white/40 mb-1 uppercase tracking-wider">Effectuées</p>
               <p className="text-2xl font-bold text-slate-400" data-testid="stat-done">
                 {reservations.filter(r => r.status === "effectuée").length}
+              </p>
+            </div>
+            <div className="card-dark p-4 col-span-2 sm:col-span-1 bg-gradient-to-br from-[#7dd3fc]/20 to-transparent">
+              <p className="text-xs text-[#7dd3fc]/70 mb-1 uppercase tracking-wider">CA Estimé</p>
+              <p className="text-2xl font-bold text-[#7dd3fc]" data-testid="stat-revenue">
+                {Math.round(totalRevenue)}€
               </p>
             </div>
           </div>
@@ -242,22 +253,33 @@ export default function AdminDashboard() {
                 >
                   {/* Header */}
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <h3 className="text-lg font-bold text-white" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                        {reservation.name}
-                      </h3>
-                      <p className="text-sm text-white/40 flex items-center gap-2 mt-1">
-                        <Clock className="w-4 h-4" />
-                        Créé le {formatCreatedAt(reservation.created_at)}
-                      </p>
+                    <div className="flex items-start gap-4">
+                      <div>
+                        <h3 className="text-lg font-bold text-white" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                          {reservation.name}
+                        </h3>
+                        <p className="text-sm text-white/40 flex items-center gap-2 mt-1">
+                          <Clock className="w-4 h-4" />
+                          Créé le {formatCreatedAt(reservation.created_at)}
+                        </p>
+                      </div>
                     </div>
-                    <span className={`${getStatusStyle(reservation.status)} text-xs font-semibold px-3 py-1.5 rounded-full`}>
-                      {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
-                    </span>
+                    <div className="flex items-center gap-3">
+                      {/* Price Badge */}
+                      {reservation.estimated_price && (
+                        <div className="bg-[#7dd3fc] text-[#0a0a0a] font-bold px-4 py-1.5 rounded-full text-sm" data-testid={`price-${reservation.id}`}>
+                          {Math.round(reservation.estimated_price)}€
+                        </div>
+                      )}
+                      {/* Status Badge */}
+                      <span className={`${getStatusStyle(reservation.status)} text-xs font-semibold px-3 py-1.5 rounded-full`}>
+                        {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Details Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {/* Date & Time */}
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 bg-[#7dd3fc]/20 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -268,6 +290,23 @@ export default function AdminDashboard() {
                         <p className="font-semibold text-white">{formatDate(reservation.date)} à {reservation.time}</p>
                       </div>
                     </div>
+
+                    {/* Distance & Duration */}
+                    {(reservation.distance_km || reservation.duration_min) && (
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center flex-shrink-0">
+                          <Route className="w-5 h-5 text-white/60" />
+                        </div>
+                        <div>
+                          <p className="text-xs text-white/40">Distance / Durée</p>
+                          <p className="font-semibold text-white">
+                            {reservation.distance_km ? `${reservation.distance_km} km` : '-'} 
+                            {' • '}
+                            {reservation.duration_min ? `${Math.round(reservation.duration_min)} min` : '-'}
+                          </p>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Passengers */}
                     <div className="flex items-center gap-3">
