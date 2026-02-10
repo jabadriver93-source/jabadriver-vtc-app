@@ -396,6 +396,16 @@ export default function AdminDashboard() {
                       Itinéraire
                     </button>
 
+                    {/* Bon de commande Button */}
+                    <button
+                      onClick={() => window.open(`${API}/reservations/${reservation.id}/bon-commande-pdf`, '_blank')}
+                      className="action-btn bg-purple-500/20 text-purple-400 hover:bg-purple-500/30"
+                      data-testid={`bon-commande-btn-${reservation.id}`}
+                    >
+                      <FileCheck className="w-4 h-4" />
+                      Bon de commande
+                    </button>
+
                     {/* Invoice Button */}
                     <button
                       onClick={() => setInvoiceModalReservation(reservation)}
