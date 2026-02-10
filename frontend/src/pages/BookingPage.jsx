@@ -386,42 +386,42 @@ export default function BookingPage() {
         </header>
 
         {/* Hero Section */}
-        <section className="px-5 pt-[340px] sm:pt-[380px] pb-8">
+        <section className="px-5 pt-32 sm:pt-40 pb-8">
           <div className="max-w-5xl mx-auto text-center">
             <h1 
-              className="hero-title-vtc mb-2 animate-fadeIn"
+              className="hero-title-map mb-2 animate-fadeIn"
               style={{ fontFamily: 'Manrope, sans-serif' }}
             >
               Réservez votre
             </h1>
             <h1 
-              className="hero-title-vtc animate-fadeIn"
+              className="hero-title-map animate-fadeIn"
               style={{ fontFamily: 'Manrope, sans-serif', animationDelay: '0.1s' }}
             >
-              <span className="hero-title-accent-vtc">VTC</span>
+              <span className="hero-title-accent-map">VTC</span>
             </h1>
             <div className="hero-accent-line animate-fadeIn" style={{ animationDelay: '0.2s' }} />
             
-            <p className="hero-subtitle-vtc mt-6 mb-10 animate-fadeIn" style={{ animationDelay: '0.25s' }}>
+            <p className="hero-subtitle-map mt-6 mb-10 animate-fadeIn" style={{ animationDelay: '0.25s' }}>
               Service premium, votre chauffeur privé en Île-de-France
             </p>
 
             {/* Badges */}
             <div className="flex flex-wrap justify-center gap-3 sm:gap-4 animate-fadeIn" style={{ animationDelay: '0.35s' }}>
-              <div className="badge-vtc">
-                <div className="badge-vtc-icon">
+              <div className="badge-map">
+                <div className="badge-map-icon">
                   <Clock className="w-5 h-5" />
                 </div>
                 <span>Ponctualité</span>
               </div>
-              <div className="badge-vtc">
-                <div className="badge-vtc-icon">
+              <div className="badge-map">
+                <div className="badge-map-icon">
                   <Shield className="w-5 h-5" />
                 </div>
                 <span>Confort</span>
               </div>
-              <div className="badge-vtc">
-                <div className="badge-vtc-icon">
+              <div className="badge-map">
+                <div className="badge-map-icon">
                   <CreditCard className="w-5 h-5" />
                 </div>
                 <span>Prix clair</span>
