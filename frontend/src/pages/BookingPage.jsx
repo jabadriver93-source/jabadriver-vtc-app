@@ -338,18 +338,17 @@ export default function BookingPage() {
   }, []);
 
   return (
-    <div className="hero-cinematic">
-      {/* Parallax Background */}
-      <div 
-        className="hero-bg-parallax"
-        style={{ transform: `translateY(${scrollY * 0.15}px) scale(1.1)` }}
-      />
-      
-      {/* Cinematic Overlay */}
-      <div className="hero-overlay" />
+    <div className="hero-vtc">
+      {/* Cinematic Image Band */}
+      <div className="hero-band">
+        <div 
+          className="hero-band-image"
+          style={{ transform: `translateY(${scrollY * 0.1}px)` }}
+        />
+      </div>
       
       {/* Content */}
-      <div className="hero-content">
+      <div className="hero-vtc-content">
         {/* Header */}
         <header className="px-5 py-5">
           <div className="max-w-5xl mx-auto flex items-center justify-between">
