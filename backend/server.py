@@ -873,6 +873,42 @@ async def update_reservation_status(reservation_id: str, update: StatusUpdate):
     
     return {"message": "Statut mis à jour", "status": update.status}
 
+@api_router.patch("/reservations/{reservation_id}/airport-surcharge")
+async def update_airport_surcharge(reservation_id: str, update: AirportSurchargeUpdate):
+    # Get current reservation
+    reservation = await db.reservations.find_one({"id": reservation_id})
+    if not reservation:
+        raise HTTPException(status_code=404, detail="Réservation non trouvée")
+    
+    # Calculate new pricing
+    base_price = reservation.get('base_price') or reservation.get('estimated_price', 0)
+    airport_surcharge = 0.0
+    
+    if update.is_airport_trip:
+        airport_surcharge = update.airport_surcharge if update.airport_surcharge is not None else AIRPORT_SURCHARGE
+    
+    new_estimated_price = base_price + airport_surcharge
+    
+    # Update reservation
+    result = await db.reservations.update_one(
+        {"id": reservation_id},
+        {"$set": {
+            "is_airport_trip": update.is_airport_trip,
+            "airport_surcharge": airport_surcharge,
+            "estimated_price": new_estimated_price
+        }}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Réservation non trouvée")
+    
+    return {
+        "message": "Supplément aéroport mis à jour",
+        "is_airport_trip": update.is_airport_trip,
+        "airport_surcharge": airport_surcharge,
+        "estimated_price": new_estimated_price
+    }
+
 @api_router.post("/admin/login")
 async def admin_login(login: AdminLogin):
     if login.password == ADMIN_PASSWORD:
