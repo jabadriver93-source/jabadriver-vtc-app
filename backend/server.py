@@ -729,6 +729,22 @@ async def root():
 @api_router.post("/reservations", response_model=Reservation)
 async def create_reservation(input: ReservationCreate):
     reservation_dict = input.model_dump()
+    
+    # Calculate price with airport surcharge
+    pricing = calculate_price_with_surcharge(
+        estimated_price=reservation_dict.get('estimated_price', 0.0),
+        pickup_address=reservation_dict.get('pickup_address', ''),
+        dropoff_address=reservation_dict.get('dropoff_address', '')
+    )
+    
+    # Add pricing breakdown to reservation
+    reservation_dict['base_price'] = pricing['base_price']
+    reservation_dict['airport_surcharge'] = pricing['airport_surcharge']
+    reservation_dict['is_airport_trip'] = pricing['is_airport_trip']
+    # Set estimated_price to final price if airport surcharge applies
+    if pricing['is_airport_trip']:
+        reservation_dict['estimated_price'] = pricing['final_price']
+    
     reservation = Reservation(**reservation_dict)
     
     # Generate bon de commande automatically
