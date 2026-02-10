@@ -387,6 +387,15 @@ export default function BookingPage() {
               style={{ fontFamily: 'Manrope, sans-serif', animationDelay: '0.1s' }}
             >
               <span className="hero-title-accent-map">VTC</span>
+              {/* Arrivée marker next to VTC */}
+              <span className="inline-flex items-center ml-3 sm:ml-4 align-middle">
+                <span className="relative">
+                  <span className="marker-label marker-label-end" style={{ top: '-24px' }}>Arrivée</span>
+                  <span className="marker-dot marker-dot-end" style={{ width: '16px', height: '16px' }}>
+                    <span className="marker-ring marker-ring-end" style={{ inset: '-6px' }} />
+                  </span>
+                </span>
+              </span>
             </h1>
             <div className="hero-accent-line animate-fadeIn" style={{ animationDelay: '0.2s' }} />
             
