@@ -1,19 +1,57 @@
-import { useState } from "react";
-import { X, FileText, Download, Send, Loader2, Euro, AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { X, FileText, Download, Send, Loader2, Euro, AlertCircle, Plane } from "lucide-react";
 import axios from "axios";
 import { toast } from "sonner";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export default function InvoiceModal({ reservation, onClose, onInvoiceGenerated }) {
+  const [basePrice, setBasePrice] = useState(
+    reservation.base_price || reservation.estimated_price || 10
+  );
+  const [isAirportTrip, setIsAirportTrip] = useState(reservation.is_airport_trip || false);
+  const [airportSurcharge, setAirportSurcharge] = useState(reservation.airport_surcharge || 10);
   const [finalPrice, setFinalPrice] = useState(
     reservation.final_price || reservation.estimated_price || 10
   );
   const [invoiceDetails, setInvoiceDetails] = useState(reservation.invoice_details || "");
   const [loading, setLoading] = useState(false);
   const [sending, setSending] = useState(false);
+  const [updatingSurcharge, setUpdatingSurcharge] = useState(false);
   
   const isInvoiceGenerated = reservation.invoice_generated;
+  
+  // Recalculate total price when airport surcharge changes
+  useEffect(() => {
+    const calculatedTotal = parseFloat(basePrice) + (isAirportTrip ? parseFloat(airportSurcharge) : 0);
+    setFinalPrice(calculatedTotal);
+  }, [basePrice, isAirportTrip, airportSurcharge]);
+  
+  const handleUpdateAirportSurcharge = async () => {
+    setUpdatingSurcharge(true);
+    try {
+      const response = await axios.patch(`${API}/reservations/${reservation.id}/airport-surcharge`, {
+        is_airport_trip: isAirportTrip,
+        airport_surcharge: isAirportTrip ? parseFloat(airportSurcharge) : 0
+      });
+      
+      toast.success("Supplément aéroport mis à jour");
+      
+      // Update reservation data
+      if (onInvoiceGenerated) {
+        onInvoiceGenerated(reservation.id, {
+          is_airport_trip: response.data.is_airport_trip,
+          airport_surcharge: response.data.airport_surcharge,
+          estimated_price: response.data.estimated_price
+        });
+      }
+    } catch (error) {
+      console.error("Error updating airport surcharge:", error);
+      toast.error("Erreur lors de la mise à jour du supplément");
+    } finally {
+      setUpdatingSurcharge(false);
+    }
+  };
   
   const handleGenerateInvoice = async () => {
     if (finalPrice < 10) {
