@@ -57,7 +57,7 @@ class VTCBookingAPITester:
         return self.run_test("Root API", "GET", "", 200)
 
     def test_create_reservation(self):
-        """Test creating a new reservation"""
+        """Test creating a new reservation with pricing data"""
         tomorrow = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
         
         reservation_data = {
@@ -78,7 +78,7 @@ class VTCBookingAPITester:
         }
         
         success, response = self.run_test(
-            "Create Reservation",
+            "Create Reservation with Pricing",
             "POST",
             "reservations",
             200,
@@ -97,6 +97,66 @@ class VTCBookingAPITester:
             
             return True
         return False
+
+    def test_price_calculation_validation(self):
+        """Test price calculation logic"""
+        tomorrow = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
+        
+        # Test case 1: Normal pricing (31.1km, 44min should be 69€)
+        test_cases = [
+            {
+                "name": "Normal Price Test",
+                "distance_km": 31.1,
+                "duration_min": 44,
+                "expected_price": 69,  # (31.1 * 1.5) + (44 * 0.5) = 46.65 + 22 = 68.65 -> rounded up to 69
+                "pickup": "Gare du Nord, Paris",
+                "dropoff": "Aéroport Charles de Gaulle"
+            },
+            {
+                "name": "Minimum Price Test",
+                "distance_km": 2.0,
+                "duration_min": 5,
+                "expected_price": 10,  # (2 * 1.5) + (5 * 0.5) = 3 + 2.5 = 5.5 -> minimum 10€
+                "pickup": "Place de la République, Paris",
+                "dropoff": "Gare de l'Est, Paris"
+            }
+        ]
+        
+        all_passed = True
+        for i, test_case in enumerate(test_cases):
+            reservation_data = {
+                "name": f"Test User {i+1}",
+                "phone": f"061234567{i}",
+                "email": f"test{i+1}@example.com",
+                "pickup_address": test_case["pickup"],
+                "dropoff_address": test_case["dropoff"],
+                "date": tomorrow,
+                "time": "15:00",
+                "passengers": 1,
+                "distance_km": test_case["distance_km"],
+                "duration_min": test_case["duration_min"],
+                "estimated_price": test_case["expected_price"]
+            }
+            
+            success, response = self.run_test(
+                f"Price Calculation - {test_case['name']}",
+                "POST",
+                "reservations",
+                200,
+                data=reservation_data
+            )
+            
+            if success:
+                actual_price = response.get('estimated_price')
+                if actual_price == test_case['expected_price']:
+                    print(f"✅ Price calculation correct: {actual_price}€")
+                else:
+                    print(f"❌ Price calculation wrong: expected {test_case['expected_price']}€, got {actual_price}€")
+                    all_passed = False
+            else:
+                all_passed = False
+        
+        return all_passed
 
     def test_get_reservations(self):
         """Test getting all reservations"""
@@ -195,6 +255,14 @@ class VTCBookingAPITester:
                 print(f"✅ Passed - Status: {response.status_code}")
                 print(f"   Content-Type: {response.headers.get('content-type')}")
                 print(f"   Content-Length: {len(response.content)} bytes")
+                
+                # Check if CSV contains new columns
+                csv_content = response.text
+                if 'Distance (km)' in csv_content and 'Durée (min)' in csv_content and 'Prix estimé (€)' in csv_content:
+                    print(f"✅ CSV contains new pricing columns")
+                else:
+                    print(f"⚠️  CSV missing pricing columns")
+                
                 return True
             else:
                 print(f"❌ Failed - Status: {response.status_code}")
@@ -263,68 +331,6 @@ class VTCBookingAPITester:
         
         print("✅ All valid phone numbers accepted")
         return True
-            data={"status": "invalid_status"}
-        )
-
-    def test_price_calculation_validation(self):
-        """Test price calculation logic"""
-        tomorrow = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
-        
-        # Test case 1: Normal pricing (31.1km, 44min should be 69€)
-        test_cases = [
-            {
-                "name": "Normal Price Test",
-                "distance_km": 31.1,
-                "duration_min": 44,
-                "expected_price": 69,  # (31.1 * 1.5) + (44 * 0.5) = 46.65 + 22 = 68.65 -> rounded up to 69
-                "pickup": "Gare du Nord, Paris",
-                "dropoff": "Aéroport Charles de Gaulle"
-            },
-            {
-                "name": "Minimum Price Test",
-                "distance_km": 2.0,
-                "duration_min": 5,
-                "expected_price": 10,  # (2 * 1.5) + (5 * 0.5) = 3 + 2.5 = 5.5 -> minimum 10€
-                "pickup": "Place de la République, Paris",
-                "dropoff": "Gare de l'Est, Paris"
-            }
-        ]
-        
-        all_passed = True
-        for i, test_case in enumerate(test_cases):
-            reservation_data = {
-                "name": f"Test User {i+1}",
-                "phone": f"061234567{i}",
-                "email": f"test{i+1}@example.com",
-                "pickup_address": test_case["pickup"],
-                "dropoff_address": test_case["dropoff"],
-                "date": tomorrow,
-                "time": "15:00",
-                "passengers": 1,
-                "distance_km": test_case["distance_km"],
-                "duration_min": test_case["duration_min"],
-                "estimated_price": test_case["expected_price"]
-            }
-            
-            success, response = self.run_test(
-                f"Price Calculation - {test_case['name']}",
-                "POST",
-                "reservations",
-                200,
-                data=reservation_data
-            )
-            
-            if success:
-                actual_price = response.get('estimated_price')
-                if actual_price == test_case['expected_price']:
-                    print(f"✅ Price calculation correct: {actual_price}€")
-                else:
-                    print(f"❌ Price calculation wrong: expected {test_case['expected_price']}€, got {actual_price}€")
-                    all_passed = False
-            else:
-                all_passed = False
-        
-        return all_passed
 
 def main():
     print("🚗 JABADRIVER VTC Booking API Tests")
