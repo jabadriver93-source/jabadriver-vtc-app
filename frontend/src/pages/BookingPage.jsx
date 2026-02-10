@@ -339,17 +339,33 @@ export default function BookingPage() {
   }, []);
 
   return (
-    <div className="hero-vtc">
-      {/* Cinematic Image Band */}
-      <div className="hero-band">
-        <div 
-          className="hero-band-image"
-          style={{ transform: `translateY(${scrollY * 0.1}px)` }}
-        />
+    <div className="hero-map">
+      {/* SVG Map Background */}
+      <div className="hero-map-bg">
+        <MapBackground />
+      </div>
+      
+      {/* Overlay */}
+      <div className="hero-map-overlay" />
+      
+      {/* Start Marker */}
+      <div className="map-marker map-marker-start">
+        <div className="marker-label marker-label-start">Départ</div>
+        <div className="marker-dot marker-dot-start">
+          <div className="marker-ring marker-ring-start" />
+        </div>
+      </div>
+      
+      {/* End Marker */}
+      <div className="map-marker map-marker-end">
+        <div className="marker-label marker-label-end">Arrivée</div>
+        <div className="marker-dot marker-dot-end">
+          <div className="marker-ring marker-ring-end" />
+        </div>
       </div>
       
       {/* Content */}
-      <div className="hero-vtc-content">
+      <div className="hero-map-content">
         {/* Header */}
         <header className="px-5 py-5">
           <div className="max-w-5xl mx-auto flex items-center justify-between">
