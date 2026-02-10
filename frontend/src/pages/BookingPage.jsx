@@ -23,6 +23,60 @@ const PHONE_REGEX = /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/;
 // Track if Google Maps script is loaded
 let googleMapsLoaded = false;
 let googleMapsLoading = false;
+let mapsReadyCallbacks = [];
+
+// Global function to notify when maps is ready
+const notifyMapsReady = () => {
+  googleMapsLoaded = true;
+  googleMapsLoading = false;
+  mapsReadyCallbacks.forEach(cb => cb());
+  mapsReadyCallbacks = [];
+};
+
+// Load Google Maps once
+const loadGoogleMapsScript = () => {
+  return new Promise((resolve) => {
+    if (googleMapsLoaded && window.google?.maps?.places) {
+      resolve();
+      return;
+    }
+
+    if (googleMapsLoading) {
+      mapsReadyCallbacks.push(resolve);
+      return;
+    }
+
+    // Check if already loaded by another source
+    if (window.google?.maps?.places) {
+      googleMapsLoaded = true;
+      resolve();
+      return;
+    }
+
+    googleMapsLoading = true;
+    mapsReadyCallbacks.push(resolve);
+
+    // Create callback name
+    const callbackName = `gmapsCallback_${Date.now()}`;
+    
+    window[callbackName] = () => {
+      notifyMapsReady();
+      delete window[callbackName];
+    };
+
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&language=fr&region=FR&callback=${callbackName}`;
+    script.async = true;
+    script.defer = true;
+    script.onerror = () => {
+      googleMapsLoading = false;
+      console.error("Failed to load Google Maps script");
+      delete window[callbackName];
+    };
+    
+    document.head.appendChild(script);
+  });
+};
 
 export default function BookingPage() {
   const navigate = useNavigate();
@@ -53,59 +107,17 @@ export default function BookingPage() {
 
   // Load Google Maps script manually
   useEffect(() => {
-    const loadGoogleMaps = () => {
-      if (googleMapsLoaded) {
-        setMapsReady(true);
-        return;
-      }
-      
-      if (googleMapsLoading) {
-        return;
-      }
+    if (!GOOGLE_MAPS_API_KEY) {
+      console.warn("Google Maps API key not configured");
+      return;
+    }
 
-      if (!GOOGLE_MAPS_API_KEY) {
-        console.warn("Google Maps API key not configured");
-        return;
-      }
-
-      // Check if already loaded
+    loadGoogleMapsScript().then(() => {
       if (window.google?.maps?.places) {
-        googleMapsLoaded = true;
         setMapsReady(true);
-        return;
+        console.log("Google Maps Places API ready");
       }
-
-      googleMapsLoading = true;
-
-      const script = document.createElement("script");
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&language=fr&region=FR&callback=initGoogleMapsCallback`;
-      script.async = true;
-      script.defer = true;
-
-      // Global callback for Google Maps
-      window.initGoogleMapsCallback = () => {
-        googleMapsLoaded = true;
-        googleMapsLoading = false;
-        setMapsReady(true);
-        console.log("Google Maps Places API loaded successfully");
-      };
-
-      script.onerror = () => {
-        googleMapsLoading = false;
-        console.error("Failed to load Google Maps script");
-      };
-
-      document.head.appendChild(script);
-    };
-
-    loadGoogleMaps();
-
-    return () => {
-      // Cleanup callback
-      if (window.initGoogleMapsCallback) {
-        delete window.initGoogleMapsCallback;
-      }
-    };
+    });
   }, []);
 
   // Initialize Autocomplete when maps is ready
