@@ -319,24 +319,49 @@ def generate_bon_commande_pdf(reservation: dict):
     c.line(40, y, 85, y)
     y -= 25
     
-    # Price box
-    final_price = reservation.get('final_price') or reservation.get('estimated_price')
-    price_label = "Prix convenu" if reservation.get('final_price') else "Prix estimé"
+    # Price breakdown
+    base_price = reservation.get('base_price') or reservation.get('estimated_price') or 0
+    airport_surcharge = reservation.get('airport_surcharge', 0)
+    final_price = reservation.get('final_price') or reservation.get('estimated_price') or base_price + airport_surcharge
+    is_airport_trip = reservation.get('is_airport_trip', False)
     
+    # Price box with breakdown
+    box_height = 65 if is_airport_trip else 50
     c.setFillColor(accent)
-    c.roundRect(40, y - 45, 200, 50, 8, fill=True, stroke=False)
+    c.roundRect(40, y - box_height + 5, 250, box_height, 8, fill=True, stroke=False)
     c.setFillColor(dark)
+    
+    price_y = y - 15
     c.setFont("Helvetica", 10)
-    c.drawString(55, y - 15, price_label)
-    c.setFont("Helvetica-Bold", 24)
-    c.drawString(55, y - 40, f"{int(final_price) if final_price else '--'} €")
+    c.drawString(55, price_y, "Prix course:")
+    c.setFont("Helvetica-Bold", 10)
+    c.drawRightString(270, price_y, f"{int(base_price)} €")
+    
+    if is_airport_trip and airport_surcharge > 0:
+        price_y -= 16
+        c.setFont("Helvetica", 10)
+        c.drawString(55, price_y, "Supplément aéroport:")
+        c.setFont("Helvetica-Bold", 10)
+        c.drawRightString(270, price_y, f"+ {int(airport_surcharge)} €")
+        
+        # Separator line
+        price_y -= 8
+        c.setStrokeColor(dark)
+        c.setLineWidth(1)
+        c.line(55, price_y, 270, price_y)
+    
+    price_y -= 16
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(55, price_y, "TOTAL:")
+    c.setFont("Helvetica-Bold", 22)
+    c.drawRightString(270, price_y - 5, f"{int(final_price)} €")
     
     c.setFillColor(gray)
     c.setFont("Helvetica-Oblique", 9)
-    c.drawString(260, y - 25, "Tarif fixé avant prise en charge")
-    c.drawString(260, y - 37, "conformément à la réglementation VTC.")
+    c.drawString(310, y - 25, "Tarif fixé avant prise en charge")
+    c.drawString(310, y - 37, "conformément à la réglementation VTC.")
     
-    y -= 70
+    y -= (box_height + 10)
     
     # Section: MENTIONS RÉGLEMENTAIRES
     c.setFillColor(dark)
