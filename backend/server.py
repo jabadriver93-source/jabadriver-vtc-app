@@ -232,7 +232,7 @@ def generate_bon_commande_pdf(reservation: dict):
     
     c.setFont("Helvetica", 10)
     c.setFillColor(gray)
-    c.drawString(40, y, f"Exploitant: {COMPANY_INFO['legal_name']}")
+    c.drawString(40, y, "Exploitant: EVTC093250520")
     y -= 14
     c.drawString(40, y, f"Statut: VTC — Transport de personnes sur réservation")
     y -= 14
