@@ -569,7 +569,10 @@ def generate_invoice_pdf(reservation: dict, invoice_number: str, invoice_date: s
 # ============================================
 async def send_confirmation_email(reservation: Reservation, bon_commande_pdf: bytes = None):
     if not reservation.email:
+        logger.info("Skipping confirmation email - no client email provided")
         return
+    
+    logger.info(f"[EMAIL] Preparing confirmation email | To: {reservation.email} | From: {SENDER_EMAIL} | Reservation: {reservation.id[:8]}")
     
     # Build price display with breakdown
     price_display = ""
@@ -659,11 +662,14 @@ async def send_confirmation_email(reservation: Reservation, bon_commande_pdf: by
                 "filename": f"bon_commande_{reservation.id[:8].upper()}.pdf",
                 "content": base64.b64encode(bon_commande_pdf).decode('utf-8')
             }]
+            logger.info(f"[EMAIL] PDF attachment added | Size: {len(bon_commande_pdf)} bytes")
         
-        await asyncio.to_thread(resend.Emails.send, params)
-        logger.info(f"Confirmation email sent to {reservation.email}")
+        logger.info(f"[EMAIL] Calling Resend API for confirmation email | API Key present: {bool(resend.api_key)}")
+        response = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"[EMAIL] ✅ Confirmation email sent successfully | To: {reservation.email} | Resend ID: {response.get('id', 'N/A')}")
     except Exception as e:
-        logger.error(f"Failed to send confirmation email: {str(e)}")
+        logger.error(f"[EMAIL] ❌ Failed to send confirmation email | To: {reservation.email} | Error: {str(e)}")
+        logger.exception("Full exception trace:")
 
 async def send_driver_alert(reservation: Reservation, bon_commande_pdf: bytes = None):
     if not DRIVER_EMAIL:
