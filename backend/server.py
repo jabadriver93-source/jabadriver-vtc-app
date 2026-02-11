@@ -669,6 +669,14 @@ async def send_confirmation_email(reservation: Reservation, bon_commande_pdf: by
                 </p>
             </div>
             
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 8px;">
+                <p style="margin: 0; color: #64748b; font-size: 12px;">
+                    <strong>JABADRIVER</strong><br/>
+                    SIRET : 941 473 217 00011<br/>
+                    Email : contact@jabadriver.fr
+                </p>
+            </div>
+            
             <p>Merci de votre confiance !</p>
         </div>
     </div>
@@ -773,6 +781,14 @@ async def send_driver_alert(reservation: Reservation, bon_commande_pdf: bytes = 
                 <p style="margin: 15px 0 0 0; color: #856404; font-size: 13px; font-weight: bold;">
                     Demandes uniquement via WhatsApp : 
                     <a href="https://wa.me/message/MQ6BTZ7KU26OM1" style="color: #25D366; text-decoration: underline;">Cliquez ici</a>
+                </p>
+            </div>
+            
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 8px;">
+                <p style="margin: 0; color: #64748b; font-size: 12px;">
+                    <strong>JABADRIVER</strong><br/>
+                    SIRET : 941 473 217 00011<br/>
+                    Email : contact@jabadriver.fr
                 </p>
             </div>
         </div>
