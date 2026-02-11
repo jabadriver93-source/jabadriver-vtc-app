@@ -690,6 +690,14 @@ export default function BookingPage() {
                 )}
               </button>
             </div>
+            
+            <div style={{marginTop: 12, fontSize: 13, opacity: 0.9, textAlign: 'center', color: '#64748b'}}>
+              Annulation gratuite jusqu'à 1 heure avant la prise en charge.<br/>
+              Modification / annulation uniquement via WhatsApp :<br/>
+              <a href="https://wa.me/message/MQ6BTZ7KU26OM1" target="_blank" rel="noopener noreferrer" style={{color: '#25D366', textDecoration: 'underline'}}>
+                Support WhatsApp
+              </a>
+            </div>
           </form>
 
           {/* Mobile Sticky Submit Button */}

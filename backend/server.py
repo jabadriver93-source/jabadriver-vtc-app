@@ -236,8 +236,6 @@ def generate_bon_commande_pdf(reservation: dict):
     y -= 14
     c.drawString(40, y, f"Statut: VTC — Transport de personnes sur réservation")
     y -= 14
-    c.drawString(40, y, f"Adresse: {COMPANY_INFO['address']}")
-    y -= 14
     c.drawString(40, y, f"Email: {COMPANY_INFO['email']} | SIRET: {COMPANY_INFO['siret']}")
     y -= 20
     
