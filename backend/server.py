@@ -882,47 +882,46 @@ async def create_reservation(input: ReservationCreate):
     reservation_dict['base_price'] = pricing['base_price']
     reservation_dict['airport_surcharge'] = pricing['airport_surcharge']
     reservation_dict['is_airport_trip'] = pricing['is_airport_trip']
-    # Set estimated_price to final price if airport surcharge applies
     if pricing['is_airport_trip']:
         reservation_dict['estimated_price'] = pricing['final_price']
     
     reservation = Reservation(**reservation_dict)
     
-    # Generate bon de commande automatically
+    # Save reservation in DB FIRST (critical step)
     reservation_data = reservation.model_dump()
-    bon_commande_pdf = generate_bon_commande_pdf(reservation_data)
-    
-    # Update reservation with bon de commande info
-    reservation_data["bon_commande_generated"] = True
-    reservation_data["bon_commande_date"] = datetime.now(timezone.utc).isoformat()
-    
     await db.reservations.insert_one(reservation_data)
-    logger.info(f"[CREATE RESERVATION] Reservation saved | ID: {reservation.id[:8]}")
+    logger.info(f"[CREATE RESERVATION] ✅ Reservation saved in DB | ID: {reservation.id[:8]}")
     
-    # Send emails with bon de commande attached
     reservation_obj = Reservation(**reservation_data)
     
-    logger.info(f"[CREATE RESERVATION] Will send emails:")
-    logger.info(f"  - Client email: {reservation_obj.email if reservation_obj.email else 'SKIPPED (no email)'}")
-    logger.info(f"  - Driver email: {DRIVER_EMAIL if DRIVER_EMAIL else 'SKIPPED (not configured)'}")
-    logger.info(f"  - SENDER_EMAIL: {SENDER_EMAIL}")
-    logger.info(f"  - RESEND_API_KEY present: {bool(resend.api_key)}")
-    
-    # MODIFICATION: Attendre les emails de manière synchrone au lieu de background tasks
-    # Cela garantit que les exceptions seront capturées et loggées
+    # Generate PDF and send emails - NON-BLOCKING
     try:
-        await send_confirmation_email(reservation_obj, bon_commande_pdf)
+        bon_commande_pdf = generate_bon_commande_pdf(reservation_data)
+        reservation_data["bon_commande_generated"] = True
+        reservation_data["bon_commande_date"] = datetime.now(timezone.utc).isoformat()
+        await db.reservations.update_one({"id": reservation.id}, {"$set": {"bon_commande_generated": True, "bon_commande_date": reservation_data["bon_commande_date"]}})
+        logger.info(f"[CREATE RESERVATION] ✅ Bon de commande PDF generated")
+        
+        # Send emails
+        logger.info(f"[CREATE RESERVATION] Will send emails:")
+        logger.info(f"  - Client email: {reservation_obj.email if reservation_obj.email else 'SKIPPED'}")
+        logger.info(f"  - Driver email: {DRIVER_EMAIL if DRIVER_EMAIL else 'SKIPPED'}")
+        
+        try:
+            await send_confirmation_email(reservation_obj, bon_commande_pdf)
+        except Exception as e:
+            logger.error(f"[CREATE RESERVATION] ⚠️ Email client failed: {str(e)}")
+        
+        try:
+            await send_driver_alert(reservation_obj, bon_commande_pdf)
+        except Exception as e:
+            logger.error(f"[CREATE RESERVATION] ⚠️ Email driver failed: {str(e)}")
+            
     except Exception as e:
-        logger.error(f"[CREATE RESERVATION] Exception in send_confirmation_email: {str(e)}")
+        logger.error(f"[CREATE RESERVATION] ⚠️ PDF/Email failed but reservation saved: {str(e)}")
         logger.exception("Full trace:")
     
-    try:
-        await send_driver_alert(reservation_obj, bon_commande_pdf)
-    except Exception as e:
-        logger.error(f"[CREATE RESERVATION] Exception in send_driver_alert: {str(e)}")
-        logger.exception("Full trace:")
-    
-    logger.info(f"[CREATE RESERVATION] Emails sent (synchronous)")
+    logger.info(f"[CREATE RESERVATION] ✅ Process completed")
     logger.info("=" * 80)
     
     return reservation_obj
