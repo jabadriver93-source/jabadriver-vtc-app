@@ -927,6 +927,51 @@ async def admin_login(login: AdminLogin):
         return {"success": True}
     raise HTTPException(status_code=401, detail="Mot de passe incorrect")
 
+@api_router.post("/admin/test-email")
+async def test_email_send(login: AdminLogin):
+    """Route de test pour vérifier l'envoi d'email direct (sans background task)"""
+    if login.password != ADMIN_PASSWORD:
+        raise HTTPException(status_code=401, detail="Mot de passe incorrect")
+    
+    logger.info("=" * 80)
+    logger.info("[TEST EMAIL] Starting email test")
+    logger.info(f"[TEST EMAIL] RESEND_API_KEY present: {bool(resend.api_key)}")
+    logger.info(f"[TEST EMAIL] RESEND_API_KEY length: {len(resend.api_key) if resend.api_key else 0}")
+    logger.info(f"[TEST EMAIL] SENDER_EMAIL: {SENDER_EMAIL}")
+    logger.info(f"[TEST EMAIL] DRIVER_EMAIL: {DRIVER_EMAIL}")
+    
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [DRIVER_EMAIL],
+            "subject": "🧪 Test email - JabaDriver VTC",
+            "html": "<h1>Test email</h1><p>Si vous recevez cet email, la configuration Resend fonctionne correctement.</p>"
+        }
+        
+        logger.info(f"[TEST EMAIL] Calling Resend.Emails.send()")
+        logger.info(f"[TEST EMAIL] From: {params['from']}")
+        logger.info(f"[TEST EMAIL] To: {params['to']}")
+        
+        # Direct call (not async) for testing
+        response = resend.Emails.send(params)
+        
+        logger.info(f"[TEST EMAIL] ✅ SUCCESS - Email sent!")
+        logger.info(f"[TEST EMAIL] Resend response: {response}")
+        logger.info("=" * 80)
+        
+        return {
+            "success": True,
+            "message": "Email de test envoyé avec succès",
+            "resend_id": response.get('id', 'N/A'),
+            "to": DRIVER_EMAIL,
+            "from": SENDER_EMAIL
+        }
+    except Exception as e:
+        logger.error(f"[TEST EMAIL] ❌ FAILED - Error: {str(e)}")
+        logger.exception("[TEST EMAIL] Full exception:")
+        logger.info("=" * 80)
+        raise HTTPException(status_code=500, detail=f"Erreur envoi email: {str(e)}")
+
 # Bon de commande routes
 @api_router.get("/reservations/{reservation_id}/bon-commande-pdf")
 async def download_bon_commande(reservation_id: str):
