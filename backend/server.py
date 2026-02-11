@@ -673,7 +673,10 @@ async def send_confirmation_email(reservation: Reservation, bon_commande_pdf: by
 
 async def send_driver_alert(reservation: Reservation, bon_commande_pdf: bytes = None):
     if not DRIVER_EMAIL:
+        logger.warning("[EMAIL] Skipping driver alert - DRIVER_EMAIL not configured")
         return
+    
+    logger.info(f"[EMAIL] Preparing driver alert | To: {DRIVER_EMAIL} | From: {SENDER_EMAIL} | Reservation: {reservation.id[:8]}")
     
     price_info = ""
     if reservation.estimated_price:
@@ -747,11 +750,14 @@ async def send_driver_alert(reservation: Reservation, bon_commande_pdf: bytes = 
                 "filename": f"bon_commande_{reservation.id[:8].upper()}.pdf",
                 "content": base64.b64encode(bon_commande_pdf).decode('utf-8')
             }]
+            logger.info(f"[EMAIL] PDF attachment added | Size: {len(bon_commande_pdf)} bytes")
         
-        await asyncio.to_thread(resend.Emails.send, params)
-        logger.info(f"Driver alert sent to {DRIVER_EMAIL}")
+        logger.info(f"[EMAIL] Calling Resend API for driver alert | API Key present: {bool(resend.api_key)}")
+        response = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"[EMAIL] ✅ Driver alert sent successfully | To: {DRIVER_EMAIL} | Resend ID: {response.get('id', 'N/A')}")
     except Exception as e:
-        logger.error(f"Failed to send driver alert: {str(e)}")
+        logger.error(f"[EMAIL] ❌ Failed to send driver alert | To: {DRIVER_EMAIL} | Error: {str(e)}")
+        logger.exception("Full exception trace:")
 
 async def send_invoice_email(reservation: dict, pdf_data: bytes):
     client_email = reservation.get("email")
