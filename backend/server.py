@@ -817,6 +817,11 @@ async def root():
 async def create_reservation(input: ReservationCreate):
     reservation_dict = input.model_dump()
     
+    logger.info("=" * 80)
+    logger.info("[CREATE RESERVATION] Starting reservation creation")
+    logger.info(f"[CREATE RESERVATION] Client: {reservation_dict.get('name')}")
+    logger.info(f"[CREATE RESERVATION] Email: {reservation_dict.get('email', 'NOT PROVIDED')}")
+    
     # Calculate price with airport surcharge
     pricing = calculate_price_with_surcharge(
         estimated_price=reservation_dict.get('estimated_price', 0.0),
@@ -843,11 +848,22 @@ async def create_reservation(input: ReservationCreate):
     reservation_data["bon_commande_date"] = datetime.now(timezone.utc).isoformat()
     
     await db.reservations.insert_one(reservation_data)
+    logger.info(f"[CREATE RESERVATION] Reservation saved | ID: {reservation.id[:8]}")
     
     # Send emails with bon de commande attached
     reservation_obj = Reservation(**reservation_data)
+    
+    logger.info(f"[CREATE RESERVATION] Will send emails:")
+    logger.info(f"  - Client email: {reservation_obj.email if reservation_obj.email else 'SKIPPED (no email)'}")
+    logger.info(f"  - Driver email: {DRIVER_EMAIL if DRIVER_EMAIL else 'SKIPPED (not configured)'}")
+    logger.info(f"  - SENDER_EMAIL: {SENDER_EMAIL}")
+    logger.info(f"  - RESEND_API_KEY present: {bool(resend.api_key)}")
+    
     asyncio.create_task(send_confirmation_email(reservation_obj, bon_commande_pdf))
     asyncio.create_task(send_driver_alert(reservation_obj, bon_commande_pdf))
+    
+    logger.info(f"[CREATE RESERVATION] Email tasks created (async)")
+    logger.info("=" * 80)
     
     return reservation_obj
 
