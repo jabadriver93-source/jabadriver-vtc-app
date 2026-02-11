@@ -412,8 +412,7 @@ def generate_bon_commande_pdf(reservation: dict):
     c.rect(0, 0, width, 35, fill=True, stroke=False)
     c.setFillColor(HexColor("#ffffff"))
     c.setFont("Helvetica", 8)
-    c.drawCentredString(width / 2, 20, f"{COMPANY_INFO['name']} — {COMPANY_INFO['legal_name']} — SIRET: {COMPANY_INFO['siret']}")
-    c.drawCentredString(width / 2, 10, f"{COMPANY_INFO['address']}")
+    c.drawCentredString(width / 2, 15, f"{COMPANY_INFO['name']} — {COMPANY_INFO['legal_name']} — SIRET: {COMPANY_INFO['siret']}")
     
     c.save()
     buffer.seek(0)
@@ -466,8 +465,6 @@ def generate_invoice_pdf(reservation: dict, invoice_number: str, invoice_date: s
     c.drawString(40, y, COMPANY_INFO["name"])
     y -= 14
     c.drawString(40, y, COMPANY_INFO["legal_name"])
-    y -= 14
-    c.drawString(40, y, COMPANY_INFO["address"])
     y -= 14
     c.drawString(40, y, f"SIRET: {COMPANY_INFO['siret']}")
     y -= 14
@@ -564,8 +561,8 @@ def generate_invoice_pdf(reservation: dict, invoice_number: str, invoice_date: s
     
     c.setFillColor(gray)
     c.setFont("Helvetica", 8)
-    c.drawCentredString(width / 2, 30, f"{COMPANY_INFO['name']} - {COMPANY_INFO['legal_name']} - SIRET: {COMPANY_INFO['siret']}")
-    c.drawCentredString(width / 2, 18, f"{COMPANY_INFO['address']} - {COMPANY_INFO['email']}")
+    c.drawCentredString(width / 2, 25, f"{COMPANY_INFO['name']} - {COMPANY_INFO['legal_name']} - SIRET: {COMPANY_INFO['siret']}")
+    c.drawCentredString(width / 2, 12, f"Email: {COMPANY_INFO['email']}")
     
     c.save()
     buffer.seek(0)
