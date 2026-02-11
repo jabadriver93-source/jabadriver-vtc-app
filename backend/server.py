@@ -33,7 +33,7 @@ db = client[os.environ['DB_NAME']]
 
 # Resend setup
 resend.api_key = os.environ.get('RESEND_API_KEY', '')
-SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL_NEW', 'onboarding@resend.dev')
 DRIVER_EMAIL = os.environ.get('DRIVER_EMAIL', '')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
 
