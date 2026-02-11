@@ -43,11 +43,10 @@ AIRPORT_SURCHARGE = 10.0  # Supplément aéroport en euros
 
 # Company info
 COMPANY_INFO = {
-    "name": "JABA DRIVER",
-    "legal_name": "GREVIN Jahid Baptiste (EI)",
-    "address": "49 Boulevard Marc Chagall, 93600 Aulnay-sous-Bois",
+    "name": "JABADRIVER",
+    "legal_name": "JABADRIVER",
     "siret": "941 473 217 00011",
-    "email": "jabadriver93@gmail.com",
+    "email": "contact@jabadriver.fr",
     "phone": "06 XX XX XX XX"
 }
 
