@@ -56,6 +56,15 @@ api_router = APIRouter(prefix="/api")
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+# Log email configuration at startup
+logger.info("=" * 80)
+logger.info("EMAIL CONFIGURATION:")
+logger.info(f"  RESEND_API_KEY present: {bool(resend.api_key)}")
+logger.info(f"  RESEND_API_KEY length: {len(resend.api_key) if resend.api_key else 0}")
+logger.info(f"  SENDER_EMAIL: {SENDER_EMAIL}")
+logger.info(f"  DRIVER_EMAIL: {DRIVER_EMAIL}")
+logger.info("=" * 80)
+
 # Helper functions
 def detect_airport(address: str) -> bool:
     """Détecte si l'adresse contient un aéroport"""
