@@ -1008,62 +1008,53 @@ async def test_email_send(login: AdminLogin):
         logger.info("=" * 80)
         raise HTTPException(status_code=500, detail=f"Erreur envoi email: {str(e)}")
 
-@api_router.get("/admin/diagnostic")
-async def diagnostic_email_config(password: str = Query(...)):
-    """Route de diagnostic complète pour vérifier la configuration email"""
+@api_router.get("/admin/email-debug")
+async def email_debug(password: str = Query(...)):
+    """Route de diagnostic email - retourne la config et teste l'envoi"""
     if password != ADMIN_PASSWORD:
         raise HTTPException(status_code=401, detail="Mot de passe incorrect")
     
-    import socket
-    import urllib.request
-    
-    diagnostic = {
+    debug_info = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "environment_variables": {
+            "SENDER_EMAIL": SENDER_EMAIL,
+            "SENDER_EMAIL_NEW_from_env": os.environ.get('SENDER_EMAIL_NEW', 'NOT_SET'),
             "RESEND_API_KEY_present": bool(resend.api_key),
             "RESEND_API_KEY_length": len(resend.api_key) if resend.api_key else 0,
-            "RESEND_API_KEY_value": resend.api_key[:10] + "..." if resend.api_key else "NOT SET",
-            "SENDER_EMAIL_NEW_from_env": os.environ.get('SENDER_EMAIL_NEW', 'NOT SET'),
-            "SENDER_EMAIL_used_in_code": SENDER_EMAIL,
+            "RESEND_API_KEY_first_10_chars": resend.api_key[:10] if resend.api_key else "EMPTY",
             "DRIVER_EMAIL": DRIVER_EMAIL,
         },
-        "network_connectivity": {},
-        "resend_api_test": {}
+        "resend_test": {}
     }
     
-    # Test 1: DNS resolution
-    try:
-        socket.gethostbyname('api.resend.com')
-        diagnostic["network_connectivity"]["dns_resolution"] = "✅ OK - api.resend.com résolu"
-    except Exception as e:
-        diagnostic["network_connectivity"]["dns_resolution"] = f"❌ FAILED - {str(e)}"
-    
-    # Test 2: HTTPS connectivity
-    try:
-        urllib.request.urlopen('https://api.resend.com', timeout=5)
-        diagnostic["network_connectivity"]["https_connectivity"] = "✅ OK - api.resend.com accessible"
-    except Exception as e:
-        diagnostic["network_connectivity"]["https_connectivity"] = f"⚠️ WARNING - {str(e)}"
-    
-    # Test 3: Resend API call
+    # Test d'envoi Resend
     try:
         test_params = {
             "from": SENDER_EMAIL,
-            "to": [DRIVER_EMAIL] if DRIVER_EMAIL else ["test@example.com"],
-            "subject": "🔍 Diagnostic email",
-            "html": "<p>Email de diagnostic automatique</p>"
+            "to": [DRIVER_EMAIL] if DRIVER_EMAIL else ["noreply@jabadriver.fr"],
+            "subject": "🔍 Email Debug Test",
+            "html": "<p>Test automatique de diagnostic email</p>"
         }
         
         response = resend.Emails.send(test_params)
-        diagnostic["resend_api_test"]["status"] = "✅ SUCCESS"
-        diagnostic["resend_api_test"]["resend_id"] = response.get('id', 'N/A')
-        diagnostic["resend_api_test"]["response"] = str(response)
+        
+        debug_info["resend_test"] = {
+            "status": "SUCCESS",
+            "resend_id": response.get('id', 'N/A'),
+            "from": test_params["from"],
+            "to": test_params["to"],
+            "response_full": str(response)
+        }
     except Exception as e:
-        diagnostic["resend_api_test"]["status"] = "❌ FAILED"
-        diagnostic["resend_api_test"]["error"] = str(e)
-        diagnostic["resend_api_test"]["error_type"] = type(e).__name__
+        debug_info["resend_test"] = {
+            "status": "FAILED",
+            "error_message": str(e),
+            "error_type": type(e).__name__,
+            "from_attempted": SENDER_EMAIL,
+            "to_attempted": DRIVER_EMAIL
+        }
     
-    return diagnostic
+    return debug_info
 
 # Bon de commande routes
 @api_router.get("/reservations/{reservation_id}/bon-commande-pdf")
