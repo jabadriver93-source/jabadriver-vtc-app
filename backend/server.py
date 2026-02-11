@@ -859,10 +859,21 @@ async def create_reservation(input: ReservationCreate):
     logger.info(f"  - SENDER_EMAIL: {SENDER_EMAIL}")
     logger.info(f"  - RESEND_API_KEY present: {bool(resend.api_key)}")
     
-    asyncio.create_task(send_confirmation_email(reservation_obj, bon_commande_pdf))
-    asyncio.create_task(send_driver_alert(reservation_obj, bon_commande_pdf))
+    # MODIFICATION: Attendre les emails de manière synchrone au lieu de background tasks
+    # Cela garantit que les exceptions seront capturées et loggées
+    try:
+        await send_confirmation_email(reservation_obj, bon_commande_pdf)
+    except Exception as e:
+        logger.error(f"[CREATE RESERVATION] Exception in send_confirmation_email: {str(e)}")
+        logger.exception("Full trace:")
     
-    logger.info(f"[CREATE RESERVATION] Email tasks created (async)")
+    try:
+        await send_driver_alert(reservation_obj, bon_commande_pdf)
+    except Exception as e:
+        logger.error(f"[CREATE RESERVATION] Exception in send_driver_alert: {str(e)}")
+        logger.exception("Full trace:")
+    
+    logger.info(f"[CREATE RESERVATION] Emails sent (synchronous)")
     logger.info("=" * 80)
     
     return reservation_obj
