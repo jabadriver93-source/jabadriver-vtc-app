@@ -37,6 +37,15 @@ SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
 DRIVER_EMAIL = os.environ.get('DRIVER_EMAIL', '')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
 
+# Log configuration at startup
+logger.info("=" * 80)
+logger.info("EMAIL CONFIGURATION:")
+logger.info(f"  RESEND_API_KEY present: {bool(resend.api_key)}")
+logger.info(f"  RESEND_API_KEY length: {len(resend.api_key) if resend.api_key else 0}")
+logger.info(f"  SENDER_EMAIL: {SENDER_EMAIL}")
+logger.info(f"  DRIVER_EMAIL: {DRIVER_EMAIL}")
+logger.info("=" * 80)
+
 # Pricing configuration
 AIRPORT_SURCHARGE = 10.0  # Supplément aéroport en euros
 
