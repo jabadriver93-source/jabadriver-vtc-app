@@ -654,6 +654,24 @@ async def send_confirmation_email(reservation: Reservation, bon_commande_pdf: by
                     📍 Voir l'itinéraire Google Maps
                 </a>
             </div>
+            
+            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 8px;">
+                <h3 style="margin: 0 0 10px 0; color: #856404; font-size: 14px;">📋 Conditions de modification et d'annulation</h3>
+                <ul style="margin: 0; padding-left: 20px; color: #856404; font-size: 13px; line-height: 1.6;">
+                    <li>Modification gratuite jusqu'à 1 heure avant la prise en charge (selon disponibilité)</li>
+                    <li>Annulation gratuite jusqu'à 1 heure avant</li>
+                    <li>Annulation moins de 1 heure : frais possibles</li>
+                    <li>Tolérance retard client : 5 minutes</li>
+                    <li>Au-delà : attente facturée 1 € / minute</li>
+                    <li>Attente maximale : 20 minutes</li>
+                    <li>Après 20 minutes : course due en totalité</li>
+                </ul>
+                <p style="margin: 15px 0 0 0; color: #856404; font-size: 13px; font-weight: bold;">
+                    Demandes uniquement via WhatsApp : 
+                    <a href="https://wa.me/message/MQ6BTZ7KU26OM1" style="color: #25D366; text-decoration: underline;">Cliquez ici</a>
+                </p>
+            </div>
+            
             <p>Merci de votre confiance !</p>
         </div>
     </div>
@@ -742,6 +760,23 @@ async def send_driver_alert(reservation: Reservation, bon_commande_pdf: bytes = 
                 <a href="{maps_url}" style="display: inline-block; background-color: #0a0a0a; color: #7dd3fc; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 600;">
                     📍 Voir l'itinéraire Google Maps
                 </a>
+            </div>
+            
+            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 8px;">
+                <h3 style="margin: 0 0 10px 0; color: #856404; font-size: 14px;">📋 Conditions de modification et d'annulation</h3>
+                <ul style="margin: 0; padding-left: 20px; color: #856404; font-size: 13px; line-height: 1.6;">
+                    <li>Modification gratuite jusqu'à 1 heure avant la prise en charge (selon disponibilité)</li>
+                    <li>Annulation gratuite jusqu'à 1 heure avant</li>
+                    <li>Annulation moins de 1 heure : frais possibles</li>
+                    <li>Tolérance retard client : 5 minutes</li>
+                    <li>Au-delà : attente facturée 1 € / minute</li>
+                    <li>Attente maximale : 20 minutes</li>
+                    <li>Après 20 minutes : course due en totalité</li>
+                </ul>
+                <p style="margin: 15px 0 0 0; color: #856404; font-size: 13px; font-weight: bold;">
+                    Demandes uniquement via WhatsApp : 
+                    <a href="https://wa.me/message/MQ6BTZ7KU26OM1" style="color: #25D366; text-decoration: underline;">Cliquez ici</a>
+                </p>
             </div>
         </div>
     </div>
