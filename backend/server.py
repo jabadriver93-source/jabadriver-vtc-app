@@ -1008,6 +1008,63 @@ async def test_email_send(login: AdminLogin):
         logger.info("=" * 80)
         raise HTTPException(status_code=500, detail=f"Erreur envoi email: {str(e)}")
 
+@api_router.get("/admin/diagnostic")
+async def diagnostic_email_config(password: str = Query(...)):
+    """Route de diagnostic complète pour vérifier la configuration email"""
+    if password != ADMIN_PASSWORD:
+        raise HTTPException(status_code=401, detail="Mot de passe incorrect")
+    
+    import socket
+    import urllib.request
+    
+    diagnostic = {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "environment_variables": {
+            "RESEND_API_KEY_present": bool(resend.api_key),
+            "RESEND_API_KEY_length": len(resend.api_key) if resend.api_key else 0,
+            "RESEND_API_KEY_value": resend.api_key[:10] + "..." if resend.api_key else "NOT SET",
+            "SENDER_EMAIL_NEW_from_env": os.environ.get('SENDER_EMAIL_NEW', 'NOT SET'),
+            "SENDER_EMAIL_used_in_code": SENDER_EMAIL,
+            "DRIVER_EMAIL": DRIVER_EMAIL,
+        },
+        "network_connectivity": {},
+        "resend_api_test": {}
+    }
+    
+    # Test 1: DNS resolution
+    try:
+        socket.gethostbyname('api.resend.com')
+        diagnostic["network_connectivity"]["dns_resolution"] = "✅ OK - api.resend.com résolu"
+    except Exception as e:
+        diagnostic["network_connectivity"]["dns_resolution"] = f"❌ FAILED - {str(e)}"
+    
+    # Test 2: HTTPS connectivity
+    try:
+        urllib.request.urlopen('https://api.resend.com', timeout=5)
+        diagnostic["network_connectivity"]["https_connectivity"] = "✅ OK - api.resend.com accessible"
+    except Exception as e:
+        diagnostic["network_connectivity"]["https_connectivity"] = f"⚠️ WARNING - {str(e)}"
+    
+    # Test 3: Resend API call
+    try:
+        test_params = {
+            "from": SENDER_EMAIL,
+            "to": [DRIVER_EMAIL] if DRIVER_EMAIL else ["test@example.com"],
+            "subject": "🔍 Diagnostic email",
+            "html": "<p>Email de diagnostic automatique</p>"
+        }
+        
+        response = resend.Emails.send(test_params)
+        diagnostic["resend_api_test"]["status"] = "✅ SUCCESS"
+        diagnostic["resend_api_test"]["resend_id"] = response.get('id', 'N/A')
+        diagnostic["resend_api_test"]["response"] = str(response)
+    except Exception as e:
+        diagnostic["resend_api_test"]["status"] = "❌ FAILED"
+        diagnostic["resend_api_test"]["error"] = str(e)
+        diagnostic["resend_api_test"]["error_type"] = type(e).__name__
+    
+    return diagnostic
+
 # Bon de commande routes
 @api_router.get("/reservations/{reservation_id}/bon-commande-pdf")
 async def download_bon_commande(reservation_id: str):
