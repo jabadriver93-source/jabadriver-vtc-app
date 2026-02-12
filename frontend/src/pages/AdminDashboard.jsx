@@ -132,6 +132,14 @@ export default function AdminDashboard() {
           </div>
           <div className="flex items-center gap-2">
             <button 
+              onClick={() => navigate('/admin/subcontracting')}
+              className="inline-flex items-center gap-2 px-3 py-2 bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 rounded-lg transition-colors text-sm font-medium"
+              data-testid="subcontracting-btn"
+            >
+              <Briefcase className="w-4 h-4" />
+              <span className="hidden sm:inline">Sous-traitance</span>
+            </button>
+            <button 
               onClick={fetchReservations}
               className="p-2.5 text-white/50 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
               data-testid="refresh-btn"
