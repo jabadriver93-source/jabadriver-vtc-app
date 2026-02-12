@@ -382,9 +382,9 @@ export default function BookingPage() {
           </div>
         </header>
 
-        {/* Hero Section */}
-        <section className="px-5 pt-32 sm:pt-40 pb-8">
-          <div className="max-w-5xl mx-auto text-center">
+        {/* Hero Section - Fixed layout for mobile */}
+        <section className="px-5 pt-24 sm:pt-40 pb-4 sm:pb-8">
+          <div className="max-w-5xl mx-auto text-center flex flex-col items-center">
             <h1 
               className="hero-title-map mb-2 animate-fadeIn"
               style={{ fontFamily: 'Manrope, sans-serif' }}
@@ -399,12 +399,15 @@ export default function BookingPage() {
             </h1>
             <div className="hero-accent-line animate-fadeIn" style={{ animationDelay: '0.2s' }} />
             
-            <p className="hero-subtitle-map mt-4 sm:mt-6 mb-6 sm:mb-10 animate-fadeIn text-sm sm:text-base" style={{ animationDelay: '0.25s' }}>
+            <p 
+              className="text-white/70 mt-3 sm:mt-6 mb-4 sm:mb-8 animate-fadeIn text-sm sm:text-base leading-relaxed px-4"
+              style={{ animationDelay: '0.25s', maxWidth: '320px' }}
+            >
               Service premium, votre chauffeur privé en Île-de-France
             </p>
 
-            {/* Badges - with extra bottom margin on mobile */}
-            <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-6 sm:mb-0 animate-fadeIn" style={{ animationDelay: '0.35s' }}>
+            {/* Badges - vertical stack on mobile, horizontal on desktop */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-8 sm:mb-4 animate-fadeIn w-full" style={{ animationDelay: '0.35s' }}>
               <div className="badge-map text-xs sm:text-sm">
                 <div className="badge-map-icon w-8 h-8 sm:w-10 sm:h-10">
                   <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -427,8 +430,8 @@ export default function BookingPage() {
           </div>
         </section>
 
-        {/* Form Section - extra top padding on mobile to avoid overlap */}
-        <section className="px-4 sm:px-5 pb-32 sm:pb-16 pt-4 sm:pt-0 overflow-x-hidden">
+        {/* Form Section */}
+        <section className="px-4 sm:px-5 pb-32 sm:pb-16 overflow-x-hidden">
           <div className="max-w-lg mx-auto w-full">
             <form 
               onSubmit={handleSubmit} 
