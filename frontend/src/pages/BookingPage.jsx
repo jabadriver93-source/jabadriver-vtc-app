@@ -707,6 +707,32 @@ export default function BookingPage() {
                 Support WhatsApp
               </a>
             </div>
+            
+            {/* Footer with driver link */}
+            <div style={{marginTop: 24, paddingTop: 16, borderTop: '1px solid rgba(100,116,139,0.2)', textAlign: 'center'}}>
+              <a 
+                href="/driver/login" 
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '10px 20px',
+                  backgroundColor: 'rgba(245,158,11,0.15)',
+                  color: '#f59e0b',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  textDecoration: 'none',
+                  transition: 'background-color 0.2s'
+                }}
+                data-testid="driver-space-footer-link"
+              >
+                🚗 Espace Chauffeur
+              </a>
+              <p style={{marginTop: 12, fontSize: 11, color: '#64748b'}}>
+                Vous êtes chauffeur partenaire ? Accédez à votre espace dédié
+              </p>
+            </div>
           </form>
 
           {/* Mobile Sticky Submit Button */}
