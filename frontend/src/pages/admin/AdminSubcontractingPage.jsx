@@ -34,7 +34,7 @@ export default function AdminSubcontractingPage() {
 
   useEffect(() => {
     // Check admin auth (simple check)
-    const isAdmin = sessionStorage.getItem('adminLoggedIn');
+    const isAdmin = sessionStorage.getItem('adminAuth');
     if (!isAdmin) {
       navigate('/admin');
       return;
