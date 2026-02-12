@@ -303,6 +303,13 @@ h1, h2, h3, h4, h5, h6 {
     z-index: 10;
 }
 
+/* Hero section mobile padding */
+@media (max-width: 768px) {
+    .hero-map-content {
+        padding-top: 40px;
+    }
+}
+
 /* Title Styling */
 .hero-title-map {
     font-size: clamp(3rem, 10vw, 6rem);
