@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Query
+from fastapi import FastAPI, APIRouter, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse, Response
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
@@ -37,6 +37,9 @@ SENDER_EMAIL_NEW = os.environ.get('SENDER_EMAIL_NEW', 'JabaDriver <noreply@jabad
 SENDER_EMAIL = SENDER_EMAIL_NEW  # Utilise SENDER_EMAIL_NEW comme source
 DRIVER_EMAIL = os.environ.get('DRIVER_EMAIL', '')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
+
+# Stripe configuration
+STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY', '')
 
 # Pricing configuration
 AIRPORT_SURCHARGE = 10.0  # Supplément aéroport en euros
