@@ -363,20 +363,20 @@ export default function BookingPage() {
                 JABA DRIVER
               </span>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2">
               <a 
                 href="/driver/login" 
-                className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded-lg text-xs sm:text-sm font-medium transition-colors"
+                className="flex items-center gap-1 px-2 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded-lg text-xs font-medium transition-colors"
                 data-testid="driver-space-link"
               >
-                🚗 <span>Chauffeur</span>
+                🚗 Chauffeur
               </a>
               <a 
                 href="/admin" 
-                className="flex items-center gap-1 px-2 sm:px-3 py-1.5 sm:py-2 bg-white/10 hover:bg-white/20 text-white/70 hover:text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
+                className="flex items-center gap-1 px-2 py-1.5 bg-white/10 hover:bg-white/20 text-white/80 hover:text-white rounded-lg text-xs font-medium transition-colors"
                 data-testid="admin-link"
               >
-                ⚙️ <span className="hidden sm:inline">Admin</span>
+                ⚙️ Admin
               </a>
             </div>
           </div>
