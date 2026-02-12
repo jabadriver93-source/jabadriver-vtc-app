@@ -199,15 +199,15 @@ h1, h2, h3, h4, h5, h6 {
     right: 30%;
 }
 
-/* Mobile positioning - fixed absolute values */
+/* Mobile large (iPhone Pro Max ≥ 430px) */
 @media (max-width: 768px) {
     .map-marker-start {
-        top: 84px;
-        left: 16px;
+        top: 260px;
+        left: 20px;
     }
     .map-marker-end {
-        top: 84px;
-        right: 16px;
+        top: 260px;
+        right: 20px;
     }
     .marker-label {
         font-size: 12px;
@@ -225,14 +225,26 @@ h1, h2, h3, h4, h5, h6 {
     }
 }
 
-/* Very small mobile */
+/* Mobile standard (≤ 390px) */
+@media (max-width: 390px) {
+    .map-marker-start {
+        top: 220px;
+        left: 16px;
+    }
+    .map-marker-end {
+        top: 220px;
+        right: 16px;
+    }
+}
+
+/* Very small mobile (≤ 360px) */
 @media (max-width: 360px) {
     .map-marker-start {
-        top: 78px;
+        top: 200px;
         left: 12px;
     }
     .map-marker-end {
-        top: 78px;
+        top: 200px;
         right: 12px;
     }
     .marker-dot {
