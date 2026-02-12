@@ -737,6 +737,10 @@ async def send_driver_alert(reservation: Reservation, claim_url: str = None):
     destination_encoded = quote(reservation.dropoff_address)
     maps_url = f"https://www.google.com/maps/dir/?api=1&origin={origin_encoded}&destination={destination_encoded}"
     
+    # Admin URL for subcontracting management
+    frontend_url = os.environ.get('FRONTEND_URL', 'https://ride-booking-98.preview.emergentagent.com')
+    admin_subcontracting_url = f"{frontend_url}/admin/subcontracting"
+    
     # Claim link section for subcontracting
     claim_section = ""
     if claim_url:
@@ -745,11 +749,31 @@ async def send_driver_alert(reservation: Reservation, claim_url: str = None):
                 <h3 style="margin: 0 0 10px 0;">🚗 Sous-traiter cette course</h3>
                 <p style="margin: 0 0 15px 0; font-size: 14px;">Partagez ce lien avec vos chauffeurs partenaires :</p>
                 <a href="{claim_url}" style="display: inline-block; background-color: #0a0a0a; color: #f59e0b; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; word-break: break-all;">
-                    Lien Claim Chauffeur
+                    🔗 Copier le lien chauffeur
                 </a>
                 <p style="margin: 15px 0 0 0; font-size: 11px; color: #333;">Commission: 10% • Premier chauffeur qui paie = course attribuée</p>
             </div>
         """
+    else:
+        # If no claim_url provided, show button to generate one via admin panel
+        claim_section = f"""
+            <div style="background: #3b82f6; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                <h3 style="margin: 0 0 10px 0;">🚗 Sous-traiter cette course ?</h3>
+                <p style="margin: 0 0 15px 0; font-size: 14px;">Générez un lien pour vos chauffeurs partenaires</p>
+                <a href="{admin_subcontracting_url}" style="display: inline-block; background-color: white; color: #3b82f6; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 600;">
+                    📋 Gérer la sous-traitance
+                </a>
+            </div>
+        """
+    
+    # Quick action button to admin subcontracting page
+    admin_action_button = f"""
+        <div style="text-align: center; margin: 20px 0;">
+            <a href="{admin_subcontracting_url}" style="display: inline-block; background-color: #f59e0b; color: #0a0a0a; padding: 14px 35px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 16px;">
+                ⚡ Ouvrir Sous-traitance Admin
+            </a>
+        </div>
+    """
     
     html_content = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
