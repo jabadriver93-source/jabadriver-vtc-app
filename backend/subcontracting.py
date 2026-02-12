@@ -333,9 +333,47 @@ async def get_driver_course_detail(request: Request, course_id: str):
 # ============================================
 # CLAIM ROUTES (PUBLIC WITH AUTH)
 # ============================================
+
+def extract_city_department(address: str) -> str:
+    """Extract city and department from full address for privacy"""
+    if not address:
+        return "Non spécifié"
+    
+    # Common patterns for French addresses
+    parts = address.split(',')
+    
+    # Try to find postal code pattern (5 digits)
+    import re
+    postal_match = re.search(r'\b(\d{5})\b', address)
+    
+    if postal_match:
+        postal = postal_match.group(1)
+        dept = postal[:2]
+        # Find city name near postal code
+        for i, part in enumerate(parts):
+            if postal in part:
+                city_part = part.strip()
+                # Extract just city name
+                city = re.sub(r'\d{5}', '', city_part).strip()
+                if city:
+                    return f"{city} ({dept})"
+                elif i > 0:
+                    return f"{parts[i-1].strip()} ({dept})"
+    
+    # Fallback: return last meaningful part
+    if len(parts) >= 2:
+        return parts[-1].strip()
+    
+    # If no comma, try to extract last words
+    words = address.split()
+    if len(words) >= 2:
+        return ' '.join(words[-2:])
+    
+    return address[:30] + "..."
+
 @subcontracting_router.get("/claim/{token}")
 async def get_claim_info(token: str):
-    """Get course info from claim token (public)"""
+    """Get course info from claim token (public) - MASKED for security"""
     if not SUBCONTRACTING_ENABLED:
         raise HTTPException(status_code=503, detail="Module sous-traitance désactivé")
     
@@ -372,24 +410,41 @@ async def get_claim_info(token: str):
             remaining = (expiry - datetime.now(timezone.utc)).total_seconds()
             time_remaining = max(0, int(remaining))
     
+    # SECURITY: Mask sensitive info before payment
+    # Only show: client name, price, date/time, city+dept, commission
+    # Hide: full addresses, phone, email, notes
+    is_assigned = course["status"] == CourseStatusEnum.ASSIGNED
+    
+    # Extract city + department only (not full address)
+    pickup_masked = extract_city_department(course["pickup_address"])
+    dropoff_masked = extract_city_department(course["dropoff_address"])
+    
     return {
         "course": {
             "id": course["id"],
             "client_name": course["client_name"],
-            "pickup_address": course["pickup_address"],
-            "dropoff_address": course["dropoff_address"],
+            # Masked addresses - only city + department
+            "pickup_location": pickup_masked,
+            "dropoff_location": dropoff_masked,
+            # Full addresses only if ASSIGNED (after payment)
+            "pickup_address": course["pickup_address"] if is_assigned else None,
+            "dropoff_address": course["dropoff_address"] if is_assigned else None,
             "date": course["date"],
             "time": course["time"],
             "distance_km": course.get("distance_km"),
             "price_total": course["price_total"],
-            "notes": course.get("notes"),
+            # Sensitive info hidden before payment
+            "client_phone": course.get("client_phone") if is_assigned else None,
+            "client_email": course.get("client_email") if is_assigned else None,
+            "notes": course.get("notes") if is_assigned else None,
             "status": course["status"]
         },
         "commission_rate": COMMISSION_RATE,
         "commission_amount": commission_amount,
         "reserved_by": reserved_driver_name,
         "time_remaining_seconds": time_remaining,
-        "claim_expires_at": claim["expires_at"]
+        "claim_expires_at": claim["expires_at"],
+        "is_assigned": is_assigned
     }
 
 @subcontracting_router.post("/claim/{token}/reserve")
