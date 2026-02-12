@@ -201,12 +201,24 @@ h1, h2, h3, h4, h5, h6 {
 
 @media (max-width: 768px) {
     .map-marker-start {
-        top: 15%;
-        left: 15%;
+        top: 8%;
+        left: 10%;
     }
     .map-marker-end {
-        top: 15%;
-        right: 15%;
+        top: 8%;
+        right: 10%;
+    }
+    .marker-label {
+        font-size: 9px;
+        padding: 3px 8px;
+        top: -24px;
+    }
+    .marker-dot {
+        width: 16px;
+        height: 16px;
+    }
+    .marker-ring {
+        inset: -6px;
     }
 }
 
