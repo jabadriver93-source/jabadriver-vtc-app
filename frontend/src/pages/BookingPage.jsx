@@ -336,19 +336,19 @@ export default function BookingPage() {
       {/* Overlay */}
       <div className="hero-map-overlay" />
       
-      {/* Start Marker - top left */}
-      <div className="absolute left-4 top-[110px] sm:top-[140px] z-30 flex flex-col items-center">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-green-500 bg-black/70 px-2 py-1 rounded mb-1">Départ</div>
-        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-green-600 shadow-[0_0_20px_rgba(34,197,94,0.6)] relative">
-          <div className="absolute inset-[-6px] rounded-full border-2 border-green-500/50 animate-pulse" />
+      {/* Start Marker */}
+      <div className="absolute left-4 top-[160px] flex flex-col items-center gap-1 z-30">
+        <div className="text-xs font-semibold uppercase tracking-wider text-green-500 bg-black/70 px-2 py-1 rounded">Départ</div>
+        <div className="w-14 h-14 rounded-full border-2 border-green-500/50 flex items-center justify-center animate-pulse">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-green-600 shadow-[0_0_20px_rgba(34,197,94,0.6)]" />
         </div>
       </div>
       
-      {/* End Marker - top right */}
-      <div className="absolute right-4 top-[110px] sm:top-[140px] z-30 flex flex-col items-center">
-        <div className="text-[11px] font-semibold uppercase tracking-wider text-red-500 bg-black/70 px-2 py-1 rounded mb-1">Arrivée</div>
-        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-red-600 shadow-[0_0_20px_rgba(239,68,68,0.6)] relative">
-          <div className="absolute inset-[-6px] rounded-full border-2 border-red-500/50 animate-pulse" />
+      {/* End Marker */}
+      <div className="absolute right-4 top-[160px] flex flex-col items-center gap-1 z-30">
+        <div className="text-xs font-semibold uppercase tracking-wider text-red-500 bg-black/70 px-2 py-1 rounded">Arrivée</div>
+        <div className="w-14 h-14 rounded-full border-2 border-red-500/50 flex items-center justify-center animate-pulse">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-red-600 shadow-[0_0_20px_rgba(239,68,68,0.6)]" />
         </div>
       </div>
       
