@@ -304,6 +304,23 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
+                      {/* Subcontracting Badge */}
+                      {(() => {
+                        const subInfo = getSubcontractingInfo(reservation);
+                        if (subInfo) {
+                          const statusInfo = SUBCONTRACTING_STATUS[subInfo.status] || SUBCONTRACTING_STATUS.OPEN;
+                          return (
+                            <div className={`${statusInfo.color} border text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1`}>
+                              <Truck className="w-3 h-3" />
+                              {statusInfo.label}
+                              {subInfo.assigned_driver && (
+                                <span className="ml-1 opacity-70">• {subInfo.assigned_driver.company_name?.slice(0, 10)}</span>
+                              )}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                       {/* Invoice Badge */}
                       {reservation.invoice_generated && (
                         <div className="bg-emerald-500/20 text-emerald-400 text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1">
@@ -330,6 +347,34 @@ export default function AdminDashboard() {
                       </span>
                     </div>
                   </div>
+                  
+                  {/* Subcontracting Info Row */}
+                  {(() => {
+                    const subInfo = getSubcontractingInfo(reservation);
+                    if (subInfo && (subInfo.status === 'ASSIGNED' || subInfo.commission_paid)) {
+                      return (
+                        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-4 text-sm">
+                            <span className="text-amber-400 font-medium flex items-center gap-1">
+                              <Truck className="w-4 h-4" />
+                              Sous-traitée
+                            </span>
+                            {subInfo.assigned_driver && (
+                              <span className="text-white/70">
+                                → {subInfo.assigned_driver.company_name} ({subInfo.assigned_driver.name})
+                              </span>
+                            )}
+                            {subInfo.commission_paid && (
+                              <span className="text-green-400 text-xs">
+                                ✓ Commission {subInfo.commission_amount?.toFixed(2)}€ payée
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
 
                   {/* Details Grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
