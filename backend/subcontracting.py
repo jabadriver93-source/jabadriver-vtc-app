@@ -589,43 +589,117 @@ async def get_payment_status(session_id: str, request: Request):
     if not STRIPE_API_KEY:
         raise HTTPException(status_code=503, detail="Paiement non configuré")
     
-    # Get payment record
+    logger.info(f"[STRIPE] Checking payment status for session: {session_id}")
+    
+    # Get payment record from DB
     payment = await db.commission_payments.find_one({"session_id": session_id}, {"_id": 0})
     if not payment:
-        raise HTTPException(status_code=404, detail="Paiement non trouvé")
+        raise HTTPException(status_code=404, detail="Paiement non trouvé dans la base")
     
-    # Check Stripe status
-    webhook_url = f"{str(request.base_url).rstrip('/')}/api/webhook/stripe"
-    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
-    
-    status_response: CheckoutStatusResponse = await stripe_checkout.get_checkout_status(session_id)
-    
-    logger.info(f"[SUBCONTRACTING] Payment status check: session={session_id[:8]}, status={status_response.payment_status}")
-    
-    if status_response.payment_status == "paid" and payment["status"] != "paid":
-        # Payment successful - finalize attribution
-        await finalize_attribution(payment["course_id"], payment["driver_id"], session_id)
+    try:
+        # Configure Stripe
+        stripe.api_key = STRIPE_API_KEY
         
-        # Update payment record
-        await db.commission_payments.update_one(
-            {"session_id": session_id},
-            {"$set": {
+        # Retrieve session from Stripe
+        session = stripe.checkout.Session.retrieve(session_id)
+        
+        logger.info(f"[STRIPE] Session status: {session.status}")
+        logger.info(f"[STRIPE] Payment status: {session.payment_status}")
+        
+        payment_status = session.payment_status  # 'unpaid', 'paid', 'no_payment_required'
+        
+        if payment_status == "paid" and payment["status"] != "paid":
+            # Payment successful - finalize attribution
+            logger.info(f"[STRIPE] ✅ Payment confirmed! Finalizing attribution...")
+            await finalize_attribution(payment["course_id"], payment["driver_id"], session_id)
+            
+            # Update payment record
+            await db.commission_payments.update_one(
+                {"session_id": session_id},
+                {"$set": {
+                    "status": "paid",
+                    "paid_at": datetime.now(timezone.utc).isoformat(),
+                    "provider_payment_id": session.payment_intent
+                }}
+            )
+            
+            return {
                 "status": "paid",
-                "paid_at": datetime.now(timezone.utc).isoformat()
-            }}
-        )
+                "payment_status": "paid",
+                "message": "Paiement confirmé ! La course vous est attribuée.",
+                "course_id": payment["course_id"],
+                "amount": payment["amount"]
+            }
         
         return {
-            "status": "paid",
-            "message": "Paiement confirmé ! La course vous est attribuée.",
-            "course_id": payment["course_id"]
+            "status": payment["status"],
+            "payment_status": payment_status,
+            "message": "En attente de paiement" if payment_status == "unpaid" else f"Statut: {payment_status}",
+            "amount": payment["amount"],
+            "currency": payment["currency"]
         }
+        
+    except stripe.error.StripeError as e:
+        logger.error(f"[STRIPE] Error checking status: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur Stripe: {str(e)}")
+
+# New endpoint for verifying payment after redirect
+@subcontracting_router.get("/verify-payment")
+async def verify_payment(session_id: str):
+    """Verify payment status after Stripe redirect - called from success page"""
+    if not STRIPE_API_KEY:
+        raise HTTPException(status_code=503, detail="Paiement non configuré")
     
-    return {
-        "status": status_response.payment_status,
-        "amount": status_response.amount_total / 100,  # Convert cents to euros
-        "currency": status_response.currency
-    }
+    logger.info(f"[STRIPE VERIFY] Verifying session: {session_id}")
+    
+    try:
+        stripe.api_key = STRIPE_API_KEY
+        session = stripe.checkout.Session.retrieve(session_id)
+        
+        logger.info(f"[STRIPE VERIFY] Session {session_id[:20]}...")
+        logger.info(f"[STRIPE VERIFY] Status: {session.status}")
+        logger.info(f"[STRIPE VERIFY] Payment Status: {session.payment_status}")
+        
+        # Get payment record
+        payment = await db.commission_payments.find_one({"session_id": session_id}, {"_id": 0})
+        
+        if session.payment_status == "paid":
+            if payment and payment["status"] != "paid":
+                # Finalize attribution
+                await finalize_attribution(payment["course_id"], payment["driver_id"], session_id)
+                
+                await db.commission_payments.update_one(
+                    {"session_id": session_id},
+                    {"$set": {
+                        "status": "paid",
+                        "paid_at": datetime.now(timezone.utc).isoformat(),
+                        "provider_payment_id": session.payment_intent
+                    }}
+                )
+            
+            return {
+                "success": True,
+                "payment_status": "paid",
+                "message": "Paiement confirmé ! La course vous est attribuée.",
+                "course_id": payment["course_id"] if payment else None,
+                "amount": session.amount_total / 100,
+                "currency": session.currency
+            }
+        else:
+            return {
+                "success": False,
+                "payment_status": session.payment_status,
+                "message": "Paiement non confirmé",
+                "session_status": session.status
+            }
+            
+    except stripe.error.StripeError as e:
+        logger.error(f"[STRIPE VERIFY] Error: {str(e)}")
+        return {
+            "success": False,
+            "payment_status": "error",
+            "message": f"Erreur vérification: {str(e)}"
+        }
 
 async def finalize_attribution(course_id: str, driver_id: str, payment_session_id: str):
     """Finalize course attribution after successful payment"""
