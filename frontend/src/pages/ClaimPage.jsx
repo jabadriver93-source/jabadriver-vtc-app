@@ -29,12 +29,13 @@ export default function ClaimPage() {
   const fetchClaimInfo = useCallback(async () => {
     try {
       const res = await fetch(`${API_URL}/api/subcontracting/claim/${token}`);
-      const data = await res.json();
       
       if (!res.ok) {
-        throw new Error(data.detail || 'Lien invalide');
+        const errorData = await res.json().catch(() => ({ detail: 'Lien invalide' }));
+        throw new Error(errorData.detail || 'Lien invalide');
       }
       
+      const data = await res.json();
       setClaimData(data);
       if (data.time_remaining_seconds !== null) {
         setTimeRemaining(data.time_remaining_seconds);
