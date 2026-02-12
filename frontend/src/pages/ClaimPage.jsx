@@ -236,14 +236,24 @@ export default function ClaimPage() {
                   <MapPin className="w-5 h-5 text-green-400 mt-0.5" />
                   <div>
                     <p className="text-slate-500 text-xs">Départ</p>
-                    <p className="text-white text-sm">{course?.pickup_address}</p>
+                    {/* Show full address only if assigned (after payment) */}
+                    {isAssigned && course?.pickup_address ? (
+                      <p className="text-white text-sm">{course.pickup_address}</p>
+                    ) : (
+                      <p className="text-white text-sm">{course?.pickup_location || 'Non spécifié'}</p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <MapPin className="w-5 h-5 text-red-400 mt-0.5" />
                   <div>
                     <p className="text-slate-500 text-xs">Arrivée</p>
-                    <p className="text-white text-sm">{course?.dropoff_address}</p>
+                    {/* Show full address only if assigned (after payment) */}
+                    {isAssigned && course?.dropoff_address ? (
+                      <p className="text-white text-sm">{course.dropoff_address}</p>
+                    ) : (
+                      <p className="text-white text-sm">{course?.dropoff_location || 'Non spécifié'}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -258,10 +268,33 @@ export default function ClaimPage() {
                 </div>
               )}
               
-              {course?.notes && (
+              {/* Show notes only if assigned (after payment) */}
+              {isAssigned && course?.notes && (
                 <div className="bg-slate-700/30 p-3 rounded-lg">
                   <p className="text-slate-500 text-xs mb-1">Notes</p>
                   <p className="text-slate-300 text-sm">{course?.notes}</p>
+                </div>
+              )}
+              
+              {/* Show contact info only if assigned (after payment) */}
+              {isAssigned && (course?.client_phone || course?.client_email) && (
+                <div className="bg-green-500/10 border border-green-500/30 p-3 rounded-lg">
+                  <p className="text-green-400 text-xs mb-2 font-medium">📞 Contact client (visible après paiement)</p>
+                  {course?.client_phone && (
+                    <p className="text-white text-sm">Tél: <a href={`tel:${course.client_phone}`} className="text-sky-400 hover:underline">{course.client_phone}</a></p>
+                  )}
+                  {course?.client_email && (
+                    <p className="text-white text-sm">Email: {course.client_email}</p>
+                  )}
+                </div>
+              )}
+              
+              {/* Privacy notice before payment */}
+              {!isAssigned && (
+                <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-lg">
+                  <p className="text-amber-400 text-xs">
+                    🔒 Adresses complètes, téléphone et notes visibles après paiement de la commission.
+                  </p>
                 </div>
               )}
             </div>
