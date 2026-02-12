@@ -473,7 +473,7 @@ async def initiate_payment(token: str, request: Request):
         raise HTTPException(status_code=503, detail="Module sous-traitance désactivé")
     
     if not STRIPE_API_KEY:
-        raise HTTPException(status_code=503, detail="Paiement non configuré")
+        raise HTTPException(status_code=503, detail="Paiement non configuré - clé Stripe manquante")
     
     driver = await get_driver_from_token(request.headers.get("Authorization"))
     
@@ -501,56 +501,87 @@ async def initiate_payment(token: str, request: Request):
         if datetime.now(timezone.utc) > expiry:
             raise HTTPException(status_code=410, detail="Votre réservation a expiré")
     
-    # Calculate commission
+    # Calculate commission (amount in cents for Stripe)
     commission_amount = round(course["price_total"] * COMMISSION_RATE, 2)
+    commission_cents = int(commission_amount * 100)
     
     # Get host URL for redirect
-    body = await request.json() if request.headers.get("content-type") == "application/json" else {}
-    origin_url = body.get("origin_url") or str(request.base_url).rstrip("/")
+    try:
+        body = await request.json()
+    except:
+        body = {}
+    origin_url = body.get("origin_url", "").rstrip("/")
+    if not origin_url:
+        origin_url = os.environ.get('FRONTEND_URL', 'https://ride-booking-98.preview.emergentagent.com')
     
-    # Build URLs
-    success_url = f"{origin_url}/driver/courses/{course['id']}?payment=success&session_id={{CHECKOUT_SESSION_ID}}"
+    # Build URLs - success page will verify payment
+    success_url = f"{origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}&course_id={course['id']}"
     cancel_url = f"{origin_url}/claim/{token}?payment=cancelled"
     
-    # Initialize Stripe
-    webhook_url = f"{str(request.base_url).rstrip('/')}/api/webhook/stripe"
-    stripe_checkout = StripeCheckout(api_key=STRIPE_API_KEY, webhook_url=webhook_url)
+    logger.info(f"[STRIPE] Creating checkout session...")
+    logger.info(f"[STRIPE] API Key: {STRIPE_API_KEY[:12]}...")
+    logger.info(f"[STRIPE] Amount: {commission_amount}€ ({commission_cents} cents)")
+    logger.info(f"[STRIPE] Success URL: {success_url}")
+    logger.info(f"[STRIPE] Cancel URL: {cancel_url}")
     
-    # Create checkout session
-    checkout_request = CheckoutSessionRequest(
-        amount=commission_amount,
-        currency="eur",
-        success_url=success_url,
-        cancel_url=cancel_url,
-        metadata={
-            "course_id": course["id"],
-            "driver_id": driver["id"],
-            "claim_token": token,
-            "type": "commission_payment"
+    try:
+        # Configure Stripe with API key
+        stripe.api_key = STRIPE_API_KEY
+        
+        # Create Stripe Checkout Session
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'eur',
+                    'product_data': {
+                        'name': f'Commission course VTC - {course["client_name"]}',
+                        'description': f'Course du {course["date"]} - {course["pickup_address"][:30]}... → {course["dropoff_address"][:30]}...',
+                    },
+                    'unit_amount': commission_cents,
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=success_url,
+            cancel_url=cancel_url,
+            metadata={
+                'course_id': course['id'],
+                'driver_id': driver['id'],
+                'claim_token': token,
+                'type': 'commission_payment'
+            },
+            customer_email=driver.get('email'),
+        )
+        
+        logger.info(f"[STRIPE] ✅ Session created successfully!")
+        logger.info(f"[STRIPE] Session ID: {session.id}")
+        logger.info(f"[STRIPE] Checkout URL: {session.url}")
+        
+        # Create payment record
+        payment = CommissionPayment(
+            course_id=course["id"],
+            driver_id=driver["id"],
+            session_id=session.id,
+            amount=commission_amount,
+            currency="eur",
+            status="pending"
+        )
+        await db.commission_payments.insert_one(payment.model_dump())
+        
+        return {
+            "checkout_url": session.url,
+            "session_id": session.id,
+            "amount": commission_amount,
+            "currency": "eur"
         }
-    )
-    
-    session: CheckoutSessionResponse = await stripe_checkout.create_checkout_session(checkout_request)
-    
-    # Create payment record
-    payment = CommissionPayment(
-        course_id=course["id"],
-        driver_id=driver["id"],
-        session_id=session.session_id,
-        amount=commission_amount,
-        currency="eur",
-        status="pending"
-    )
-    await db.commission_payments.insert_one(payment.model_dump())
-    
-    logger.info(f"[SUBCONTRACTING] Payment session created for course {course['id'][:8]}, driver {driver['id'][:8]}, amount {commission_amount}€")
-    
-    return {
-        "checkout_url": session.url,
-        "session_id": session.session_id,
-        "amount": commission_amount,
-        "currency": "eur"
-    }
+        
+    except stripe.error.StripeError as e:
+        logger.error(f"[STRIPE] ❌ Stripe error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur Stripe: {str(e)}")
+    except Exception as e:
+        logger.error(f"[STRIPE] ❌ Error creating session: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur création paiement: {str(e)}")
 
 @subcontracting_router.get("/payment/status/{session_id}")
 async def get_payment_status(session_id: str, request: Request):
