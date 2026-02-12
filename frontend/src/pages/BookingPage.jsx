@@ -327,7 +327,7 @@ export default function BookingPage() {
   const today = new Date().toISOString().split('T')[0];
 
   return (
-    <div className="hero-map">
+    <div className="hero-map relative">
       {/* SVG Map Background */}
       <div className="hero-map-bg">
         <MapBackground />
@@ -337,18 +337,18 @@ export default function BookingPage() {
       <div className="hero-map-overlay" />
       
       {/* Start Marker - top left */}
-      <div className="map-marker map-marker-start">
-        <div className="marker-label marker-label-start">Départ</div>
-        <div className="marker-dot marker-dot-start">
-          <div className="marker-ring marker-ring-start" />
+      <div className="absolute left-4 top-[110px] sm:top-[140px] z-30 flex flex-col items-center">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-green-500 bg-black/70 px-2 py-1 rounded mb-1">Départ</div>
+        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-green-500 to-green-600 shadow-[0_0_20px_rgba(34,197,94,0.6)] relative">
+          <div className="absolute inset-[-6px] rounded-full border-2 border-green-500/50 animate-pulse" />
         </div>
       </div>
       
       {/* End Marker - top right */}
-      <div className="map-marker map-marker-end">
-        <div className="marker-label marker-label-end">Arrivée</div>
-        <div className="marker-dot marker-dot-end">
-          <div className="marker-ring marker-ring-end" />
+      <div className="absolute right-4 top-[110px] sm:top-[140px] z-30 flex flex-col items-center">
+        <div className="text-[11px] font-semibold uppercase tracking-wider text-red-500 bg-black/70 px-2 py-1 rounded mb-1">Arrivée</div>
+        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500 to-red-600 shadow-[0_0_20px_rgba(239,68,68,0.6)] relative">
+          <div className="absolute inset-[-6px] rounded-full border-2 border-red-500/50 animate-pulse" />
         </div>
       </div>
       
