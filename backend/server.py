@@ -783,6 +783,9 @@ async def send_driver_alert(reservation: Reservation, claim_url: str = None):
         <div style="padding: 30px; background: #F8FAFC;">
             {price_info}
             {claim_section}
+            
+            {admin_action_button}
+            
             <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                 <h3 style="margin-top: 0;">Client</h3>
                 <p><strong>Nom:</strong> {reservation.name}</p>
