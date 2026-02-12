@@ -868,7 +868,7 @@ async def root():
     return {"message": "JABA DRIVER API"}
 
 @api_router.post("/reservations", response_model=Reservation)
-async def create_reservation(input: ReservationCreate):
+async def create_reservation(input: ReservationCreate, request: Request):
     reservation_dict = input.model_dump()
     
     logger.info("=" * 80)
@@ -899,31 +899,78 @@ async def create_reservation(input: ReservationCreate):
     
     reservation_obj = Reservation(**reservation_data)
     
-    # Generate PDF and send emails - NON-BLOCKING
+    # Create corresponding course in subcontracting module
+    claim_url = None
     try:
-        bon_commande_pdf = generate_bon_commande_pdf(reservation_data)
-        reservation_data["bon_commande_generated"] = True
-        reservation_data["bon_commande_date"] = datetime.now(timezone.utc).isoformat()
-        await db.reservations.update_one({"id": reservation.id}, {"$set": {"bon_commande_generated": True, "bon_commande_date": reservation_data["bon_commande_date"]}})
-        logger.info(f"[CREATE RESERVATION] ✅ Bon de commande PDF generated")
+        from subcontracting import Course, ClaimToken, COMMISSION_RATE, CLAIM_TOKEN_EXPIRY_MINUTES
+        from datetime import timedelta
+        import secrets
         
-        # Send emails
-        logger.info(f"[CREATE RESERVATION] Will send emails:")
-        logger.info(f"  - Client email: {reservation_obj.email if reservation_obj.email else 'SKIPPED'}")
-        logger.info(f"  - Driver email: {DRIVER_EMAIL if DRIVER_EMAIL else 'SKIPPED'}")
+        final_price = reservation_obj.estimated_price or (reservation_obj.base_price + (reservation_obj.airport_surcharge or 0))
         
+        # Create course for subcontracting
+        course = Course(
+            client_name=reservation_obj.name,
+            client_email=reservation_obj.email or "",
+            client_phone=reservation_obj.phone,
+            pickup_address=reservation_obj.pickup_address,
+            dropoff_address=reservation_obj.dropoff_address,
+            date=reservation_obj.date,
+            time=reservation_obj.time,
+            distance_km=reservation_obj.distance_km,
+            price_total=final_price,
+            notes=f"Réservation client #{reservation_obj.id[:8]} - {reservation_obj.passengers} passager(s)",
+            commission_amount=round(final_price * COMMISSION_RATE, 2)
+        )
+        
+        await db.courses.insert_one(course.model_dump())
+        logger.info(f"[CREATE RESERVATION] ✅ Subcontracting course created | ID: {course.id[:8]}")
+        
+        # Generate claim token
+        claim_token = ClaimToken(
+            course_id=course.id,
+            token=secrets.token_urlsafe(32),
+            expires_at=(datetime.now(timezone.utc) + timedelta(minutes=CLAIM_TOKEN_EXPIRY_MINUTES)).isoformat()
+        )
+        await db.claim_tokens.insert_one(claim_token.model_dump())
+        
+        # Build claim URL
+        # Get base URL from request or use default
+        base_url = str(request.base_url).rstrip('/')
+        if '/api' in base_url:
+            base_url = base_url.split('/api')[0]
+        # Use frontend URL for claim page
+        frontend_url = os.environ.get('FRONTEND_URL', base_url.replace(':8001', ':3000'))
+        claim_url = f"{frontend_url}/claim/{claim_token.token}"
+        
+        logger.info(f"[CREATE RESERVATION] ✅ Claim token generated | URL: {claim_url[:50]}...")
+        
+        # Link reservation to course
+        await db.reservations.update_one(
+            {"id": reservation.id}, 
+            {"$set": {"subcontracting_course_id": course.id}}
+        )
+        
+    except Exception as e:
+        logger.error(f"[CREATE RESERVATION] ⚠️ Subcontracting setup failed: {str(e)}")
+        logger.exception("Full trace:")
+    
+    # Send emails - NO PDF attachments
+    try:
+        # Email to client (no PDF)
         try:
-            await send_confirmation_email(reservation_obj, bon_commande_pdf)
+            await send_confirmation_email(reservation_obj)
         except Exception as e:
             logger.error(f"[CREATE RESERVATION] ⚠️ Email client failed: {str(e)}")
         
+        # Email to admin with claim link (no PDF)
         try:
-            await send_driver_alert(reservation_obj, bon_commande_pdf)
+            await send_driver_alert(reservation_obj, claim_url)
         except Exception as e:
             logger.error(f"[CREATE RESERVATION] ⚠️ Email driver failed: {str(e)}")
             
     except Exception as e:
-        logger.error(f"[CREATE RESERVATION] ⚠️ PDF/Email failed but reservation saved: {str(e)}")
+        logger.error(f"[CREATE RESERVATION] ⚠️ Email failed but reservation saved: {str(e)}")
         logger.exception("Full trace:")
     
     logger.info(f"[CREATE RESERVATION] ✅ Process completed")
