@@ -382,9 +382,9 @@ export default function BookingPage() {
           </div>
         </header>
 
-        {/* Hero Section - Fixed layout for mobile */}
+        {/* Hero Section */}
         <section className="px-5 pt-24 sm:pt-40 pb-4 sm:pb-8">
-          <div className="max-w-5xl mx-auto text-center flex flex-col items-center">
+          <div className="max-w-5xl mx-auto text-center">
             <h1 
               className="hero-title-map mb-2 animate-fadeIn"
               style={{ fontFamily: 'Manrope, sans-serif' }}
@@ -400,29 +400,29 @@ export default function BookingPage() {
             <div className="hero-accent-line animate-fadeIn" style={{ animationDelay: '0.2s' }} />
             
             <p 
-              className="text-white/70 mt-3 sm:mt-6 mb-4 sm:mb-8 animate-fadeIn text-sm sm:text-base leading-relaxed px-4"
-              style={{ animationDelay: '0.25s', maxWidth: '320px' }}
+              className="hero-subtitle-map mt-4 sm:mt-6 mb-8 sm:mb-10 animate-fadeIn text-sm sm:text-base"
+              style={{ animationDelay: '0.25s', lineHeight: '1.5' }}
             >
               Service premium, votre chauffeur privé en Île-de-France
             </p>
 
-            {/* Badges - vertical stack on mobile, horizontal on desktop */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-8 sm:mb-4 animate-fadeIn w-full" style={{ animationDelay: '0.35s' }}>
-              <div className="badge-map text-xs sm:text-sm">
-                <div className="badge-map-icon w-8 h-8 sm:w-10 sm:h-10">
-                  <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+            {/* Badges - horizontal layout restored */}
+            <div className="flex flex-wrap justify-center gap-3 sm:gap-4 mb-10 sm:mb-6 animate-fadeIn" style={{ animationDelay: '0.35s' }}>
+              <div className="badge-map">
+                <div className="badge-map-icon">
+                  <Clock className="w-5 h-5" />
                 </div>
                 <span>Ponctualité</span>
               </div>
-              <div className="badge-map text-xs sm:text-sm">
-                <div className="badge-map-icon w-8 h-8 sm:w-10 sm:h-10">
-                  <Shield className="w-4 h-4 sm:w-5 sm:h-5" />
+              <div className="badge-map">
+                <div className="badge-map-icon">
+                  <Shield className="w-5 h-5" />
                 </div>
                 <span>Confort</span>
               </div>
-              <div className="badge-map text-xs sm:text-sm">
-                <div className="badge-map-icon w-8 h-8 sm:w-10 sm:h-10">
-                  <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" />
+              <div className="badge-map">
+                <div className="badge-map-icon">
+                  <CreditCard className="w-5 h-5" />
                 </div>
                 <span>Prix clair</span>
               </div>
