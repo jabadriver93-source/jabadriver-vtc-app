@@ -11,6 +11,7 @@ import DriverLoginPage from "@/pages/driver/DriverLoginPage";
 import DriverCoursesPage from "@/pages/driver/DriverCoursesPage";
 import DriverProfilePage from "@/pages/driver/DriverProfilePage";
 import AdminSubcontractingPage from "@/pages/admin/AdminSubcontractingPage";
+import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
 
 function App() {
   return (
@@ -33,6 +34,9 @@ function App() {
           
           {/* Claim route (subcontracting) */}
           <Route path="/claim/:token" element={<ClaimPage />} />
+          
+          {/* Payment success page */}
+          <Route path="/payment/success" element={<PaymentSuccessPage />} />
         </Routes>
       </BrowserRouter>
       <Toaster position="top-center" richColors />
