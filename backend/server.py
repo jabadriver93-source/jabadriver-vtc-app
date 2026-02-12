@@ -1274,6 +1274,30 @@ async def export_reservations_csv(
         headers={"Content-Disposition": f"attachment; filename=reservations_{datetime.now().strftime('%Y%m%d')}.csv"}
     )
 
+# ============================================
+# SUBCONTRACTING MODULE
+# ============================================
+from subcontracting import (
+    subcontracting_router, 
+    driver_router, 
+    admin_subcontracting_router,
+    init_subcontracting,
+    handle_stripe_webhook
+)
+
+# Initialize subcontracting module with database and stripe key
+init_subcontracting(db, STRIPE_API_KEY)
+
+# Include subcontracting routers
+app.include_router(subcontracting_router)
+app.include_router(driver_router)
+app.include_router(admin_subcontracting_router)
+
+# Stripe webhook route
+@app.post("/api/webhook/stripe")
+async def stripe_webhook(request: Request):
+    return await handle_stripe_webhook(request)
+
 app.include_router(api_router)
 
 app.add_middleware(
