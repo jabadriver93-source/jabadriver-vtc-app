@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { 
   Search, Calendar, Phone, MapPin, Users, Briefcase, 
   MessageSquare, Download, LogOut, Loader2, Clock, RefreshCw,
-  ExternalLink, Euro, Route, FileText, FileCheck
+  ExternalLink, Euro, Route, FileText, FileCheck, Truck
 } from "lucide-react";
 import axios from "axios";
 import InvoiceModal from "@/components/InvoiceModal";
@@ -19,6 +19,14 @@ const STATUS_OPTIONS = [
   { value: "annulée", label: "Annulée", bgColor: "bg-red-500", textColor: "text-white" }
 ];
 
+const SUBCONTRACTING_STATUS = {
+  OPEN: { label: "Disponible", color: "bg-sky-500/20 text-sky-400 border-sky-500/30" },
+  RESERVED: { label: "Réservée", color: "bg-amber-500/20 text-amber-400 border-amber-500/30" },
+  ASSIGNED: { label: "Attribuée", color: "bg-green-500/20 text-green-400 border-green-500/30" },
+  DONE: { label: "Terminée", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+  CANCELLED: { label: "Annulée", color: "bg-red-500/20 text-red-400 border-red-500/30" }
+};
+
 const getStatusStyle = (status) => {
   const found = STATUS_OPTIONS.find(s => s.value === status);
   return found ? `${found.bgColor} ${found.textColor}` : "bg-slate-500 text-white";
@@ -27,6 +35,7 @@ const getStatusStyle = (status) => {
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const [reservations, setReservations] = useState([]);
+  const [subcontractingCourses, setSubcontractingCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState("");
@@ -48,8 +57,14 @@ export default function AdminDashboard() {
       if (dateFilter) params.append("date", dateFilter);
       if (statusFilter) params.append("status", statusFilter);
       
-      const response = await axios.get(`${API}/reservations?${params.toString()}`);
-      setReservations(response.data);
+      // Fetch reservations and subcontracting courses in parallel
+      const [reservationsRes, coursesRes] = await Promise.all([
+        axios.get(`${API}/reservations?${params.toString()}`),
+        axios.get(`${API}/admin/subcontracting/courses`).catch(() => ({ data: [] }))
+      ]);
+      
+      setReservations(reservationsRes.data);
+      setSubcontractingCourses(coursesRes.data);
     } catch (error) {
       console.error("Error fetching reservations:", error);
       toast.error("Erreur lors du chargement");
@@ -57,6 +72,19 @@ export default function AdminDashboard() {
       setLoading(false);
     }
   }, [search, dateFilter, statusFilter]);
+
+  // Helper to find subcontracting info for a reservation
+  const getSubcontractingInfo = (reservation) => {
+    // Match by subcontracting_course_id or by client_name + date
+    if (reservation.subcontracting_course_id) {
+      return subcontractingCourses.find(c => c.id === reservation.subcontracting_course_id);
+    }
+    // Fallback: match by name and date
+    return subcontractingCourses.find(c => 
+      c.client_name === reservation.name && 
+      c.date === reservation.date
+    );
+  };
 
   useEffect(() => {
     fetchReservations();
