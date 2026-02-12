@@ -186,7 +186,7 @@ h1, h2, h3, h4, h5, h6 {
 /* Markers - Start & End points */
 .map-marker {
     position: absolute;
-    z-index: 5;
+    z-index: 30;
 }
 
 .map-marker-start {
@@ -199,26 +199,45 @@ h1, h2, h3, h4, h5, h6 {
     right: 30%;
 }
 
+/* Mobile positioning - fixed absolute values */
 @media (max-width: 768px) {
     .map-marker-start {
-        top: 8%;
-        left: 10%;
+        top: 84px;
+        left: 16px;
     }
     .map-marker-end {
-        top: 8%;
-        right: 10%;
+        top: 84px;
+        right: 16px;
     }
     .marker-label {
-        font-size: 9px;
-        padding: 3px 8px;
-        top: -24px;
+        font-size: 12px;
+        line-height: 12px;
+        margin-bottom: 6px;
+        padding: 4px 10px;
+        top: -30px;
     }
     .marker-dot {
-        width: 16px;
-        height: 16px;
+        width: 52px;
+        height: 52px;
     }
     .marker-ring {
-        inset: -6px;
+        inset: -8px;
+    }
+}
+
+/* Very small mobile */
+@media (max-width: 360px) {
+    .map-marker-start {
+        top: 78px;
+        left: 12px;
+    }
+    .map-marker-end {
+        top: 78px;
+        right: 12px;
+    }
+    .marker-dot {
+        width: 48px;
+        height: 48px;
     }
 }
 
