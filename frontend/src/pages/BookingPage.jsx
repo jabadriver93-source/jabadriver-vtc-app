@@ -399,27 +399,27 @@ export default function BookingPage() {
             </h1>
             <div className="hero-accent-line animate-fadeIn" style={{ animationDelay: '0.2s' }} />
             
-            <p className="hero-subtitle-map mt-6 mb-10 animate-fadeIn" style={{ animationDelay: '0.25s' }}>
+            <p className="hero-subtitle-map mt-4 sm:mt-6 mb-6 sm:mb-10 animate-fadeIn text-sm sm:text-base" style={{ animationDelay: '0.25s' }}>
               Service premium, votre chauffeur privé en Île-de-France
             </p>
 
-            {/* Badges */}
-            <div className="flex flex-wrap justify-center gap-3 sm:gap-4 animate-fadeIn" style={{ animationDelay: '0.35s' }}>
-              <div className="badge-map">
-                <div className="badge-map-icon">
-                  <Clock className="w-5 h-5" />
+            {/* Badges - with extra bottom margin on mobile */}
+            <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mb-6 sm:mb-0 animate-fadeIn" style={{ animationDelay: '0.35s' }}>
+              <div className="badge-map text-xs sm:text-sm">
+                <div className="badge-map-icon w-8 h-8 sm:w-10 sm:h-10">
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
                 <span>Ponctualité</span>
               </div>
-              <div className="badge-map">
-                <div className="badge-map-icon">
-                  <Shield className="w-5 h-5" />
+              <div className="badge-map text-xs sm:text-sm">
+                <div className="badge-map-icon w-8 h-8 sm:w-10 sm:h-10">
+                  <Shield className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
                 <span>Confort</span>
               </div>
-              <div className="badge-map">
-                <div className="badge-map-icon">
-                  <CreditCard className="w-5 h-5" />
+              <div className="badge-map text-xs sm:text-sm">
+                <div className="badge-map-icon w-8 h-8 sm:w-10 sm:h-10">
+                  <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
                 <span>Prix clair</span>
               </div>
@@ -427,8 +427,8 @@ export default function BookingPage() {
           </div>
         </section>
 
-        {/* Form Section */}
-        <section className="px-4 sm:px-5 pb-32 sm:pb-16 overflow-x-hidden">
+        {/* Form Section - extra top padding on mobile to avoid overlap */}
+        <section className="px-4 sm:px-5 pb-32 sm:pb-16 pt-4 sm:pt-0 overflow-x-hidden">
           <div className="max-w-lg mx-auto w-full">
             <form 
               onSubmit={handleSubmit} 
