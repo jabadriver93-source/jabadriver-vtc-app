@@ -574,7 +574,8 @@ def generate_invoice_pdf(reservation: dict, invoice_number: str, invoice_date: s
 # ============================================
 # EMAIL FUNCTIONS
 # ============================================
-async def send_confirmation_email(reservation: Reservation, bon_commande_pdf: bytes = None):
+async def send_confirmation_email(reservation: Reservation):
+    """Send confirmation email to client - NO PDF attachment"""
     if not reservation.email:
         logger.info("Skipping confirmation email - no client email provided")
         return
@@ -628,7 +629,7 @@ async def send_confirmation_email(reservation: Reservation, bon_commande_pdf: by
         <div style="padding: 30px; background-color: #F8FAFC;">
             <h2 style="color: #0a0a0a;">Confirmation de réservation</h2>
             <p>Bonjour <strong>{reservation.name}</strong>,</p>
-            <p>Votre réservation a bien été enregistrée. Vous trouverez ci-joint votre bon de commande.</p>
+            <p>Votre réservation a bien été enregistrée.</p>
             <div style="background: white; padding: 20px; border-radius: 12px; margin: 20px 0;">
                 <table style="width: 100%;">
                     <tr>
@@ -689,15 +690,9 @@ async def send_confirmation_email(reservation: Reservation, bon_commande_pdf: by
             "subject": f"JABA DRIVER - Confirmation réservation du {reservation.date}",
             "html": html_content
         }
+        # NO PDF attachment - removed
         
-        if bon_commande_pdf:
-            params["attachments"] = [{
-                "filename": f"bon_commande_{reservation.id[:8].upper()}.pdf",
-                "content": base64.b64encode(bon_commande_pdf).decode('utf-8')
-            }]
-            logger.info(f"[EMAIL] PDF attachment added | Size: {len(bon_commande_pdf)} bytes")
-        
-        logger.info(f"[EMAIL] Calling Resend API for confirmation email | API Key present: {bool(resend.api_key)}")
+        logger.info(f"[EMAIL] Calling Resend API for confirmation email (no PDF) | API Key present: {bool(resend.api_key)}")
         response = await asyncio.to_thread(resend.Emails.send, params)
         logger.info(f"[EMAIL] ✅ Confirmation email sent successfully | To: {reservation.email} | Resend ID: {response.get('id', 'N/A')}")
     except Exception as e:
