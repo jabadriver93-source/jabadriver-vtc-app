@@ -699,7 +699,8 @@ async def send_confirmation_email(reservation: Reservation):
         logger.error(f"[EMAIL] ❌ Failed to send confirmation email | To: {reservation.email} | Error: {str(e)}")
         logger.exception("Full exception trace:")
 
-async def send_driver_alert(reservation: Reservation, bon_commande_pdf: bytes = None):
+async def send_driver_alert(reservation: Reservation, claim_url: str = None):
+    """Send alert email to admin/driver - NO PDF attachment, includes claim link"""
     if not DRIVER_EMAIL:
         logger.warning("[EMAIL] Skipping driver alert - DRIVER_EMAIL not configured")
         return
@@ -736,6 +737,20 @@ async def send_driver_alert(reservation: Reservation, bon_commande_pdf: bytes = 
     destination_encoded = quote(reservation.dropoff_address)
     maps_url = f"https://www.google.com/maps/dir/?api=1&origin={origin_encoded}&destination={destination_encoded}"
     
+    # Claim link section for subcontracting
+    claim_section = ""
+    if claim_url:
+        claim_section = f"""
+            <div style="background: #f59e0b; color: #0a0a0a; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                <h3 style="margin: 0 0 10px 0;">🚗 Sous-traiter cette course</h3>
+                <p style="margin: 0 0 15px 0; font-size: 14px;">Partagez ce lien avec vos chauffeurs partenaires :</p>
+                <a href="{claim_url}" style="display: inline-block; background-color: #0a0a0a; color: #f59e0b; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; word-break: break-all;">
+                    Lien Claim Chauffeur
+                </a>
+                <p style="margin: 15px 0 0 0; font-size: 11px; color: #333;">Commission: 10% • Premier chauffeur qui paie = course attribuée</p>
+            </div>
+        """
+    
     html_content = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background: #7dd3fc; color: #0a0a0a; padding: 30px; text-align: center;">
@@ -743,6 +758,7 @@ async def send_driver_alert(reservation: Reservation, bon_commande_pdf: bytes = 
         </div>
         <div style="padding: 30px; background: #F8FAFC;">
             {price_info}
+            {claim_section}
             <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
                 <h3 style="margin-top: 0;">Client</h3>
                 <p><strong>Nom:</strong> {reservation.name}</p>
@@ -797,15 +813,9 @@ async def send_driver_alert(reservation: Reservation, bon_commande_pdf: bytes = 
             "subject": f"🚗 Nouvelle réservation - {reservation.name} - {reservation.date} {reservation.time}",
             "html": html_content
         }
+        # NO PDF attachment - removed
         
-        if bon_commande_pdf:
-            params["attachments"] = [{
-                "filename": f"bon_commande_{reservation.id[:8].upper()}.pdf",
-                "content": base64.b64encode(bon_commande_pdf).decode('utf-8')
-            }]
-            logger.info(f"[EMAIL] PDF attachment added | Size: {len(bon_commande_pdf)} bytes")
-        
-        logger.info(f"[EMAIL] Calling Resend API for driver alert | API Key present: {bool(resend.api_key)}")
+        logger.info(f"[EMAIL] Calling Resend API for driver alert (no PDF) | API Key present: {bool(resend.api_key)}")
         response = await asyncio.to_thread(resend.Emails.send, params)
         logger.info(f"[EMAIL] ✅ Driver alert sent successfully | To: {DRIVER_EMAIL} | Resend ID: {response.get('id', 'N/A')}")
     except Exception as e:
