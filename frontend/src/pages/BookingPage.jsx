@@ -307,6 +307,14 @@ export default function BookingPage() {
       return;
     }
 
+    // Check minimum booking delay (6 hours in advance)
+    const minBookingTime = new Date();
+    minBookingTime.setHours(minBookingTime.getHours() + MIN_BOOKING_DELAY_HOURS);
+    if (selectedDate < minBookingTime) {
+      toast.error(`Les réservations doivent être effectuées au minimum ${MIN_BOOKING_DELAY_HOURS} heures à l'avance.`);
+      return;
+    }
+
     setLoading(true);
     try {
       const reservationData = {
