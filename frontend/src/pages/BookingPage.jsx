@@ -768,7 +768,7 @@ export default function BookingPage() {
             <div className="hidden sm:block">
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !isDateTimeValid()}
                 className="submit-btn"
                 data-testid="submit-booking"
               >
