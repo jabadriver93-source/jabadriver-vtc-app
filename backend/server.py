@@ -773,11 +773,34 @@ async def send_driver_alert(reservation: Reservation, claim_url: str = None):
     
     # Claim link section for subcontracting
     claim_section = ""
+    whatsapp_section = ""
+    
     if claim_url:
+        # Extract city/department for WhatsApp message (privacy)
+        pickup_city = extract_city_department(reservation.pickup_address)
+        dropoff_city = extract_city_department(reservation.dropoff_address)
+        price_display = int(reservation.estimated_price) if reservation.estimated_price else "N/A"
+        
+        # WhatsApp message format
+        whatsapp_message = f"🚗 NOUVELLE COURSE — {price_display}€ — {pickup_city} → {dropoff_city} — {reservation.date} {reservation.time}\n\nLien chauffeur : {claim_url}"
+        whatsapp_encoded = quote(whatsapp_message)
+        whatsapp_url = f"https://wa.me/?text={whatsapp_encoded}"
+        
+        whatsapp_section = f"""
+            <div style="background: #25D366; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                <h3 style="margin: 0 0 10px 0;">📲 Partager aux chauffeurs</h3>
+                <p style="margin: 0 0 15px 0; font-size: 14px;">Envoyez cette course à vos chauffeurs via WhatsApp :</p>
+                <a href="{whatsapp_url}" style="display: inline-block; background-color: white; color: #25D366; padding: 14px 35px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 16px;">
+                    📤 Partager via WhatsApp
+                </a>
+                <p style="margin: 15px 0 0 0; font-size: 11px; opacity: 0.9;">Cliquez pour choisir un groupe ou contact WhatsApp</p>
+            </div>
+        """
+        
         claim_section = f"""
             <div style="background: #f59e0b; color: #0a0a0a; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
                 <h3 style="margin: 0 0 10px 0;">🚗 Sous-traiter cette course</h3>
-                <p style="margin: 0 0 15px 0; font-size: 14px;">Partagez ce lien avec vos chauffeurs partenaires :</p>
+                <p style="margin: 0 0 15px 0; font-size: 14px;">Ou copiez ce lien manuellement :</p>
                 <a href="{claim_url}" style="display: inline-block; background-color: #0a0a0a; color: #f59e0b; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 600; word-break: break-all;">
                     🔗 Copier le lien chauffeur
                 </a>
@@ -812,6 +835,7 @@ async def send_driver_alert(reservation: Reservation, claim_url: str = None):
         </div>
         <div style="padding: 30px; background: #F8FAFC;">
             {price_info}
+            {whatsapp_section}
             {claim_section}
             
             {admin_action_button}
