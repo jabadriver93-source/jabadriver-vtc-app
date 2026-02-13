@@ -799,7 +799,7 @@ export default function BookingPage() {
           /* Mobile: above the sticky CTA button */
           @media (max-width: 640px) {
             .whatsapp-floating-btn {
-              bottom: calc(110px + env(safe-area-inset-bottom, 0px));
+              bottom: calc(160px + env(safe-area-inset-bottom, 0px));
               right: 16px;
               width: 56px;
               height: 56px;
@@ -808,7 +808,7 @@ export default function BookingPage() {
           /* Very small screens */
           @media (max-width: 380px) {
             .whatsapp-floating-btn {
-              bottom: calc(130px + env(safe-area-inset-bottom, 0px));
+              bottom: calc(170px + env(safe-area-inset-bottom, 0px));
             }
           }
         `}
