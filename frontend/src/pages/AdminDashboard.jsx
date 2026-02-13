@@ -110,7 +110,8 @@ export default function AdminDashboard() {
 
   const handleExport = () => {
     const params = new URLSearchParams();
-    if (dateFilter) params.append("date", dateFilter);
+    if (courseDateFilter) params.append("date", courseDateFilter);
+    if (createdDateFilter) params.append("created_date", createdDateFilter);
     if (statusFilter) params.append("status", statusFilter);
     
     window.open(`${API}/reservations/export/csv?${params.toString()}`, '_blank');
