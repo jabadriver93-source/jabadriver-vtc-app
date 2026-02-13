@@ -118,6 +118,7 @@ class Course(BaseModel):
     distance_km: Optional[float] = None
     price_total: float
     notes: Optional[str] = None
+    admin_notes: Optional[str] = None  # Internal admin notes
     status: str = CourseStatusEnum.OPEN
     reserved_by_driver_id: Optional[str] = None
     reserved_until: Optional[str] = None
@@ -127,6 +128,9 @@ class Course(BaseModel):
     commission_amount: float = 0.0
     commission_paid: bool = False
     commission_paid_at: Optional[str] = None
+    cancelled_at: Optional[str] = None
+    cancelled_by: Optional[str] = None  # "driver" or "client"
+    is_late_cancellation: bool = False  # True if cancelled < 1h before pickup
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 # ============================================
