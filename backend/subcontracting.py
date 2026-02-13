@@ -103,6 +103,8 @@ class CourseStatusEnum:
     ASSIGNED = "ASSIGNED"
     DONE = "DONE"
     CANCELLED = "CANCELLED"
+    CANCELLED_LATE_DRIVER = "CANCELLED_LATE_DRIVER"  # Driver cancelled < 1h before pickup
+    CANCELLED_LATE_CLIENT = "CANCELLED_LATE_CLIENT"  # Client cancelled < 1h before pickup
 
 class Course(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
