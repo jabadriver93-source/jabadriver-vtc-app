@@ -706,6 +706,13 @@ async def send_confirmation_email(reservation: Reservation):
                 </a>
             </div>
             
+            <div style="text-align: center; margin: 20px 0;">
+                <a href="{os.environ.get('FRONTEND_URL', '')}/my-booking/{reservation.client_portal_token}" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: 600;">
+                    📋 Gérer ma réservation
+                </a>
+                <p style="margin: 10px 0 0 0; color: #64748b; font-size: 12px;">Modifier, annuler ou nous contacter</p>
+            </div>
+            
             <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 8px;">
                 <h3 style="margin: 0 0 10px 0; color: #856404; font-size: 14px;">📋 Conditions de modification et d'annulation</h3>
                 <ul style="margin: 0; padding-left: 20px; color: #856404; font-size: 13px; line-height: 1.6;">
