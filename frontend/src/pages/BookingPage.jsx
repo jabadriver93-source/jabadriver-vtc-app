@@ -768,6 +768,13 @@ export default function BookingPage() {
       {/* Floating WhatsApp Button - Overlay with responsive positioning */}
       <style>
         {`
+          /* Safe zone for mobile - avoid overlap with "Made with Emergent" badge */
+          @media (max-width: 640px) {
+            .hero-map {
+              padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px)) !important;
+            }
+          }
+          
           .whatsapp-floating-btn {
             position: fixed;
             bottom: 24px;
