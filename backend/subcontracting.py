@@ -1138,6 +1138,22 @@ async def finalize_attribution(course_id: str, driver_id: str, payment_session_i
     )
     
     logger.info(f"[SUBCONTRACTING] ✅ Course {course_id[:8]} ASSIGNED to driver {driver_id[:8]}")
+    
+    # Send email notification to admin
+    try:
+        driver = await db.drivers.find_one({"id": driver_id}, {"_id": 0, "password_hash": 0})
+        updated_course = await db.courses.find_one({"id": course_id}, {"_id": 0})
+        
+        # Get payment intent ID from commission_payments
+        payment = await db.commission_payments.find_one({"session_id": payment_session_id}, {"_id": 0})
+        payment_intent_id = payment.get("provider_payment_id") if payment else None
+        
+        if driver and updated_course:
+            await send_course_assigned_notification(updated_course, driver, payment_intent_id)
+    except Exception as e:
+        logger.error(f"[SUBCONTRACTING] Failed to send assignment notification: {str(e)}")
+        # Don't fail attribution if email fails
+    
     return True
 
 # ============================================
