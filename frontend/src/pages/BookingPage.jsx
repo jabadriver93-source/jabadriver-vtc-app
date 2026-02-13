@@ -681,6 +681,7 @@ export default function BookingPage() {
                   type="time"
                   value={formData.time}
                   onChange={handleChange}
+                  min={getMinTime(formData.date)}
                   className="form-input-datetime"
                   data-testid="input-time"
                   required
@@ -691,6 +692,11 @@ export default function BookingPage() {
             <p className="text-xs text-slate-500 -mt-3 mb-5 flex items-center gap-1">
               <Clock className="w-3 h-3" />
               Réservation anticipée requise (minimum {MIN_BOOKING_DELAY_HOURS}h à l'avance)
+              {formData.date === today && getMinTime(formData.date) && (
+                <span className="text-sky-600 font-medium ml-1">
+                  — Aujourd'hui : à partir de {getMinTime(formData.date)}
+                </span>
+              )}
             </p>
 
             {/* Passengers */}
