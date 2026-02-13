@@ -695,12 +695,17 @@ async def register_driver(data: DriverCreate):
     await db.drivers.insert_one(driver_dict)
     logger.info(f"[DRIVER] New driver registered: {data.email} (pending validation)")
     
-    # Send email notification to admin
+    # Send confirmation email to driver (pending validation)
+    try:
+        await send_driver_registration_confirmation(driver_dict)
+    except Exception as e:
+        logger.error(f"[DRIVER] Failed to send registration confirmation to driver: {str(e)}")
+    
+    # Send notification email to admin
     try:
         await send_new_driver_notification(driver_dict)
     except Exception as e:
         logger.error(f"[DRIVER] Failed to send admin notification: {str(e)}")
-        # Don't fail registration if email fails
     
     return {
         "message": "Inscription réussie. Votre compte doit être validé par l'administrateur.",
