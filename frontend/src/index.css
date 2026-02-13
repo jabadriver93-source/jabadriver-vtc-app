@@ -449,7 +449,7 @@ h1, h2, h3, h4, h5, h6 {
 @media (max-width: 640px) {
     .sticky-btn-mobile {
         position: fixed;
-        bottom: 0;
+        bottom: calc(50px + env(safe-area-inset-bottom, 0px));
         left: 0;
         right: 0;
         padding: 16px;
