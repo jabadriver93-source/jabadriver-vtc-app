@@ -197,6 +197,13 @@ class Reservation(BaseModel):
     # Bon de commande fields
     bon_commande_generated: bool = False
     bon_commande_date: Optional[str] = None
+    # Client portal token
+    client_portal_token: Optional[str] = None
+    # Flags
+    is_abusive_client: bool = False
+    is_late_cancellation: bool = False
+    cancelled_at: Optional[str] = None
+    admin_internal_notes: Optional[str] = None
 
 class StatusUpdate(BaseModel):
     status: str
