@@ -18,6 +18,9 @@ const PRICE_PER_KM = 1.50;
 const PRICE_PER_MIN = 0.50;
 const MIN_PRICE = 10;
 
+// Booking delay requirement (in hours)
+const MIN_BOOKING_DELAY_HOURS = 6;
+
 // French phone validation regex
 const PHONE_REGEX = /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/;
 
