@@ -13,6 +13,8 @@ import DriverProfilePage from "@/pages/driver/DriverProfilePage";
 import AdminSubcontractingPage from "@/pages/admin/AdminSubcontractingPage";
 import AdminCommissionsPage from "@/pages/admin/AdminCommissionsPage";
 import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
+// Client portal
+import ClientPortalPage from "@/pages/ClientPortalPage";
 
 function App() {
   return (
@@ -22,6 +24,9 @@ function App() {
           {/* Public routes */}
           <Route path="/" element={<BookingPage />} />
           <Route path="/confirmation/:id" element={<ConfirmationPage />} />
+          
+          {/* Client portal (token-based, no auth) */}
+          <Route path="/my-booking/:token" element={<ClientPortalPage />} />
           
           {/* Admin routes */}
           <Route path="/admin" element={<AdminLoginPage />} />
