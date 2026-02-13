@@ -1085,13 +1085,24 @@ async def create_reservation(input: ReservationCreate, request: Request):
 
 @api_router.get("/reservations", response_model=List[Reservation])
 async def get_reservations(
-    date: Optional[str] = Query(None),
+    date: Optional[str] = Query(None, description="Filter by course date (YYYY-MM-DD)"),
+    created_date: Optional[str] = Query(None, description="Filter by creation date (YYYY-MM-DD)"),
     search: Optional[str] = Query(None),
     status: Optional[str] = Query(None)
 ):
     query = {}
+    
+    # Filter by course date
     if date:
         query["date"] = date
+    
+    # Filter by creation date (matches any reservation created on that day)
+    if created_date:
+        query["created_at"] = {
+            "$gte": f"{created_date}T00:00:00",
+            "$lte": f"{created_date}T23:59:59"
+        }
+    
     if status:
         query["status"] = status
     if search:
