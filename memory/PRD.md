@@ -32,6 +32,7 @@ Application VTC complète avec un module de sous-traitance permettant :
 - ✅ Email admin "Nouveau chauffeur inscrit" avec bouton validation
 - ✅ Email admin "Course attribuée" après paiement commission (NEW)
 - ✅ Email chauffeur "Compte validé" après activation par admin (NEW)
+- ✅ Email chauffeur "Dossier reçu" après inscription (liste des pièces à fournir) (NEW)
 
 ### Administration
 - ✅ Page historique des commissions /admin/commissions (NEW)
