@@ -560,14 +560,28 @@ async def initiate_payment(token: str, request: Request):
     commission_amount = round(course["price_total"] * COMMISSION_RATE, 2)
     commission_cents = int(commission_amount * 100)
     
-    # Get host URL for redirect
+    # Get host URL for redirect - use request origin or env var
     try:
         body = await request.json()
     except:
         body = {}
+    
+    # Build frontend URL from request origin or environment
     origin_url = body.get("origin_url", "").rstrip("/")
     if not origin_url:
-        origin_url = os.environ.get('FRONTEND_URL', 'https://ride-booking-98.preview.emergentagent.com')
+        # Try to get from request headers
+        origin_header = request.headers.get("origin") or request.headers.get("referer")
+        if origin_header:
+            from urllib.parse import urlparse
+            parsed = urlparse(origin_header)
+            origin_url = f"{parsed.scheme}://{parsed.netloc}"
+        else:
+            # Fallback to env var or construct from request
+            origin_url = os.environ.get('FRONTEND_URL', '').rstrip("/")
+            if not origin_url:
+                # Last resort: use request base URL without /api
+                base = str(request.base_url).rstrip("/")
+                origin_url = base.replace("/api", "").replace(":8001", "")
     
     # Build URLs - success page will verify payment
     success_url = f"{origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}&course_id={course['id']}"
