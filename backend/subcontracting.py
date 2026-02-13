@@ -1340,6 +1340,16 @@ async def admin_activate_driver(driver_id: str):
         raise HTTPException(status_code=404, detail="Chauffeur non trouvé")
     
     logger.info(f"[SUBCONTRACTING] Driver {driver_id[:8]} activated by admin")
+    
+    # Send validation email to driver
+    try:
+        driver = await db.drivers.find_one({"id": driver_id}, {"_id": 0, "password_hash": 0})
+        if driver:
+            await send_driver_validation_email(driver)
+    except Exception as e:
+        logger.error(f"[SUBCONTRACTING] Failed to send validation email: {str(e)}")
+        # Don't fail activation if email fails
+    
     return {"message": "Chauffeur activé", "is_active": True}
 
 @admin_subcontracting_router.post("/drivers/{driver_id}/deactivate")
