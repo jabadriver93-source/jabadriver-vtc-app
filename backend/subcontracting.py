@@ -2021,9 +2021,6 @@ async def driver_send_invoice_to_client(request: Request, course_id: str):
         logger.error(f"[DRIVER] Failed to send invoice: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erreur envoi email: {str(e)}")
 
-# Import asyncio at module level
-import asyncio
-
 # ============================================
 # ADMIN DOCUMENT ROUTES
 # ============================================
