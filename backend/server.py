@@ -69,7 +69,23 @@ logger.info(f"  SENDER_EMAIL: {SENDER_EMAIL}")
 logger.info(f"  DRIVER_EMAIL: {DRIVER_EMAIL}")
 logger.info("=" * 80)
 
+# Booking delay configuration (hours)
+MIN_BOOKING_DELAY_HOURS = 6
+
 # Helper functions
+def validate_booking_delay(date_str: str, time_str: str) -> tuple[bool, str]:
+    """Validate that booking is at least MIN_BOOKING_DELAY_HOURS in advance"""
+    try:
+        booking_datetime = datetime.fromisoformat(f"{date_str}T{time_str}")
+        min_booking_time = datetime.now() + timedelta(hours=MIN_BOOKING_DELAY_HOURS)
+        
+        if booking_datetime < min_booking_time:
+            return False, f"Les réservations doivent être effectuées au minimum {MIN_BOOKING_DELAY_HOURS} heures à l'avance."
+        return True, ""
+    except Exception as e:
+        logger.error(f"Error validating booking delay: {e}")
+        return False, "Date ou heure invalide"
+
 def detect_airport(address: str) -> bool:
     """Détecte si l'adresse contient un aéroport"""
     if not address:
