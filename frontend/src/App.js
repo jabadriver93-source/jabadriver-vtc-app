@@ -11,6 +11,7 @@ import DriverLoginPage from "@/pages/driver/DriverLoginPage";
 import DriverCoursesPage from "@/pages/driver/DriverCoursesPage";
 import DriverProfilePage from "@/pages/driver/DriverProfilePage";
 import AdminSubcontractingPage from "@/pages/admin/AdminSubcontractingPage";
+import AdminCommissionsPage from "@/pages/admin/AdminCommissionsPage";
 import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
 
 function App() {
@@ -26,6 +27,7 @@ function App() {
           <Route path="/admin" element={<AdminLoginPage />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/subcontracting" element={<AdminSubcontractingPage />} />
+          <Route path="/admin/commissions" element={<AdminCommissionsPage />} />
           
           {/* Driver routes */}
           <Route path="/driver/login" element={<DriverLoginPage />} />
