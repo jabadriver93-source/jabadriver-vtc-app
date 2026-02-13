@@ -495,6 +495,130 @@ async def send_course_assigned_notification(course: dict, driver: dict, payment_
         logger.error(f"[EMAIL] ❌ Failed to send course assigned notification | Error: {str(e)}")
         logger.exception("Full exception trace:")
 
+async def send_driver_registration_confirmation(driver: dict):
+    """Send confirmation email to driver after registration (pending validation)"""
+    driver_email = driver.get('email')
+    if not driver_email or not SENDER_EMAIL:
+        logger.warning("[EMAIL] Skipping driver registration confirmation - email not configured")
+        return
+    
+    if not resend.api_key:
+        resend.api_key = os.environ.get('RESEND_API_KEY', '')
+    
+    support_email = "contact@jabadriver.fr"
+    driver_id_short = driver.get('id', '')[:8].upper()
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #3b82f6; color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0;">📋 DOSSIER REÇU</h1>
+        </div>
+        <div style="padding: 30px; background: #F8FAFC;">
+            
+            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0; font-weight: bold; color: #92400e;">⏳ En attente de validation</p>
+                <p style="margin: 5px 0 0 0; font-size: 14px; color: #92400e;">Votre dossier va être examiné par notre équipe. Votre compte sera activé une fois le dossier complet et validé.</p>
+            </div>
+            
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+                Bonjour <strong>{driver.get('name', '')}</strong>,<br/><br/>
+                Merci pour votre inscription sur <strong>JABADRIVER</strong> !<br/><br/>
+                Nous avons bien reçu votre demande d'inscription. Avant de pouvoir activer votre compte et vous permettre de réclamer des courses, nous devons vérifier votre dossier.
+            </p>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e2e8f0;">
+                <h3 style="margin-top: 0; color: #dc2626;">📎 Documents à fournir</h3>
+                <p style="color: #475569; font-size: 14px; margin-bottom: 15px;">
+                    Merci d'envoyer les pièces suivantes par email à <a href="mailto:{support_email}" style="color: #3b82f6; font-weight: bold;">{support_email}</a> :
+                </p>
+                <ol style="margin: 0; padding-left: 20px; color: #475569; line-height: 2;">
+                    <li>Permis de conduire</li>
+                    <li>Carte d'identité</li>
+                    <li>Carte grise du véhicule</li>
+                    <li>Assurance RC Circulation</li>
+                    <li>Assurance RC PRO</li>
+                    <li>KBIS ou SIREN</li>
+                    <li>Carte VTC</li>
+                    <li>Macaron VTC</li>
+                    <li>Attestation d'inscription au registre VTC</li>
+                </ol>
+            </div>
+            
+            <div style="background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0; color: #475569; font-size: 13px;">
+                    <strong>💡 Important :</strong> Votre compte restera en statut "En attente de validation" tant que votre dossier n'est pas complet. Une fois validé, vous recevrez un email de confirmation.
+                </p>
+            </div>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <h3 style="margin-top: 0; color: #1e3a5f;">📝 Récapitulatif de votre inscription</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 6px 0; color: #64748b; width: 40%;">ID Chauffeur :</td>
+                        <td style="padding: 6px 0; font-family: monospace; font-weight: bold;">{driver_id_short}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 6px 0; color: #64748b;">Nom :</td>
+                        <td style="padding: 6px 0; font-weight: bold;">{driver.get('name', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 6px 0; color: #64748b;">Société :</td>
+                        <td style="padding: 6px 0;">{driver.get('company_name', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 6px 0; color: #64748b;">Téléphone :</td>
+                        <td style="padding: 6px 0;">{driver.get('phone', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 6px 0; color: #64748b;">Email :</td>
+                        <td style="padding: 6px 0;">{driver.get('email', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 6px 0; color: #64748b;">SIRET :</td>
+                        <td style="padding: 6px 0;">{driver.get('siret', 'N/A')}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div style="text-align: center; margin: 25px 0;">
+                <a href="mailto:{support_email}?subject=Dossier%20chauffeur%20{driver_id_short}%20-%20{driver.get('name', '').replace(' ', '%20')}" style="display: inline-block; background-color: #22c55e; color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 16px;">
+                    📧 Envoyer mes documents
+                </a>
+            </div>
+            
+            <div style="background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0; color: #475569; font-size: 13px;">
+                    <strong>Besoin d'aide ?</strong><br/>
+                    Contactez-nous via WhatsApp : <a href="https://wa.me/message/MQ6BTZ7KU26OM1" style="color: #25D366;">Cliquez ici</a><br/>
+                    Email : <a href="mailto:{support_email}" style="color: #3b82f6;">{support_email}</a>
+                </p>
+            </div>
+            
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 8px;">
+                <p style="margin: 0; color: #64748b; font-size: 12px;">
+                    <strong>JABADRIVER</strong><br/>
+                    Service VTC Premium — Île-de-France
+                </p>
+            </div>
+        </div>
+    </div>
+    """
+    
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [driver_email],
+            "subject": f"Jabadriver — Dossier reçu, en attente de validation",
+            "html": html_content
+        }
+        
+        logger.info(f"[EMAIL] Sending registration confirmation to driver | Email: {driver_email}")
+        response = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"[EMAIL] ✅ Driver registration confirmation sent | Resend ID: {response.get('id', 'N/A')}")
+    except Exception as e:
+        logger.error(f"[EMAIL] ❌ Failed to send driver registration confirmation | Error: {str(e)}")
+        logger.exception("Full exception trace:")
+
 def simple_hash(password: str) -> str:
     """Simple hash for demo - use bcrypt in production"""
     import hashlib
