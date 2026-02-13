@@ -973,6 +973,14 @@ async def create_reservation(input: ReservationCreate, request: Request):
     logger.info(f"[CREATE RESERVATION] Client: {reservation_dict.get('name')}")
     logger.info(f"[CREATE RESERVATION] Email: {reservation_dict.get('email', 'NOT PROVIDED')}")
     
+    # Validate minimum booking delay (6 hours in advance)
+    date_str = reservation_dict.get('date', '')
+    time_str = reservation_dict.get('time', '')
+    is_valid, error_msg = validate_booking_delay(date_str, time_str)
+    if not is_valid:
+        logger.warning(f"[CREATE RESERVATION] ❌ Booking delay validation failed: {error_msg}")
+        raise HTTPException(status_code=400, detail=error_msg)
+    
     # Calculate price with airport surcharge
     pricing = calculate_price_with_surcharge(
         estimated_price=reservation_dict.get('estimated_price', 0.0),
