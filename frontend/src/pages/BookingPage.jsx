@@ -771,7 +771,7 @@ export default function BookingPage() {
           /* Safe zone for mobile - avoid overlap with "Made with Emergent" badge */
           @media (max-width: 640px) {
             .hero-map {
-              padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px)) !important;
+              padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)) !important;
             }
           }
           
