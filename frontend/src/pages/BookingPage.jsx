@@ -264,9 +264,70 @@ export default function BookingPage() {
     return "";
   };
 
+  // Calculate minimum allowed time based on selected date
+  const getMinTime = (selectedDate) => {
+    if (!selectedDate) return "";
+    
+    const today = new Date().toISOString().split('T')[0];
+    
+    if (selectedDate === today) {
+      // If today, minimum time = now + 6 hours
+      const minTime = new Date();
+      minTime.setHours(minTime.getHours() + MIN_BOOKING_DELAY_HOURS);
+      minTime.setMinutes(Math.ceil(minTime.getMinutes() / 15) * 15); // Round to next 15 min
+      
+      const hours = String(minTime.getHours()).padStart(2, '0');
+      const minutes = String(minTime.getMinutes()).padStart(2, '0');
+      return `${hours}:${minutes}`;
+    }
+    
+    // Future dates: no restriction
+    return "";
+  };
+
+  // Check if current date/time selection is valid (at least 6h in advance)
+  const isDateTimeValid = () => {
+    if (!formData.date || !formData.time) return false;
+    
+    const selectedDateTime = new Date(`${formData.date}T${formData.time}`);
+    const minDateTime = new Date();
+    minDateTime.setHours(minDateTime.getHours() + MIN_BOOKING_DELAY_HOURS);
+    
+    return selectedDateTime >= minDateTime;
+  };
+
+  // Auto-correct time if it's below minimum for today
+  const autoCorrectTime = (date, time) => {
+    if (!date || !time) return time;
+    
+    const minTime = getMinTime(date);
+    if (!minTime) return time; // No restriction for future dates
+    
+    // Compare times
+    if (time < minTime) {
+      return minTime;
+    }
+    return time;
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    if (name === "date") {
+      // When date changes, auto-correct time if needed
+      const correctedTime = autoCorrectTime(value, formData.time);
+      setFormData(prev => ({ 
+        ...prev, 
+        date: value,
+        time: correctedTime
+      }));
+    } else if (name === "time") {
+      // When time changes, auto-correct if below minimum
+      const correctedTime = autoCorrectTime(formData.date, value);
+      setFormData(prev => ({ ...prev, time: correctedTime }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
     
     if (name === "phone") {
       setPhoneError("");
