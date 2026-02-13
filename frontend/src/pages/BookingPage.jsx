@@ -626,6 +626,11 @@ export default function BookingPage() {
                 />
               </div>
             </div>
+            {/* Booking delay notice */}
+            <p className="text-xs text-slate-500 -mt-3 mb-5 flex items-center gap-1">
+              <Clock className="w-3 h-3" />
+              Réservation anticipée requise (minimum {MIN_BOOKING_DELAY_HOURS}h à l'avance)
+            </p>
 
             {/* Passengers */}
             <div className="mb-5">
