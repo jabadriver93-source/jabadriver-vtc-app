@@ -826,7 +826,7 @@ export default function BookingPage() {
             <button
               type="submit"
               form="booking-form"
-              disabled={loading}
+              disabled={loading || !isDateTimeValid()}
               onClick={handleSubmit}
               className="submit-btn"
               data-testid="submit-booking-mobile"
