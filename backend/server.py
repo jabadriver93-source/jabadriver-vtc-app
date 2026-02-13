@@ -104,6 +104,35 @@ def calculate_price_with_surcharge(estimated_price: float, pickup_address: str, 
         'final_price': final_price
     }
 
+def extract_city_department(address: str) -> str:
+    """Extract city and department from full address for privacy in WhatsApp message"""
+    if not address:
+        return "Non spécifié"
+    
+    parts = address.split(',')
+    postal_match = re.search(r'\b(\d{5})\b', address)
+    
+    if postal_match:
+        postal = postal_match.group(1)
+        dept = postal[:2]
+        for i, part in enumerate(parts):
+            if postal in part:
+                city_part = part.strip()
+                city = re.sub(r'\d{5}', '', city_part).strip()
+                if city:
+                    return f"{city} ({dept})"
+                elif i > 0:
+                    return f"{parts[i-1].strip()} ({dept})"
+    
+    if len(parts) >= 2:
+        return parts[-1].strip()
+    
+    words = address.split()
+    if len(words) >= 2:
+        return ' '.join(words[-2:])
+    
+    return address
+
 # Models
 class ReservationCreate(BaseModel):
     name: str
