@@ -560,26 +560,26 @@ async def initiate_payment(token: str, request: Request):
     commission_amount = round(course["price_total"] * COMMISSION_RATE, 2)
     commission_cents = int(commission_amount * 100)
     
-    # Get host URL for redirect - use request origin or env var
+    # Get host URL for redirect - FRONTEND_BASE_URL has priority
     try:
         body = await request.json()
     except:
         body = {}
     
-    # Build frontend URL from request origin or environment
-    origin_url = body.get("origin_url", "").rstrip("/")
-    if not origin_url:
-        # Try to get from request headers
-        origin_header = request.headers.get("origin") or request.headers.get("referer")
-        if origin_header:
-            from urllib.parse import urlparse
-            parsed = urlparse(origin_header)
-            origin_url = f"{parsed.scheme}://{parsed.netloc}"
-        else:
-            # Fallback to env var or construct from request
-            origin_url = os.environ.get('FRONTEND_URL', '').rstrip("/")
-            if not origin_url:
-                # Last resort: use request base URL without /api
+    # Priority: FRONTEND_BASE_URL env var
+    frontend_base = os.environ.get('FRONTEND_BASE_URL', '').rstrip("/")
+    if frontend_base:
+        origin_url = frontend_base
+    else:
+        # Fallback to request origin
+        origin_url = body.get("origin_url", "").rstrip("/")
+        if not origin_url:
+            origin_header = request.headers.get("origin") or request.headers.get("referer")
+            if origin_header:
+                from urllib.parse import urlparse
+                parsed = urlparse(origin_header)
+                origin_url = f"{parsed.scheme}://{parsed.netloc}"
+            else:
                 base = str(request.base_url).rstrip("/")
                 origin_url = base.replace("/api", "").replace(":8001", "")
     
