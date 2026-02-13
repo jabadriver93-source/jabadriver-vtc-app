@@ -1439,12 +1439,15 @@ async def admin_get_commissions(
         # Get driver info
         driver = await db.drivers.find_one({"id": payment.get("driver_id")}, {"_id": 0, "password_hash": 0})
         
-        # Determine test/live mode from payment intent
-        payment_intent_id = payment.get("provider_payment_id", "")
-        is_test_mode = payment_intent_id.startswith("pi_") and "_test_" in payment_intent_id or not payment_intent_id.startswith("pi_")
-        # More reliable: check if Stripe key is test key
+        # Determine test/live mode from payment intent or Stripe key
+        payment_intent_id = payment.get("provider_payment_id") or ""
+        is_test_mode = True  # Default to test mode if can't determine
+        
+        # Check Stripe key first (more reliable)
         if STRIPE_API_KEY:
             is_test_mode = STRIPE_API_KEY.startswith("sk_test_")
+        elif payment_intent_id:
+            is_test_mode = "_test_" in payment_intent_id or not payment_intent_id.startswith("pi_")
         
         # Apply test_mode filter
         if test_mode is not None and is_test_mode != test_mode:
