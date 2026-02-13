@@ -79,6 +79,7 @@ class Driver(BaseModel):
     invoice_prefix: str = "DRI"
     invoice_next_number: int = 1
     is_active: bool = False  # Requires admin validation
+    late_cancellation_count: int = 0  # Number of late cancellations (< 1h before pickup)
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 # ============================================
