@@ -1660,6 +1660,100 @@ async def get_subcontracting_settings():
     }
 
 # ============================================
+# ADMIN ROUTES - ACTIVITY LOGS
+# ============================================
+@admin_subcontracting_router.get("/logs")
+async def admin_get_activity_logs(
+    entity_type: Optional[str] = None,
+    entity_id: Optional[str] = None,
+    log_type: Optional[str] = None,
+    limit: int = 100
+):
+    """Get activity logs for admin"""
+    query = {}
+    if entity_type:
+        query["entity_type"] = entity_type
+    if entity_id:
+        query["entity_id"] = entity_id
+    if log_type:
+        query["log_type"] = log_type
+    
+    logs = await db.activity_logs.find(query, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(limit)
+    return logs
+
+@admin_subcontracting_router.get("/courses/{course_id}/logs")
+async def admin_get_course_logs(course_id: str):
+    """Get activity logs for a specific course"""
+    logs = await db.activity_logs.find(
+        {"entity_type": "course", "entity_id": course_id},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    return logs
+
+# ============================================
+# ADMIN ROUTES - CLIENT CANCELLATION
+# ============================================
+class ClientCancellationRequest(BaseModel):
+    reason: Optional[str] = None
+    admin_note: Optional[str] = None
+
+@admin_subcontracting_router.post("/courses/{course_id}/cancel-client")
+async def admin_cancel_course_by_client(course_id: str, data: ClientCancellationRequest):
+    """Admin records a client cancellation request"""
+    course = await db.courses.find_one({"id": course_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course non trouvée")
+    
+    # Check if late cancellation
+    is_late = is_late_cancellation(course["date"], course["time"])
+    
+    # Determine new status
+    new_status = CourseStatusEnum.CANCELLED_LATE_CLIENT if is_late else CourseStatusEnum.CANCELLED
+    
+    # Update course
+    update_data = {
+        "status": new_status,
+        "cancelled_at": datetime.now(timezone.utc).isoformat(),
+        "cancelled_by": "client",
+        "is_late_cancellation": is_late,
+        "admin_notes": f"Annulation client{' (tardive < 1h)' if is_late else ''}: {data.reason or 'Aucune raison'}. Note admin: {data.admin_note or '-'}"
+    }
+    await db.courses.update_one({"id": course_id}, {"$set": update_data})
+    
+    # Create activity log
+    await create_activity_log(
+        log_type=ActivityLogType.COURSE_CANCELLED_CLIENT_LATE if is_late else ActivityLogType.COURSE_CANCELLED_CLIENT,
+        entity_type="course",
+        entity_id=course_id,
+        actor_type="admin",
+        actor_id=None,
+        details={
+            "reason": data.reason,
+            "admin_note": data.admin_note,
+            "is_late_cancellation": is_late
+        }
+    )
+    
+    logger.info(f"[SUBCONTRACTING] Course {course_id[:8]} cancelled by client{' (LATE)' if is_late else ''}")
+    
+    return {
+        "message": "Annulation client enregistrée",
+        "is_late_cancellation": is_late,
+        "status": new_status
+    }
+
+@admin_subcontracting_router.put("/courses/{course_id}/admin-notes")
+async def admin_update_course_notes(course_id: str, notes: str):
+    """Update internal admin notes on a course"""
+    result = await db.courses.update_one(
+        {"id": course_id},
+        {"$set": {"admin_notes": notes}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Course non trouvée")
+    return {"message": "Notes mises à jour"}
+
+# ============================================
 # ADMIN ROUTES - COMMISSIONS HISTORY
 # ============================================
 @admin_subcontracting_router.get("/commissions")
