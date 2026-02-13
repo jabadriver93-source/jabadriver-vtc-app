@@ -1393,6 +1393,168 @@ async def get_subcontracting_settings():
     }
 
 # ============================================
+# ADMIN ROUTES - COMMISSIONS HISTORY
+# ============================================
+@admin_subcontracting_router.get("/commissions")
+async def admin_get_commissions(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    driver_id: Optional[str] = None,
+    status: Optional[str] = None,
+    test_mode: Optional[bool] = None
+):
+    """Get commission payments history with filters"""
+    # Build query
+    query = {}
+    
+    # Date filter
+    if start_date or end_date:
+        date_filter = {}
+        if start_date:
+            date_filter["$gte"] = start_date
+        if end_date:
+            date_filter["$lte"] = end_date + "T23:59:59"
+        if date_filter:
+            query["created_at"] = date_filter
+    
+    # Driver filter
+    if driver_id:
+        query["driver_id"] = driver_id
+    
+    # Status filter
+    if status:
+        query["status"] = status
+    
+    # Get payments
+    payments = await db.commission_payments.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    
+    # Enrich with course and driver info
+    enriched_payments = []
+    total_commission = 0
+    
+    for payment in payments:
+        # Get course info
+        course = await db.courses.find_one({"id": payment.get("course_id")}, {"_id": 0})
+        
+        # Get driver info
+        driver = await db.drivers.find_one({"id": payment.get("driver_id")}, {"_id": 0, "password_hash": 0})
+        
+        # Determine test/live mode from payment intent
+        payment_intent_id = payment.get("provider_payment_id", "")
+        is_test_mode = payment_intent_id.startswith("pi_") and "_test_" in payment_intent_id or not payment_intent_id.startswith("pi_")
+        # More reliable: check if Stripe key is test key
+        if STRIPE_API_KEY:
+            is_test_mode = STRIPE_API_KEY.startswith("sk_test_")
+        
+        # Apply test_mode filter
+        if test_mode is not None and is_test_mode != test_mode:
+            continue
+        
+        enriched = {
+            **payment,
+            "course": {
+                "id": course.get("id") if course else None,
+                "date": course.get("date") if course else None,
+                "time": course.get("time") if course else None,
+                "price_total": course.get("price_total") if course else None,
+                "pickup_city": extract_city_department(course.get("pickup_address", "")) if course else None,
+                "dropoff_city": extract_city_department(course.get("dropoff_address", "")) if course else None,
+            } if course else None,
+            "driver": {
+                "id": driver.get("id") if driver else None,
+                "name": driver.get("name") if driver else None,
+                "company_name": driver.get("company_name") if driver else None,
+                "email": driver.get("email") if driver else None,
+            } if driver else None,
+            "is_test_mode": is_test_mode
+        }
+        enriched_payments.append(enriched)
+        
+        # Sum up paid commissions
+        if payment.get("status") == "paid":
+            total_commission += payment.get("amount", 0)
+    
+    return {
+        "payments": enriched_payments,
+        "total_commission": round(total_commission, 2),
+        "count": len(enriched_payments),
+        "filters_applied": {
+            "start_date": start_date,
+            "end_date": end_date,
+            "driver_id": driver_id,
+            "status": status,
+            "test_mode": test_mode
+        }
+    }
+
+@admin_subcontracting_router.get("/commissions/export-csv")
+async def admin_export_commissions_csv(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    driver_id: Optional[str] = None,
+    status: Optional[str] = None
+):
+    """Export commission payments to CSV"""
+    # Get data using same logic
+    data = await admin_get_commissions(start_date, end_date, driver_id, status)
+    payments = data["payments"]
+    
+    # Generate CSV
+    output = io.StringIO()
+    import csv
+    writer = csv.writer(output)
+    
+    # Header
+    writer.writerow([
+        "Date Paiement",
+        "ID Réservation", 
+        "Chauffeur Nom",
+        "Chauffeur Société",
+        "Chauffeur Email",
+        "Commission (€)",
+        "Prix Course (€)",
+        "Statut",
+        "PaymentIntent",
+        "Mode"
+    ])
+    
+    # Data rows
+    for p in payments:
+        course = p.get("course") or {}
+        driver = p.get("driver") or {}
+        
+        # Format date
+        created_at = p.get("created_at", "")
+        try:
+            dt = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
+            date_str = dt.strftime("%d/%m/%Y %H:%M")
+        except:
+            date_str = created_at[:16] if created_at else ""
+        
+        writer.writerow([
+            date_str,
+            course.get("id", "")[:8].upper() if course.get("id") else "",
+            driver.get("name", ""),
+            driver.get("company_name", ""),
+            driver.get("email", ""),
+            f"{p.get('amount', 0):.2f}",
+            f"{course.get('price_total', 0):.2f}" if course.get('price_total') else "",
+            p.get("status", ""),
+            p.get("provider_payment_id", ""),
+            "TEST" if p.get("is_test_mode") else "LIVE"
+        ])
+    
+    # Return CSV
+    csv_content = output.getvalue()
+    filename = f"commissions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+    
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
+# ============================================
 # PDF GENERATION - DRIVER DOCUMENTS
 # ============================================
 def generate_driver_bon_commande_pdf(course: dict, driver: dict):
