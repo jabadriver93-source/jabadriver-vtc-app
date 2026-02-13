@@ -661,6 +661,38 @@ def simple_hash(password: str) -> str:
 def verify_password(password: str, password_hash: str) -> bool:
     return simple_hash(password) == password_hash
 
+async def create_activity_log(
+    log_type: str,
+    entity_type: str,
+    entity_id: str,
+    actor_type: str = None,
+    actor_id: str = None,
+    details: dict = None
+):
+    """Create an activity log entry"""
+    log = ActivityLog(
+        log_type=log_type,
+        entity_type=entity_type,
+        entity_id=entity_id,
+        actor_type=actor_type,
+        actor_id=actor_id,
+        details=details
+    )
+    await db.activity_logs.insert_one(log.model_dump())
+    logger.info(f"[ACTIVITY LOG] {log_type} | {entity_type}:{entity_id[:8]} | Actor: {actor_type}:{actor_id[:8] if actor_id else 'N/A'}")
+    return log
+
+def is_late_cancellation(course_date: str, course_time: str) -> bool:
+    """Check if cancellation is < 1h before pickup"""
+    try:
+        pickup_datetime = datetime.fromisoformat(f"{course_date}T{course_time}")
+        now = datetime.now()
+        time_until_pickup = pickup_datetime - now
+        return time_until_pickup.total_seconds() < 3600  # Less than 1 hour
+    except Exception as e:
+        logger.error(f"Error checking late cancellation: {e}")
+        return False
+
 async def get_driver_from_token(authorization: str) -> dict:
     """Extract driver from JWT-like token (simplified)"""
     if not authorization or not authorization.startswith("Bearer "):
