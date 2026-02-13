@@ -1004,6 +1004,12 @@ async def create_reservation(input: ReservationCreate, request: Request):
     
     reservation = Reservation(**reservation_dict)
     
+    # Generate client portal token
+    import secrets
+    client_portal_token = secrets.token_urlsafe(32)
+    reservation_dict['client_portal_token'] = client_portal_token
+    reservation = Reservation(**reservation_dict)
+    
     # Save reservation in DB FIRST (critical step)
     reservation_data = reservation.model_dump()
     await db.reservations.insert_one(reservation_data)
