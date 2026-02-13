@@ -560,18 +560,18 @@ async def initiate_payment(token: str, request: Request):
     commission_amount = round(course["price_total"] * COMMISSION_RATE, 2)
     commission_cents = int(commission_amount * 100)
     
-    # Get host URL for redirect - FRONTEND_BASE_URL has priority
+    # Get host URL for redirect - detect from request host, ignore FRONTEND_URL
     try:
         body = await request.json()
     except:
         body = {}
     
-    # Priority: FRONTEND_BASE_URL env var
-    frontend_base = os.environ.get('FRONTEND_BASE_URL', '').rstrip("/")
-    if frontend_base:
-        origin_url = frontend_base
+    # Detect base URL from request host
+    host = request.headers.get("host", "")
+    if "jabadriver.fr" in host:
+        origin_url = "https://jabadriver.fr"
     else:
-        # Fallback to request origin
+        # Preview or other environment - use request base
         origin_url = body.get("origin_url", "").rstrip("/")
         if not origin_url:
             origin_header = request.headers.get("origin") or request.headers.get("referer")
@@ -581,7 +581,9 @@ async def initiate_payment(token: str, request: Request):
                 origin_url = f"{parsed.scheme}://{parsed.netloc}"
             else:
                 base = str(request.base_url).rstrip("/")
-                origin_url = base.replace("/api", "").replace(":8001", "")
+                origin_url = base.split("/api")[0]
+    
+    logger.info(f"[STRIPE] BASE_URL_USED={origin_url}")
     
     # Build URLs - success page will verify payment
     success_url = f"{origin_url}/payment/success?session_id={{CHECKOUT_SESSION_ID}}&course_id={course['id']}"
