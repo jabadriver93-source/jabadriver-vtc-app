@@ -1393,12 +1393,18 @@ async def send_invoice(reservation_id: str):
 
 @api_router.get("/reservations/export/csv")
 async def export_reservations_csv(
-    date: Optional[str] = Query(None),
+    date: Optional[str] = Query(None, description="Filter by course date"),
+    created_date: Optional[str] = Query(None, description="Filter by creation date"),
     status: Optional[str] = Query(None)
 ):
     query = {}
     if date:
         query["date"] = date
+    if created_date:
+        query["created_at"] = {
+            "$gte": f"{created_date}T00:00:00",
+            "$lte": f"{created_date}T23:59:59"
+        }
     if status:
         query["status"] = status
     
