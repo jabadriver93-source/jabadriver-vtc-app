@@ -1462,6 +1462,235 @@ async def export_reservations_csv(
     )
 
 # ============================================
+# CLIENT PORTAL (LIGHT - TOKEN BASED)
+# ============================================
+class ClientPortalMessage(BaseModel):
+    message: str
+
+class ClientModificationRequest(BaseModel):
+    modification_type: str  # "date", "time", "address", "passengers", "other"
+    details: str
+
+@api_router.get("/client-portal/{token}")
+async def client_portal_get_reservation(token: str):
+    """Get reservation info via client portal token (public, no auth)"""
+    reservation = await db.reservations.find_one(
+        {"client_portal_token": token},
+        {"_id": 0, "client_portal_token": 0}  # Don't expose token in response
+    )
+    if not reservation:
+        raise HTTPException(status_code=404, detail="Réservation non trouvée ou lien invalide")
+    
+    # Return limited info for privacy
+    return {
+        "id": reservation.get("id"),
+        "name": reservation.get("name"),
+        "date": reservation.get("date"),
+        "time": reservation.get("time"),
+        "pickup_address": reservation.get("pickup_address"),
+        "dropoff_address": reservation.get("dropoff_address"),
+        "passengers": reservation.get("passengers"),
+        "estimated_price": reservation.get("estimated_price"),
+        "status": reservation.get("status"),
+        "created_at": reservation.get("created_at")
+    }
+
+@api_router.post("/client-portal/{token}/message")
+async def client_portal_send_message(token: str, data: ClientPortalMessage):
+    """Client sends a message to admin"""
+    reservation = await db.reservations.find_one({"client_portal_token": token}, {"_id": 0})
+    if not reservation:
+        raise HTTPException(status_code=404, detail="Réservation non trouvée")
+    
+    # Log the message
+    from subcontracting import create_activity_log, ActivityLogType
+    await create_activity_log(
+        log_type=ActivityLogType.CLIENT_MESSAGE,
+        entity_type="reservation",
+        entity_id=reservation["id"],
+        actor_type="client",
+        actor_id=None,
+        details={"message": data.message, "client_name": reservation.get("name")}
+    )
+    
+    # Send email notification to admin
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [DRIVER_EMAIL],
+            "subject": f"📬 Message client - Réservation {reservation['id'][:8].upper()}",
+            "html": f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: #3b82f6; color: white; padding: 20px; text-align: center;">
+                    <h2 style="margin: 0;">📬 Nouveau message client</h2>
+                </div>
+                <div style="padding: 20px; background: #f8fafc;">
+                    <p><strong>Client :</strong> {reservation.get('name')}</p>
+                    <p><strong>Réservation :</strong> {reservation['id'][:8].upper()}</p>
+                    <p><strong>Date course :</strong> {reservation.get('date')} à {reservation.get('time')}</p>
+                    <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #3b82f6;">
+                        <p style="margin: 0;"><strong>Message :</strong></p>
+                        <p style="margin: 10px 0 0 0;">{data.message}</p>
+                    </div>
+                </div>
+            </div>
+            """
+        }
+        await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"[CLIENT PORTAL] Message sent to admin for reservation {reservation['id'][:8]}")
+    except Exception as e:
+        logger.error(f"[CLIENT PORTAL] Failed to send message email: {e}")
+    
+    return {"message": "Votre message a été envoyé à l'équipe."}
+
+@api_router.post("/client-portal/{token}/modification-request")
+async def client_portal_modification_request(token: str, data: ClientModificationRequest):
+    """Client requests a modification"""
+    reservation = await db.reservations.find_one({"client_portal_token": token}, {"_id": 0})
+    if not reservation:
+        raise HTTPException(status_code=404, detail="Réservation non trouvée")
+    
+    # Log the request
+    from subcontracting import create_activity_log, ActivityLogType
+    await create_activity_log(
+        log_type=ActivityLogType.CLIENT_MODIFICATION_REQUEST,
+        entity_type="reservation",
+        entity_id=reservation["id"],
+        actor_type="client",
+        actor_id=None,
+        details={
+            "modification_type": data.modification_type,
+            "details": data.details,
+            "client_name": reservation.get("name")
+        }
+    )
+    
+    # Send email notification to admin
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [DRIVER_EMAIL],
+            "subject": f"✏️ Demande de modification - Réservation {reservation['id'][:8].upper()}",
+            "html": f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: #f59e0b; color: #0a0a0a; padding: 20px; text-align: center;">
+                    <h2 style="margin: 0;">✏️ Demande de modification</h2>
+                </div>
+                <div style="padding: 20px; background: #f8fafc;">
+                    <p><strong>Client :</strong> {reservation.get('name')}</p>
+                    <p><strong>Téléphone :</strong> {reservation.get('phone')}</p>
+                    <p><strong>Réservation :</strong> {reservation['id'][:8].upper()}</p>
+                    <p><strong>Date course actuelle :</strong> {reservation.get('date')} à {reservation.get('time')}</p>
+                    <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 4px solid #f59e0b;">
+                        <p style="margin: 0;"><strong>Type de modification :</strong> {data.modification_type}</p>
+                        <p style="margin: 10px 0 0 0;"><strong>Détails :</strong> {data.details}</p>
+                    </div>
+                </div>
+            </div>
+            """
+        }
+        await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"[CLIENT PORTAL] Modification request sent for reservation {reservation['id'][:8]}")
+    except Exception as e:
+        logger.error(f"[CLIENT PORTAL] Failed to send modification email: {e}")
+    
+    return {"message": "Votre demande de modification a été envoyée. Nous vous contacterons rapidement."}
+
+@api_router.post("/client-portal/{token}/cancellation-request")
+async def client_portal_cancellation_request(token: str, reason: Optional[str] = None):
+    """Client requests cancellation"""
+    reservation = await db.reservations.find_one({"client_portal_token": token}, {"_id": 0})
+    if not reservation:
+        raise HTTPException(status_code=404, detail="Réservation non trouvée")
+    
+    # Check if late cancellation
+    from subcontracting import is_late_cancellation, create_activity_log, ActivityLogType
+    is_late = is_late_cancellation(reservation["date"], reservation["time"])
+    
+    # Log the request
+    await create_activity_log(
+        log_type=ActivityLogType.CLIENT_CANCELLATION_REQUEST,
+        entity_type="reservation",
+        entity_id=reservation["id"],
+        actor_type="client",
+        actor_id=None,
+        details={
+            "reason": reason,
+            "is_late_cancellation": is_late,
+            "client_name": reservation.get("name")
+        }
+    )
+    
+    # Send email notification to admin
+    late_warning = ""
+    if is_late:
+        late_warning = """
+        <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; border-radius: 8px; margin: 15px 0;">
+            <p style="margin: 0; color: #dc2626; font-weight: bold;">⚠️ ANNULATION TARDIVE (< 1h avant prise en charge)</p>
+        </div>
+        """
+    
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [DRIVER_EMAIL],
+            "subject": f"❌ Demande d'annulation{' TARDIVE' if is_late else ''} - Réservation {reservation['id'][:8].upper()}",
+            "html": f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: #dc2626; color: white; padding: 20px; text-align: center;">
+                    <h2 style="margin: 0;">❌ Demande d'annulation</h2>
+                </div>
+                <div style="padding: 20px; background: #f8fafc;">
+                    {late_warning}
+                    <p><strong>Client :</strong> {reservation.get('name')}</p>
+                    <p><strong>Téléphone :</strong> {reservation.get('phone')}</p>
+                    <p><strong>Réservation :</strong> {reservation['id'][:8].upper()}</p>
+                    <p><strong>Date course :</strong> {reservation.get('date')} à {reservation.get('time')}</p>
+                    <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                        <p style="margin: 0;"><strong>Raison :</strong> {reason or 'Non spécifiée'}</p>
+                    </div>
+                </div>
+            </div>
+            """
+        }
+        await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"[CLIENT PORTAL] Cancellation request sent for reservation {reservation['id'][:8]} (late: {is_late})")
+    except Exception as e:
+        logger.error(f"[CLIENT PORTAL] Failed to send cancellation email: {e}")
+    
+    message = "Votre demande d'annulation a été envoyée. Nous vous contacterons rapidement."
+    if is_late:
+        message = "⚠️ Demande d'annulation tardive enregistrée. Des frais peuvent s'appliquer. Nous vous contacterons rapidement."
+    
+    return {"message": message, "is_late_cancellation": is_late}
+
+# Admin endpoint to flag abusive client
+@api_router.patch("/reservations/{reservation_id}/flag-abusive")
+async def flag_abusive_client(reservation_id: str, is_abusive: bool = True):
+    """Admin flags a client as abusive"""
+    result = await db.reservations.update_one(
+        {"id": reservation_id},
+        {"$set": {"is_abusive_client": is_abusive}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Réservation non trouvée")
+    
+    logger.info(f"[ADMIN] Client flagged as {'abusive' if is_abusive else 'normal'} for reservation {reservation_id[:8]}")
+    return {"message": f"Client marqué comme {'abusif' if is_abusive else 'normal'}"}
+
+# Admin endpoint to update internal notes
+@api_router.patch("/reservations/{reservation_id}/admin-notes")
+async def update_admin_notes(reservation_id: str, notes: str):
+    """Admin updates internal notes on a reservation"""
+    result = await db.reservations.update_one(
+        {"id": reservation_id},
+        {"$set": {"admin_internal_notes": notes}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Réservation non trouvée")
+    return {"message": "Notes internes mises à jour"}
+
+# ============================================
 # SUBCONTRACTING MODULE
 # ============================================
 from subcontracting import (
