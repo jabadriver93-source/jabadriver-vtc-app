@@ -205,13 +205,29 @@ export default function AdminDashboard() {
               />
             </div>
             
-            <input
-              type="date"
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              className="filter-input-admin w-full sm:w-auto"
-              data-testid="date-filter"
-            />
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] text-slate-400 uppercase tracking-wide">Date création</span>
+              <input
+                type="date"
+                value={createdDateFilter}
+                onChange={(e) => setCreatedDateFilter(e.target.value)}
+                className="filter-input-admin w-full sm:w-auto"
+                data-testid="created-date-filter"
+                title="Filtrer par date de création"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-[10px] text-slate-400 uppercase tracking-wide">Date course</span>
+              <input
+                type="date"
+                value={courseDateFilter}
+                onChange={(e) => setCourseDateFilter(e.target.value)}
+                className="filter-input-admin w-full sm:w-auto"
+                data-testid="course-date-filter"
+                title="Filtrer par date de la course"
+              />
+            </div>
 
             <select
               value={statusFilter}
