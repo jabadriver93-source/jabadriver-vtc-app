@@ -260,14 +260,25 @@ export default function AdminSubcontractingPage() {
             </Button>
             <h1 className="text-2xl font-bold text-white">Sous-traitance</h1>
           </div>
-          <Button
-            className="bg-sky-600 hover:bg-sky-700"
-            onClick={() => setShowCreateModal(true)}
-            data-testid="create-course-btn"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Nouvelle course
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => navigate('/admin/commissions')}
+              className="border-green-600 text-green-400 hover:bg-green-900/30"
+              data-testid="commissions-history-btn"
+            >
+              <Euro className="w-4 h-4 mr-2" />
+              Commissions
+            </Button>
+            <Button
+              className="bg-sky-600 hover:bg-sky-700"
+              onClick={() => setShowCreateModal(true)}
+              data-testid="create-course-btn"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Nouvelle course
+            </Button>
+          </div>
         </div>
 
         {/* Tabs */}
