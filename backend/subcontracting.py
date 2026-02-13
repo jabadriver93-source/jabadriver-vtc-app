@@ -15,6 +15,8 @@ import logging
 import uuid
 import secrets
 import io
+import asyncio
+import resend
 
 # PDF generation
 from reportlab.lib.pagesizes import A4
