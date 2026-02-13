@@ -28,8 +28,16 @@ Application VTC complète avec un module de sous-traitance permettant :
 ### Emails
 - ✅ Email confirmation client (sans PDF)
 - ✅ Email admin "Nouvelle réservation" avec lien claim
-- ✅ Bouton "Partager via WhatsApp" dans l'email admin (NEW - 2025-02-13)
-- ✅ Email admin "Nouveau chauffeur inscrit" avec bouton validation (NEW - 2025-02-13)
+- ✅ Bouton "Partager via WhatsApp" dans l'email admin
+- ✅ Email admin "Nouveau chauffeur inscrit" avec bouton validation
+- ✅ Email admin "Course attribuée" après paiement commission (NEW)
+- ✅ Email chauffeur "Compte validé" après activation par admin (NEW)
+
+### Administration
+- ✅ Page historique des commissions /admin/commissions (NEW)
+  - Tableau détaillé avec filtres (date, chauffeur, statut, mode test/live)
+  - Total des commissions sur la période
+  - Export CSV
 
 ## Tech Stack
 - **Backend:** FastAPI, Motor (MongoDB async), ReportLab (PDF), Resend (emails)
@@ -39,30 +47,40 @@ Application VTC complète avec un module de sous-traitance permettant :
 
 ## Key API Endpoints
 - `POST /api/reservations` - Création réservation + course sous-traitance
-- `POST /api/driver/register` - Inscription chauffeur (+ email admin automatique)
+- `POST /api/driver/register` - Inscription chauffeur (+ email admin)
 - `POST /api/driver/login` - Connexion chauffeur
 - `GET /api/subcontracting/claim/{token}` - Infos course à réclamer
 - `POST /api/subcontracting/claim/{token}/reserve` - Réservation 3 min
 - `POST /api/subcontracting/claim/{token}/initiate-payment` - Session Stripe
 - `POST /api/subcontracting/stripe-webhook` - Confirmation paiement
+- `POST /api/admin/subcontracting/drivers/{id}/activate` - Activer chauffeur (+ email)
+- `GET /api/admin/subcontracting/commissions` - Historique commissions (NEW)
+- `GET /api/admin/subcontracting/commissions/export-csv` - Export CSV (NEW)
 
 ## What's Been Implemented
 
-### 2025-02-13
+### 2025-02-13 (Session 2)
+- ✅ Email admin automatique quand course attribuée après paiement commission
+  - ID réservation, trajet, prix, commission, infos chauffeur, PaymentIntent Stripe
+- ✅ Email chauffeur automatique quand compte validé par admin
+  - Message de bienvenue, explication du fonctionnement, lien espace chauffeur
+- ✅ Page /admin/commissions - Historique des commissions encaissées
+  - Tableau complet avec toutes les infos de paiement
+  - Filtres par période, chauffeur, statut, mode test/live
+  - Total des commissions sur la période filtrée
+  - Export CSV
+  - Bouton d'accès depuis la page admin sous-traitance
+
+### 2025-02-13 (Session 1)
 - ✅ Bouton "Partager via WhatsApp" dans l'email admin (nouvelle réservation)
-  - Message pré-rempli : prix, villes (pas adresses), date/heure, lien claim
-  - Utilise wa.me/?text= pour ouvrir WhatsApp directement
 - ✅ Email automatique à l'admin lors de l'inscription d'un nouveau chauffeur
-  - Résumé infos chauffeur (nom, société, email, téléphone, SIRET, adresse)
-  - Statut "En attente de validation"
-  - Bouton "Ouvrir / Valider le chauffeur" vers /admin/subcontracting
 
 ### Previous Sessions
 - Module sous-traitance complet (subcontracting.py)
 - Intégration Stripe fonctionnelle
 - Interface admin et espace chauffeur
 - Corrections UI/UX mobile
-- Bug fix URLs production (corrigé par support)
+- Bug fix URLs production
 
 ## Architecture Files
 ```
@@ -76,7 +94,9 @@ Application VTC complète avec un module de sous-traitance permettant :
 │   ├── BookingPage.jsx
 │   ├── ClaimPage.jsx
 │   ├── AdminDashboard.jsx
-│   ├── admin/AdminSubcontractingPage.jsx
+│   ├── admin/
+│   │   ├── AdminSubcontractingPage.jsx
+│   │   └── AdminCommissionsPage.jsx  # NEW
 │   └── driver/
 │       ├── DriverLoginPage.jsx
 │       ├── DriverCoursesPage.jsx
@@ -90,5 +110,4 @@ Application VTC complète avec un module de sous-traitance permettant :
 
 ## Backlog / Future Tasks
 - P1: Notifications push chauffeurs (optionnel)
-- P2: Historique paiements commissions
-- P2: Dashboard statistiques admin
+- P2: Dashboard statistiques admin avancées
