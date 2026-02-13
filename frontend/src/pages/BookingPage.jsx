@@ -765,35 +765,52 @@ export default function BookingPage() {
       </section>
       </div>
       
-      {/* Floating WhatsApp Button - Overlay */}
+      {/* Floating WhatsApp Button - Overlay with responsive positioning */}
+      <style>
+        {`
+          .whatsapp-floating-btn {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 9999;
+            width: 60px;
+            height: 60px;
+            background-color: #25D366;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            text-decoration: none;
+          }
+          .whatsapp-floating-btn:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+          }
+          /* Mobile: above the sticky CTA button */
+          @media (max-width: 640px) {
+            .whatsapp-floating-btn {
+              bottom: calc(110px + env(safe-area-inset-bottom, 0px));
+              right: 16px;
+              width: 56px;
+              height: 56px;
+            }
+          }
+          /* Very small screens */
+          @media (max-width: 380px) {
+            .whatsapp-floating-btn {
+              bottom: calc(130px + env(safe-area-inset-bottom, 0px));
+            }
+          }
+        `}
+      </style>
       <a
         href="https://wa.me/33756923711?text=Bonjour%20je%20souhaite%20un%20renseignement%20concernant%20une%20course%20VTC"
         target="_blank"
         rel="noopener noreferrer"
-        style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          zIndex: 9999,
-          width: '60px',
-          height: '60px',
-          backgroundColor: '#25D366',
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-          transition: 'transform 0.2s, box-shadow 0.2s',
-          cursor: 'pointer'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'scale(1.1)';
-          e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.4)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'scale(1)';
-          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.3)';
-        }}
+        className="whatsapp-floating-btn"
         data-testid="whatsapp-floating-btn"
         aria-label="Contacter via WhatsApp"
       >
