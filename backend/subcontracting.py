@@ -272,6 +272,229 @@ async def send_new_driver_notification(driver: dict):
         logger.error(f"[EMAIL] ❌ Failed to send new driver notification | Error: {str(e)}")
         logger.exception("Full exception trace:")
 
+async def send_driver_validation_email(driver: dict):
+    """Send email to driver when their account is validated by admin"""
+    driver_email = driver.get('email')
+    if not driver_email or not SENDER_EMAIL:
+        logger.warning("[EMAIL] Skipping driver validation email - driver email or SENDER_EMAIL not configured")
+        return
+    
+    if not resend.api_key:
+        resend.api_key = os.environ.get('RESEND_API_KEY', '')
+    
+    driver_portal_url = f"{FRONTEND_URL}/driver/login" if FRONTEND_URL else "#"
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #22c55e; color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0;">✅ COMPTE VALIDÉ</h1>
+        </div>
+        <div style="padding: 30px; background: #F8FAFC;">
+            
+            <div style="background: #dcfce7; border-left: 4px solid #22c55e; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0; font-weight: bold; color: #166534;">🎉 Bienvenue {driver.get('name', '')} !</p>
+                <p style="margin: 5px 0 0 0; font-size: 14px; color: #166534;">Votre compte chauffeur a été validé par l'administrateur. Vous pouvez maintenant réclamer des courses.</p>
+            </div>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <h3 style="margin-top: 0; color: #1e3a5f;">📋 Comment ça fonctionne ?</h3>
+                <ol style="margin: 0; padding-left: 20px; color: #475569; line-height: 1.8;">
+                    <li><strong>Réception du lien</strong> — Vous recevrez des liens de courses disponibles via WhatsApp ou autre</li>
+                    <li><strong>Claim de la course</strong> — Cliquez sur le lien pour voir les détails et réserver la course pendant 3 minutes</li>
+                    <li><strong>Paiement commission</strong> — Payez la commission de 10% via Stripe pour confirmer l'attribution</li>
+                    <li><strong>Course attribuée</strong> — Une fois le paiement validé, la course vous est définitivement attribuée avec toutes les informations client</li>
+                    <li><strong>Documents</strong> — Générez votre bon de commande et facture depuis votre espace chauffeur</li>
+                </ol>
+            </div>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <h3 style="margin-top: 0; color: #1e3a5f;">👤 Votre profil</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 6px 0; color: #64748b;">Société :</td>
+                        <td style="padding: 6px 0; font-weight: bold;">{driver.get('company_name', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 6px 0; color: #64748b;">Email :</td>
+                        <td style="padding: 6px 0;">{driver.get('email', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 6px 0; color: #64748b;">SIRET :</td>
+                        <td style="padding: 6px 0;">{driver.get('siret', 'N/A')}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div style="text-align: center; margin: 25px 0;">
+                <a href="{driver_portal_url}" style="display: inline-block; background-color: #3b82f6; color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 16px;">
+                    🚗 Accéder à l'Espace Chauffeur
+                </a>
+            </div>
+            
+            <div style="background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0; color: #475569; font-size: 13px;">
+                    <strong>Besoin d'aide ?</strong><br/>
+                    Contactez-nous via WhatsApp : <a href="https://wa.me/message/MQ6BTZ7KU26OM1" style="color: #25D366;">Cliquez ici</a><br/>
+                    Email : contact@jabadriver.fr
+                </p>
+            </div>
+            
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 8px;">
+                <p style="margin: 0; color: #64748b; font-size: 12px;">
+                    <strong>JABADRIVER</strong><br/>
+                    Module de sous-traitance
+                </p>
+            </div>
+        </div>
+    </div>
+    """
+    
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [driver_email],
+            "subject": f"✅ Votre compte chauffeur JABADRIVER est validé !",
+            "html": html_content
+        }
+        
+        logger.info(f"[EMAIL] Sending validation email to driver | Email: {driver_email}")
+        response = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"[EMAIL] ✅ Driver validation email sent | Resend ID: {response.get('id', 'N/A')}")
+    except Exception as e:
+        logger.error(f"[EMAIL] ❌ Failed to send driver validation email | Error: {str(e)}")
+        logger.exception("Full exception trace:")
+
+async def send_course_assigned_notification(course: dict, driver: dict, payment_intent_id: str = None):
+    """Send email to admin when a course is assigned to a driver after commission payment"""
+    if not ADMIN_EMAIL or not SENDER_EMAIL:
+        logger.warning("[EMAIL] Skipping course assigned notification - ADMIN_EMAIL or SENDER_EMAIL not configured")
+        return
+    
+    if not resend.api_key:
+        resend.api_key = os.environ.get('RESEND_API_KEY', '')
+    
+    admin_url = f"{FRONTEND_URL}/admin/subcontracting" if FRONTEND_URL else "#"
+    
+    # Extract city/department for privacy
+    pickup_city = extract_city_department(course.get('pickup_address', ''))
+    dropoff_city = extract_city_department(course.get('dropoff_address', ''))
+    
+    price_total = course.get('price_total', 0)
+    commission_amount = course.get('commission_amount', round(price_total * COMMISSION_RATE, 2))
+    assigned_at = course.get('assigned_at', datetime.now(timezone.utc).isoformat())
+    
+    # Format date
+    try:
+        dt = datetime.fromisoformat(assigned_at.replace('Z', '+00:00'))
+        assigned_date_str = dt.strftime("%d/%m/%Y à %H:%M")
+    except:
+        assigned_date_str = assigned_at
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #22c55e; color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0;">🎯 COURSE ATTRIBUÉE</h1>
+        </div>
+        <div style="padding: 30px; background: #F8FAFC;">
+            
+            <div style="background: #dcfce7; border-left: 4px solid #22c55e; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0; font-weight: bold; color: #166534;">✅ Commission payée — Course attribuée</p>
+                <p style="margin: 5px 0 0 0; font-size: 14px; color: #166534;">Un chauffeur a payé la commission et s'est vu attribuer cette course.</p>
+            </div>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <h3 style="margin-top: 0; color: #1e3a5f;">📋 Détails de la course</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b; width: 40%;">ID Réservation :</td>
+                        <td style="padding: 8px 0; font-weight: bold; font-family: monospace;">{course.get('id', 'N/A')[:8].upper()}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Date/Heure :</td>
+                        <td style="padding: 8px 0;">{course.get('date', 'N/A')} à {course.get('time', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Trajet :</td>
+                        <td style="padding: 8px 0;">{pickup_city} → {dropoff_city}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Prix course :</td>
+                        <td style="padding: 8px 0; font-weight: bold;">{int(price_total)}€</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Commission (10%) :</td>
+                        <td style="padding: 8px 0; font-weight: bold; color: #22c55e;">{commission_amount:.2f}€</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <h3 style="margin-top: 0; color: #1e3a5f;">👤 Chauffeur attribué</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b; width: 40%;">Nom :</td>
+                        <td style="padding: 8px 0; font-weight: bold;">{driver.get('name', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Société :</td>
+                        <td style="padding: 8px 0;">{driver.get('company_name', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Email :</td>
+                        <td style="padding: 8px 0;"><a href="mailto:{driver.get('email', '')}">{driver.get('email', 'N/A')}</a></td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Téléphone :</td>
+                        <td style="padding: 8px 0;"><a href="tel:{driver.get('phone', '')}">{driver.get('phone', 'N/A')}</a></td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div style="background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <h4 style="margin: 0 0 10px 0; color: #475569;">💳 Paiement Stripe</h4>
+                <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                    <tr>
+                        <td style="padding: 4px 0; color: #64748b;">PaymentIntent :</td>
+                        <td style="padding: 4px 0; font-family: monospace; font-size: 11px;">{payment_intent_id or 'N/A'}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 4px 0; color: #64748b;">Date paiement :</td>
+                        <td style="padding: 4px 0;">{assigned_date_str}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div style="text-align: center; margin: 25px 0;">
+                <a href="{admin_url}" style="display: inline-block; background-color: #3b82f6; color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 16px;">
+                    📋 Voir dans l'admin
+                </a>
+            </div>
+            
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 8px;">
+                <p style="margin: 0; color: #64748b; font-size: 12px;">
+                    <strong>JABADRIVER</strong><br/>
+                    Module de sous-traitance
+                </p>
+            </div>
+        </div>
+    </div>
+    """
+    
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [ADMIN_EMAIL],
+            "subject": f"🎯 Course attribuée - {driver.get('name', 'N/A')} - {course.get('date', '')} {course.get('time', '')} - {int(commission_amount)}€ commission",
+            "html": html_content
+        }
+        
+        logger.info(f"[EMAIL] Sending course assigned notification to admin | Course: {course.get('id', '')[:8]}")
+        response = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"[EMAIL] ✅ Course assigned notification sent | Resend ID: {response.get('id', 'N/A')}")
+    except Exception as e:
+        logger.error(f"[EMAIL] ❌ Failed to send course assigned notification | Error: {str(e)}")
+        logger.exception("Full exception trace:")
+
 def simple_hash(password: str) -> str:
     """Simple hash for demo - use bcrypt in production"""
     import hashlib
