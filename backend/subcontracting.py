@@ -160,6 +160,33 @@ class CommissionPayment(BaseModel):
     paid_at: Optional[str] = None
 
 # ============================================
+# MODELS - ACTIVITY LOGS
+# ============================================
+class ActivityLogType:
+    COURSE_CREATED = "course_created"
+    COURSE_ASSIGNED = "course_assigned"
+    COURSE_CANCELLED_DRIVER = "course_cancelled_driver"
+    COURSE_CANCELLED_DRIVER_LATE = "course_cancelled_driver_late"
+    COURSE_CANCELLED_CLIENT = "course_cancelled_client"
+    COURSE_CANCELLED_CLIENT_LATE = "course_cancelled_client_late"
+    COURSE_STATUS_CHANGED = "course_status_changed"
+    DRIVER_ACTIVATED = "driver_activated"
+    DRIVER_DEACTIVATED = "driver_deactivated"
+    CLIENT_MODIFICATION_REQUEST = "client_modification_request"
+    CLIENT_CANCELLATION_REQUEST = "client_cancellation_request"
+    CLIENT_MESSAGE = "client_message"
+
+class ActivityLog(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    log_type: str
+    entity_type: str  # "course", "driver", "reservation"
+    entity_id: str
+    actor_type: Optional[str] = None  # "admin", "driver", "client", "system"
+    actor_id: Optional[str] = None
+    details: Optional[dict] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+# ============================================
 # ROUTER
 # ============================================
 subcontracting_router = APIRouter(prefix="/api/subcontracting", tags=["Sous-traitance"])
