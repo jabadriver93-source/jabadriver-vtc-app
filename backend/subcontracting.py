@@ -162,18 +162,116 @@ admin_subcontracting_router = APIRouter(prefix="/api/admin/subcontracting", tags
 # Database reference - will be set from main server.py
 db = None
 STRIPE_API_KEY = None
+ADMIN_EMAIL = None
+SENDER_EMAIL = None
+FRONTEND_URL = None
 
-def init_subcontracting(database, stripe_key):
+def init_subcontracting(database, stripe_key, admin_email=None, sender_email=None, frontend_url=None):
     """Initialize the subcontracting module with database and stripe key"""
-    global db, STRIPE_API_KEY
+    global db, STRIPE_API_KEY, ADMIN_EMAIL, SENDER_EMAIL, FRONTEND_URL
     db = database
     STRIPE_API_KEY = stripe_key
+    ADMIN_EMAIL = admin_email
+    SENDER_EMAIL = sender_email
+    FRONTEND_URL = frontend_url
     logger.info("[SUBCONTRACTING] Module initialized")
     logger.info(f"[SUBCONTRACTING] Stripe API Key present: {bool(STRIPE_API_KEY)}")
+    logger.info(f"[SUBCONTRACTING] Admin Email: {ADMIN_EMAIL}")
 
 # ============================================
 # HELPER FUNCTIONS
 # ============================================
+
+async def send_new_driver_notification(driver: dict):
+    """Send email to admin when a new driver registers"""
+    if not ADMIN_EMAIL or not SENDER_EMAIL:
+        logger.warning("[EMAIL] Skipping new driver notification - ADMIN_EMAIL or SENDER_EMAIL not configured")
+        return
+    
+    # Ensure resend API key is set
+    if not resend.api_key:
+        resend.api_key = os.environ.get('RESEND_API_KEY', '')
+    
+    admin_url = f"{FRONTEND_URL}/admin/subcontracting" if FRONTEND_URL else "#"
+    registration_date = datetime.now(timezone.utc).strftime("%d/%m/%Y à %H:%M")
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #3b82f6; color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0;">👤 NOUVEAU CHAUFFEUR INSCRIT</h1>
+        </div>
+        <div style="padding: 30px; background: #F8FAFC;">
+            
+            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0; font-weight: bold; color: #92400e;">⏳ En attente de validation</p>
+                <p style="margin: 5px 0 0 0; font-size: 14px; color: #92400e;">Ce compte doit être validé avant que le chauffeur puisse réclamer des courses.</p>
+            </div>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <h3 style="margin-top: 0; color: #1e3a5f;">📋 Informations du chauffeur</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b; width: 40%;">Nom :</td>
+                        <td style="padding: 8px 0; font-weight: bold;">{driver.get('name', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Société :</td>
+                        <td style="padding: 8px 0; font-weight: bold;">{driver.get('company_name', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Email :</td>
+                        <td style="padding: 8px 0;"><a href="mailto:{driver.get('email', '')}">{driver.get('email', 'N/A')}</a></td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Téléphone :</td>
+                        <td style="padding: 8px 0;"><a href="tel:{driver.get('phone', '')}">{driver.get('phone', 'N/A')}</a></td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">SIRET :</td>
+                        <td style="padding: 8px 0;">{driver.get('siret', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Adresse :</td>
+                        <td style="padding: 8px 0;">{driver.get('address', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Date d'inscription :</td>
+                        <td style="padding: 8px 0;">{registration_date}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div style="text-align: center; margin: 25px 0;">
+                <a href="{admin_url}" style="display: inline-block; background-color: #22c55e; color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 16px;">
+                    ✅ Ouvrir / Valider le chauffeur
+                </a>
+            </div>
+            
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 8px;">
+                <p style="margin: 0; color: #64748b; font-size: 12px;">
+                    <strong>JABADRIVER</strong><br/>
+                    Module de sous-traitance
+                </p>
+            </div>
+        </div>
+    </div>
+    """
+    
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [ADMIN_EMAIL],
+            "subject": f"👤 Nouveau chauffeur inscrit - {driver.get('name', 'N/A')} ({driver.get('company_name', 'N/A')})",
+            "html": html_content
+        }
+        
+        logger.info(f"[EMAIL] Sending new driver notification to admin | Driver: {driver.get('email')}")
+        response = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"[EMAIL] ✅ New driver notification sent | Resend ID: {response.get('id', 'N/A')}")
+    except Exception as e:
+        logger.error(f"[EMAIL] ❌ Failed to send new driver notification | Error: {str(e)}")
+        logger.exception("Full exception trace:")
+
 def simple_hash(password: str) -> str:
     """Simple hash for demo - use bcrypt in production"""
     import hashlib
