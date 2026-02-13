@@ -857,6 +857,78 @@ async def get_driver_course_detail(request: Request, course_id: str):
     return course
 
 # ============================================
+# DRIVER CANCELLATION
+# ============================================
+@driver_router.post("/courses/{course_id}/cancel")
+async def driver_cancel_course(request: Request, course_id: str, reason: Optional[str] = None):
+    """Driver cancels an assigned course"""
+    authorization = request.headers.get("Authorization", "")
+    driver = await get_driver_from_token(authorization)
+    
+    # Get course
+    course = await db.courses.find_one({"id": course_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course non trouvée")
+    
+    # Verify driver is assigned to this course
+    if course.get("assigned_driver_id") != driver["id"]:
+        raise HTTPException(status_code=403, detail="Vous n'êtes pas assigné à cette course")
+    
+    # Only assigned courses can be cancelled by driver
+    if course.get("status") != CourseStatusEnum.ASSIGNED:
+        raise HTTPException(status_code=400, detail="Cette course ne peut pas être annulée")
+    
+    # Check if late cancellation
+    is_late = is_late_cancellation(course["date"], course["time"])
+    
+    # Determine new status
+    new_status = CourseStatusEnum.CANCELLED_LATE_DRIVER if is_late else CourseStatusEnum.CANCELLED
+    
+    # Update course
+    update_data = {
+        "status": new_status,
+        "cancelled_at": datetime.now(timezone.utc).isoformat(),
+        "cancelled_by": "driver",
+        "is_late_cancellation": is_late,
+        "admin_notes": f"Annulation chauffeur{' (tardive < 1h)' if is_late else ''}: {reason or 'Aucune raison fournie'}"
+    }
+    await db.courses.update_one({"id": course_id}, {"$set": update_data})
+    
+    # If late cancellation, increment driver's late cancellation count
+    if is_late:
+        await db.drivers.update_one(
+            {"id": driver["id"]},
+            {"$inc": {"late_cancellation_count": 1}}
+        )
+        logger.warning(f"[SUBCONTRACTING] ⚠️ Late cancellation by driver {driver['id'][:8]} for course {course_id[:8]}")
+    
+    # Create activity log
+    await create_activity_log(
+        log_type=ActivityLogType.COURSE_CANCELLED_DRIVER_LATE if is_late else ActivityLogType.COURSE_CANCELLED_DRIVER,
+        entity_type="course",
+        entity_id=course_id,
+        actor_type="driver",
+        actor_id=driver["id"],
+        details={
+            "reason": reason,
+            "is_late_cancellation": is_late,
+            "commission_paid": course.get("commission_paid", False),
+            "commission_amount": course.get("commission_amount", 0)
+        }
+    )
+    
+    # Note: Commission is NOT refunded for late cancellations
+    message = "Course annulée."
+    if is_late:
+        message = "Course annulée. ⚠️ Annulation tardive (< 1h avant prise en charge) : la commission reste due."
+    
+    return {
+        "message": message,
+        "is_late_cancellation": is_late,
+        "commission_refunded": False  # Never refund automatically
+    }
+
+# ============================================
 # CLAIM ROUTES (PUBLIC WITH AUTH)
 # ============================================
 
