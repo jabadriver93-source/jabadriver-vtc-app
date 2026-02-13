@@ -30,9 +30,29 @@ Application VTC complète avec un module de sous-traitance permettant :
 - ✅ Email admin "Nouvelle réservation" avec lien claim
 - ✅ Bouton "Partager via WhatsApp" dans l'email admin
 - ✅ Email admin "Nouveau chauffeur inscrit" avec bouton validation
-- ✅ Email admin "Course attribuée" après paiement commission (NEW)
-- ✅ Email chauffeur "Compte validé" après activation par admin (NEW)
-- ✅ Email chauffeur "Dossier reçu" après inscription (liste des pièces à fournir) (NEW)
+- ✅ Email admin "Course attribuée" après paiement commission
+- ✅ Email chauffeur "Compte validé" après activation par admin
+- ✅ Email chauffeur "Dossier reçu" après inscription (liste des pièces à fournir)
+- ✅ Bouton "Gérer ma réservation" dans email confirmation client (NEW)
+
+### Gestion des Annulations (NEW)
+- ✅ Annulation chauffeur tardive (< 1h) : flag, compteur, commission non remboursée
+- ✅ Annulation client tardive (< 1h) : statut spécifique, traçabilité
+- ✅ Statuts : CANCELLED_LATE_DRIVER, CANCELLED_LATE_CLIENT
+
+### Portail Client Léger (NEW)
+- ✅ Accès via token sécurisé `/my-booking/{token}`
+- ✅ Voir sa réservation
+- ✅ Envoyer un message à l'admin
+- ✅ Demander modification
+- ✅ Demander annulation
+- ✅ Sans création de compte
+
+### Sécurité & Qualité (NEW)
+- ✅ Flag client abusif (`is_abusive_client`)
+- ✅ Compteur annulations tardives chauffeur (`late_cancellation_count`)
+- ✅ Journal d'activité (collection `activity_logs`)
+- ✅ Logs : attribution, annulations, changements statut, messages client
 
 ### Administration
 - ✅ Page historique des commissions /admin/commissions (NEW)
