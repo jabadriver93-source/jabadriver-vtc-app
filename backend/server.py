@@ -1418,8 +1418,14 @@ from subcontracting import (
     handle_stripe_webhook
 )
 
-# Initialize subcontracting module with database and stripe key
-init_subcontracting(db, STRIPE_API_KEY)
+# Initialize subcontracting module with database, stripe key, and email config
+init_subcontracting(
+    database=db, 
+    stripe_key=STRIPE_API_KEY,
+    admin_email=DRIVER_EMAIL,  # Admin receives driver notifications (same as DRIVER_EMAIL)
+    sender_email=SENDER_EMAIL,
+    frontend_url=os.environ.get('FRONTEND_URL', '')
+)
 
 # Include subcontracting routers
 app.include_router(subcontracting_router)
