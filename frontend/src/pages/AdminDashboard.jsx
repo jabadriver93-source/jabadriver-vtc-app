@@ -38,7 +38,8 @@ export default function AdminDashboard() {
   const [subcontractingCourses, setSubcontractingCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [dateFilter, setDateFilter] = useState("");
+  const [courseDateFilter, setCourseDateFilter] = useState("");
+  const [createdDateFilter, setCreatedDateFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [updatingId, setUpdatingId] = useState(null);
   const [invoiceModalReservation, setInvoiceModalReservation] = useState(null);
@@ -54,7 +55,8 @@ export default function AdminDashboard() {
     try {
       const params = new URLSearchParams();
       if (search) params.append("search", search);
-      if (dateFilter) params.append("date", dateFilter);
+      if (courseDateFilter) params.append("date", courseDateFilter);
+      if (createdDateFilter) params.append("created_date", createdDateFilter);
       if (statusFilter) params.append("status", statusFilter);
       
       // Fetch reservations and subcontracting courses in parallel
@@ -71,7 +73,7 @@ export default function AdminDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [search, dateFilter, statusFilter]);
+  }, [search, courseDateFilter, createdDateFilter, statusFilter]);
 
   // Helper to find subcontracting info for a reservation
   const getSubcontractingInfo = (reservation) => {
