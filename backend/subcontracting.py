@@ -2132,14 +2132,71 @@ async def admin_reset_course_to_open(course_id: str):
     return {"message": "Course remise en disponible", "status": CourseStatusEnum.OPEN}
 
 @admin_subcontracting_router.post("/courses/{course_id}/cancel")
-async def admin_cancel_course(course_id: str):
-    """Cancel a course"""
+async def admin_cancel_course(course_id: str, reason: Optional[str] = None):
+    """Cancel a course - sends notifications to client and driver (if assigned)"""
+    # Get course before cancellation
+    course = await db.courses.find_one({"id": course_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course non trouvée")
+    
+    # Get assigned driver if any
+    assigned_driver_id = course.get("assigned_driver_id")
+    driver = None
+    if assigned_driver_id:
+        driver = await db.drivers.find_one({"id": assigned_driver_id}, {"_id": 0, "password_hash": 0})
+    
+    # Update course status
     await db.courses.update_one(
         {"id": course_id},
-        {"$set": {"status": CourseStatusEnum.CANCELLED}}
+        {"$set": {
+            "status": CourseStatusEnum.CANCELLED,
+            "cancelled_at": datetime.now(timezone.utc).isoformat(),
+            "cancelled_by": "admin",
+            "admin_notes": f"Annulation admin: {reason or 'Aucune raison fournie'}"
+        }}
     )
+    
     logger.info(f"[SUBCONTRACTING] Course {course_id[:8]} cancelled by admin")
-    return {"message": "Course annulée", "status": CourseStatusEnum.CANCELLED}
+    
+    # Create activity log
+    await create_activity_log(
+        log_type=ActivityLogType.COURSE_STATUS_CHANGED,
+        entity_type="course",
+        entity_id=course_id,
+        actor_type="admin",
+        actor_id=None,
+        details={
+            "old_status": course.get("status"),
+            "new_status": CourseStatusEnum.CANCELLED,
+            "reason": reason,
+            "assigned_driver_id": assigned_driver_id
+        }
+    )
+    
+    # Send notification emails
+    client_notified = False
+    driver_notified = False
+    
+    try:
+        # 1. Email to client
+        if course.get("client_email"):
+            await send_admin_cancellation_to_client(course)
+            client_notified = True
+        
+        # 2. Email to driver (if course was assigned)
+        if driver:
+            await send_admin_cancellation_to_driver(course, driver)
+            driver_notified = True
+            
+    except Exception as e:
+        logger.error(f"[SUBCONTRACTING] Failed to send admin cancellation emails: {e}")
+    
+    return {
+        "message": "Course annulée",
+        "status": CourseStatusEnum.CANCELLED,
+        "client_notified": client_notified,
+        "driver_notified": driver_notified
+    }
 
 @admin_subcontracting_router.post("/courses/{course_id}/mark-done")
 async def admin_mark_course_done(course_id: str):
