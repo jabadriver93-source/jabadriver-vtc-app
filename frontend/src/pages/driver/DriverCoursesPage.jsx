@@ -136,7 +136,7 @@ export default function DriverCoursesPage() {
     setCancelling(true);
     
     try {
-      const res = await fetch(`${API_URL}/api/driver/courses/${cancelCourseId}/cancel?reason=${encodeURIComponent(cancelReason)}`, {
+      const res = await fetch(`${API_URL}/api/subcontracting/driver/courses/${cancelCourseId}/cancel?reason=${encodeURIComponent(cancelReason)}`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
