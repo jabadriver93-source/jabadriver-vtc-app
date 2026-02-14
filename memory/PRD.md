@@ -144,5 +144,6 @@ Application VTC complète avec un module de sous-traitance permettant :
 - **Driver (test):** chauffeur1@test.com / test123
 
 ## Backlog / Future Tasks
-- P1: Notifications push chauffeurs (optionnel)
-- P2: Dashboard statistiques admin avancées
+- P1: Dashboard statistiques admin avancées
+- P2: Notifications push chauffeurs (optionnel)
+- P3: Chat en temps réel
