@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, Send, MapPin, Clock, Euro, User, ChevronRight } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { FileText, Send, MapPin, Clock, Euro, User, X, AlertTriangle, Loader2 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
@@ -12,6 +12,13 @@ export default function DriverCoursesPage() {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [driverInfo, setDriverInfo] = useState(null);
+  
+  // Cancel modal state
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelCourseId, setCancelCourseId] = useState(null);
+  const [cancelCourse, setCancelCourse] = useState(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('driver_token');
@@ -101,11 +108,78 @@ export default function DriverCoursesPage() {
     }
   };
 
+  // Check if course is < 1h before pickup
+  const isLessThanOneHour = (course) => {
+    try {
+      const pickupDateTime = new Date(`${course.date}T${course.time}`);
+      const now = new Date();
+      const diffMs = pickupDateTime - now;
+      return diffMs < 3600000; // Less than 1 hour in milliseconds
+    } catch {
+      return false;
+    }
+  };
+
+  // Open cancel modal
+  const openCancelModal = (course) => {
+    setCancelCourseId(course.id);
+    setCancelCourse(course);
+    setCancelReason('');
+    setShowCancelModal(true);
+  };
+
+  // Handle cancel course
+  const handleCancelCourse = async () => {
+    if (!cancelCourseId) return;
+    
+    const token = localStorage.getItem('driver_token');
+    setCancelling(true);
+    
+    try {
+      const res = await fetch(`${API_URL}/api/driver/courses/${cancelCourseId}/cancel?reason=${encodeURIComponent(cancelReason)}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.detail || 'Erreur annulation');
+      }
+      
+      // Success
+      setShowCancelModal(false);
+      setCancelCourseId(null);
+      setCancelCourse(null);
+      setCancelReason('');
+      
+      // Show appropriate message
+      if (data.auto_deactivated) {
+        toast.error('🚫 Compte désactivé après 3 annulations tardives. Contactez l\'admin.');
+        handleLogout();
+      } else if (data.is_late_cancellation) {
+        toast.warning(`Course annulée. ⚠️ Annulation tardive comptabilisée (${data.late_cancellation_count}/3)`);
+      } else {
+        toast.success('Course annulée, emails envoyés.');
+      }
+      
+      // Refresh courses
+      fetchCourses(token);
+      
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setCancelling(false);
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case 'ASSIGNED': return 'bg-green-500/20 text-green-400 border-green-500/30';
       case 'DONE': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
       case 'CANCELLED': return 'bg-red-500/20 text-red-400 border-red-500/30';
+      case 'CANCELLED_LATE_DRIVER': return 'bg-red-500/20 text-red-400 border-red-500/30';
+      case 'CANCELLED_LATE_CLIENT': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
       default: return 'bg-slate-500/20 text-slate-400 border-slate-500/30';
     }
   };
@@ -115,6 +189,8 @@ export default function DriverCoursesPage() {
       case 'ASSIGNED': return 'Attribuée';
       case 'DONE': return 'Terminée';
       case 'CANCELLED': return 'Annulée';
+      case 'CANCELLED_LATE_DRIVER': return 'Annulée (chauffeur)';
+      case 'CANCELLED_LATE_CLIENT': return 'Annulée (client)';
       default: return status;
     }
   };
@@ -242,6 +318,20 @@ export default function DriverCoursesPage() {
                       <Send className="w-4 h-4 mr-1" />
                       Envoyer facture
                     </Button>
+                    
+                    {/* Cancel button - only for ASSIGNED courses */}
+                    {course.status === 'ASSIGNED' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-red-600/50 text-red-400 hover:bg-red-900/30"
+                        onClick={() => openCancelModal(course)}
+                        data-testid={`cancel-course-${course.id}`}
+                      >
+                        <X className="w-4 h-4 mr-1" />
+                        Annuler
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -249,6 +339,76 @@ export default function DriverCoursesPage() {
           </div>
         )}
       </div>
+
+      {/* Cancel Confirmation Modal */}
+      {showCancelModal && cancelCourse && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-800 border border-slate-700 rounded-lg w-full max-w-md p-6">
+            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+              <X className="w-5 h-5 text-red-400" />
+              Annuler cette course ?
+            </h3>
+            
+            {/* Late cancellation warning */}
+            {isLessThanOneHour(cancelCourse) && (
+              <div className="bg-red-900/30 border border-red-700 rounded-lg p-3 mb-4">
+                <p className="text-red-400 text-sm flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span>
+                    <strong>⚠️ Annulation &lt; 1h = comptabilisée.</strong><br/>
+                    Au bout de 3 annulations tardives : désactivation automatique du compte.
+                  </span>
+                </p>
+              </div>
+            )}
+            
+            <div className="mb-4">
+              <p className="text-slate-300 text-sm mb-2">
+                <strong>Course :</strong> {cancelCourse.date} à {cancelCourse.time}
+              </p>
+              <p className="text-slate-400 text-sm">
+                {cancelCourse.pickup_address?.slice(0, 40)}...
+              </p>
+            </div>
+            
+            <div className="mb-4">
+              <label className="text-slate-400 text-sm block mb-1">Motif (optionnel)</label>
+              <textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Raison de l'annulation..."
+                className="w-full p-2 bg-slate-700 border border-slate-600 rounded text-white text-sm resize-none h-20"
+              />
+            </div>
+            
+            <div className="flex gap-2">
+              <Button
+                onClick={handleCancelCourse}
+                disabled={cancelling}
+                className="flex-1 bg-red-600 hover:bg-red-700"
+                data-testid="confirm-cancel-btn"
+              >
+                {cancelling ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Annulation...
+                  </>
+                ) : (
+                  'Confirmer l\'annulation'
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowCancelModal(false)}
+                disabled={cancelling}
+                className="border-slate-600 text-slate-300"
+              >
+                Retour
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
