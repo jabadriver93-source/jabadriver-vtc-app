@@ -529,6 +529,123 @@ async def send_course_assigned_notification(course: dict, driver: dict, payment_
         logger.error(f"[EMAIL] ❌ Failed to send course assigned notification | Error: {str(e)}")
         logger.exception("Full exception trace:")
 
+async def send_driver_cancellation_notification(course: dict, driver: dict, is_late: bool):
+    """Send email to driver when client cancels their assigned course"""
+    driver_email = driver.get('email')
+    if not driver_email or not SENDER_EMAIL:
+        logger.warning("[EMAIL] Skipping driver cancellation notification - email not configured")
+        return
+    
+    if not resend.api_key:
+        resend.api_key = os.environ.get('RESEND_API_KEY', '')
+    
+    # Extract cities for privacy
+    pickup_city = extract_city_department(course.get('pickup_address', ''))
+    dropoff_city = extract_city_department(course.get('dropoff_address', ''))
+    
+    course_id_short = course.get('id', '')[:8].upper()
+    commission_amount = course.get('commission_amount', 0)
+    
+    if is_late:
+        # Late cancellation email
+        subject = f"⚠️ Annulation tardive client — Course {course_id_short}"
+        alert_box = f"""
+            <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0; font-weight: bold; color: #dc2626;">⚠️ ANNULATION TARDIVE (< 1h avant prise en charge)</p>
+                <p style="margin: 10px 0 0 0; font-size: 14px; color: #991b1b;">
+                    Le client a annulé cette course moins d'1 heure avant la prise en charge.<br/>
+                    <strong>La commission de {commission_amount:.2f}€ reste due / décision administrative selon conditions en vigueur.</strong>
+                </p>
+            </div>
+        """
+        header_bg = "#dc2626"
+        header_title = "⚠️ ANNULATION TARDIVE CLIENT"
+    else:
+        # Normal cancellation email
+        subject = f"❌ Course annulée par le client — {course_id_short}"
+        alert_box = f"""
+            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0; font-weight: bold; color: #92400e;">❌ Course annulée</p>
+                <p style="margin: 10px 0 0 0; font-size: 14px; color: #92400e;">
+                    Le client a annulé cette course plus d'1 heure avant la prise en charge.
+                </p>
+            </div>
+        """
+        header_bg = "#f59e0b"
+        header_title = "❌ COURSE ANNULÉE PAR LE CLIENT"
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: {header_bg}; color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0;">{header_title}</h1>
+        </div>
+        <div style="padding: 30px; background: #F8FAFC;">
+            
+            {alert_box}
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <h3 style="margin-top: 0; color: #1e3a5f;">📋 Détails de la course</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b; width: 40%;">ID Réservation :</td>
+                        <td style="padding: 8px 0; font-weight: bold; font-family: monospace;">{course_id_short}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Date :</td>
+                        <td style="padding: 8px 0; font-weight: bold;">{course.get('date', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Heure prise en charge :</td>
+                        <td style="padding: 8px 0; font-weight: bold;">{course.get('time', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Trajet :</td>
+                        <td style="padding: 8px 0;">{pickup_city} → {dropoff_city}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Prix course :</td>
+                        <td style="padding: 8px 0;">{int(course.get('price_total', 0))}€</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Commission payée :</td>
+                        <td style="padding: 8px 0; font-weight: bold;">{commission_amount:.2f}€</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div style="background: #f1f5f9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0; color: #475569; font-size: 13px;">
+                    <strong>Besoin d'aide ?</strong><br/>
+                    Contactez-nous via WhatsApp : <a href="https://wa.me/33756923711" style="color: #25D366;">+33 7 56 92 37 11</a><br/>
+                    Email : contact@jabadriver.fr
+                </p>
+            </div>
+            
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 8px;">
+                <p style="margin: 0; color: #64748b; font-size: 12px;">
+                    <strong>JABADRIVER</strong><br/>
+                    Module de sous-traitance
+                </p>
+            </div>
+        </div>
+    </div>
+    """
+    
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [driver_email],
+            "subject": subject,
+            "html": html_content
+        }
+        
+        logger.info(f"[EMAIL] Sending cancellation notification to driver | Course: {course_id_short} | Late: {is_late}")
+        response = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"[EMAIL] ✅ Driver cancellation notification sent | Resend ID: {response.get('id', 'N/A')}")
+    except Exception as e:
+        logger.error(f"[EMAIL] ❌ Failed to send driver cancellation notification | Error: {str(e)}")
+        logger.exception("Full exception trace:")
+
 async def send_driver_registration_confirmation(driver: dict):
     """Send confirmation email to driver after registration (pending validation)"""
     driver_email = driver.get('email')
