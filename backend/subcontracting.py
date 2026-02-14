@@ -646,6 +646,413 @@ async def send_driver_cancellation_notification(course: dict, driver: dict, is_l
         logger.error(f"[EMAIL] ❌ Failed to send driver cancellation notification | Error: {str(e)}")
         logger.exception("Full exception trace:")
 
+# ============================================
+# EMAIL - ADMIN CANCELLATION (to client + driver)
+# ============================================
+async def send_admin_cancellation_to_client(course: dict):
+    """Email to client when admin cancels the course"""
+    client_email = course.get('client_email')
+    if not client_email or not SENDER_EMAIL:
+        logger.warning("[EMAIL] Skipping admin cancellation to client - email not configured")
+        return
+    
+    if not resend.api_key:
+        resend.api_key = os.environ.get('RESEND_API_KEY', '')
+    
+    pickup_city = extract_city_department(course.get('pickup_address', ''))
+    dropoff_city = extract_city_department(course.get('dropoff_address', ''))
+    course_id_short = course.get('id', '')[:8].upper()
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #dc2626; color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0;">❌ RÉSERVATION ANNULÉE</h1>
+        </div>
+        <div style="padding: 30px; background: #F8FAFC;">
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+                Bonjour,<br/><br/>
+                Votre réservation <strong>#{course_id_short}</strong> prévue le <strong>{course.get('date', 'N/A')}</strong> à <strong>{course.get('time', 'N/A')}</strong> a été annulée par l'administration Jabadriver.
+            </p>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e2e8f0;">
+                <h3 style="margin-top: 0; color: #1e3a5f;">📍 Trajet</h3>
+                <p style="margin: 5px 0;"><strong>Départ :</strong> {pickup_city}</p>
+                <p style="margin: 5px 0;"><strong>Arrivée :</strong> {dropoff_city}</p>
+            </div>
+            
+            <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+                Si cette annulation fait suite à un ajustement logistique ou exceptionnel, nous vous invitons à nous contacter directement.
+            </p>
+            
+            <div style="background: #f1f5f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0; color: #475569; font-size: 13px;">
+                    <strong>📞 Assistance :</strong> 07 56 92 37 11<br/>
+                    <strong>💬 WhatsApp :</strong> <a href="https://wa.me/33756923711" style="color: #25D366;">Cliquez ici</a>
+                </p>
+            </div>
+            
+            <p style="color: #475569; font-size: 14px;">
+                Nous restons à votre disposition.<br/><br/>
+                Cordialement,<br/>
+                <strong>JABADRIVER</strong><br/>
+                Service VTC Premium
+            </p>
+        </div>
+    </div>
+    """
+    
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [client_email],
+            "subject": f"Réservation annulée – Jabadriver",
+            "html": html_content
+        }
+        logger.info(f"[EMAIL] Sending admin cancellation to client | Course: {course_id_short}")
+        response = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"[EMAIL] ✅ Admin cancellation to client sent | Resend ID: {response.get('id', 'N/A')}")
+    except Exception as e:
+        logger.error(f"[EMAIL] ❌ Failed to send admin cancellation to client | Error: {str(e)}")
+
+async def send_admin_cancellation_to_driver(course: dict, driver: dict):
+    """Email to driver when admin cancels an assigned course"""
+    driver_email = driver.get('email')
+    if not driver_email or not SENDER_EMAIL:
+        return
+    
+    if not resend.api_key:
+        resend.api_key = os.environ.get('RESEND_API_KEY', '')
+    
+    pickup_city = extract_city_department(course.get('pickup_address', ''))
+    dropoff_city = extract_city_department(course.get('dropoff_address', ''))
+    course_id_short = course.get('id', '')[:8].upper()
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #dc2626; color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0;">❌ COURSE ANNULÉE</h1>
+        </div>
+        <div style="padding: 30px; background: #F8FAFC;">
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+                Bonjour {driver.get('name', '')},<br/><br/>
+                La réservation <strong>#{course_id_short}</strong> qui vous était attribuée a été annulée par l'administration.
+            </p>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e2e8f0;">
+                <p style="margin: 5px 0;"><strong>Date :</strong> {course.get('date', 'N/A')} à {course.get('time', 'N/A')}</p>
+                <p style="margin: 5px 0;"><strong>Trajet :</strong> {pickup_city} → {dropoff_city}</p>
+            </div>
+            
+            <p style="color: #475569; font-size: 14px;">
+                Cordialement,<br/>
+                <strong>JABADRIVER</strong>
+            </p>
+        </div>
+    </div>
+    """
+    
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [driver_email],
+            "subject": f"Réservation annulée – Jabadriver",
+            "html": html_content
+        }
+        logger.info(f"[EMAIL] Sending admin cancellation to driver | Course: {course_id_short}")
+        response = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"[EMAIL] ✅ Admin cancellation to driver sent | Resend ID: {response.get('id', 'N/A')}")
+    except Exception as e:
+        logger.error(f"[EMAIL] ❌ Failed to send admin cancellation to driver | Error: {str(e)}")
+
+# ============================================
+# EMAIL - DRIVER CANCELLATION (to client + admin + driver confirmation)
+# ============================================
+async def send_driver_cancel_to_client(course: dict):
+    """Email to client when driver cancels"""
+    client_email = course.get('client_email')
+    if not client_email or not SENDER_EMAIL:
+        return
+    
+    if not resend.api_key:
+        resend.api_key = os.environ.get('RESEND_API_KEY', '')
+    
+    course_id_short = course.get('id', '')[:8].upper()
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #f59e0b; color: #0a0a0a; padding: 30px; text-align: center;">
+            <h1 style="margin: 0;">⚠️ CHANGEMENT DE CHAUFFEUR</h1>
+        </div>
+        <div style="padding: 30px; background: #F8FAFC;">
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+                Bonjour,<br/><br/>
+                Le chauffeur initialement attribué à votre réservation <strong>#{course_id_short}</strong> du <strong>{course.get('date', 'N/A')}</strong> à <strong>{course.get('time', 'N/A')}</strong> a annulé la prise en charge.
+            </p>
+            
+            <div style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0; color: #1e40af; font-size: 14px;">
+                    <strong>Notre équipe est informée et traite immédiatement la situation.</strong>
+                </p>
+            </div>
+            
+            <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+                Nous faisons le nécessaire pour :<br/>
+                • vous proposer un autre chauffeur<br/>
+                ou<br/>
+                • confirmer l'annulation définitive selon disponibilité
+            </p>
+            
+            <p style="color: #475569; font-size: 14px; margin-top: 20px;">
+                Nous vous remercions pour votre compréhension.<br/><br/>
+                <strong>JABADRIVER – Service Premium Île-de-France</strong><br/>
+                Support : 07 56 92 37 11
+            </p>
+        </div>
+    </div>
+    """
+    
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [client_email],
+            "subject": f"Votre chauffeur a annulé la course – Action en cours",
+            "html": html_content
+        }
+        logger.info(f"[EMAIL] Sending driver cancel notification to client | Course: {course_id_short}")
+        response = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"[EMAIL] ✅ Driver cancel to client sent | Resend ID: {response.get('id', 'N/A')}")
+    except Exception as e:
+        logger.error(f"[EMAIL] ❌ Failed to send driver cancel to client | Error: {str(e)}")
+
+async def send_driver_cancel_to_admin(course: dict, driver: dict, is_late: bool):
+    """Email to admin when driver cancels"""
+    if not ADMIN_EMAIL or not SENDER_EMAIL:
+        return
+    
+    if not resend.api_key:
+        resend.api_key = os.environ.get('RESEND_API_KEY', '')
+    
+    pickup_city = extract_city_department(course.get('pickup_address', ''))
+    dropoff_city = extract_city_department(course.get('dropoff_address', ''))
+    course_id_short = course.get('id', '')[:8].upper()
+    late_count = driver.get('late_cancellation_count', 0)
+    
+    late_warning = ""
+    if is_late:
+        late_warning = f"""
+            <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0; font-weight: bold; color: #dc2626;">⚠️ ANNULATION TARDIVE (< 1h)</p>
+                <p style="margin: 5px 0 0 0; font-size: 13px; color: #991b1b;">
+                    Compteur annulations tardives chauffeur : <strong>{late_count}/3</strong>
+                </p>
+            </div>
+        """
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #f59e0b; color: #0a0a0a; padding: 30px; text-align: center;">
+            <h1 style="margin: 0;">🚨 ANNULATION CHAUFFEUR</h1>
+        </div>
+        <div style="padding: 30px; background: #F8FAFC;">
+            {late_warning}
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <h3 style="margin-top: 0; color: #1e3a5f;">📋 Course annulée</h3>
+                <p><strong>ID :</strong> {course_id_short}</p>
+                <p><strong>Date :</strong> {course.get('date', 'N/A')} à {course.get('time', 'N/A')}</p>
+                <p><strong>Trajet :</strong> {pickup_city} → {dropoff_city}</p>
+                <p><strong>Client :</strong> {course.get('client_name', 'N/A')} - {course.get('client_phone', 'N/A')}</p>
+            </div>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <h3 style="margin-top: 0; color: #1e3a5f;">👤 Chauffeur</h3>
+                <p><strong>Nom :</strong> {driver.get('name', 'N/A')}</p>
+                <p><strong>Société :</strong> {driver.get('company_name', 'N/A')}</p>
+                <p><strong>Email :</strong> {driver.get('email', 'N/A')}</p>
+                <p><strong>Annulations tardives :</strong> {late_count}/3</p>
+            </div>
+        </div>
+    </div>
+    """
+    
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [ADMIN_EMAIL],
+            "subject": f"🚨 Annulation chauffeur{' TARDIVE' if is_late else ''} – Course {course_id_short}",
+            "html": html_content
+        }
+        logger.info(f"[EMAIL] Sending driver cancel notification to admin | Course: {course_id_short}")
+        response = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"[EMAIL] ✅ Driver cancel to admin sent | Resend ID: {response.get('id', 'N/A')}")
+    except Exception as e:
+        logger.error(f"[EMAIL] ❌ Failed to send driver cancel to admin | Error: {str(e)}")
+
+async def send_driver_cancel_confirmation(course: dict, driver: dict, is_late: bool, late_count: int):
+    """Confirmation email to driver when they cancel"""
+    driver_email = driver.get('email')
+    if not driver_email or not SENDER_EMAIL:
+        return
+    
+    if not resend.api_key:
+        resend.api_key = os.environ.get('RESEND_API_KEY', '')
+    
+    course_id_short = course.get('id', '')[:8].upper()
+    
+    late_warning = ""
+    if is_late:
+        late_warning = f"""
+            <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0; font-weight: bold; color: #dc2626;">⚠️ ANNULATION TARDIVE</p>
+                <p style="margin: 5px 0 0 0; font-size: 13px; color: #991b1b;">
+                    Cette annulation a été comptabilisée comme tardive (< 1h avant prise en charge).<br/>
+                    <strong>Compteur : {late_count}/3</strong>
+                </p>
+            </div>
+        """
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #64748b; color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0;">✅ CONFIRMATION D'ANNULATION</h1>
+        </div>
+        <div style="padding: 30px; background: #F8FAFC;">
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+                Bonjour {driver.get('name', '').split()[0] if driver.get('name') else ''},<br/><br/>
+                Vous avez annulé la réservation <strong>#{course_id_short}</strong> prévue le <strong>{course.get('date', 'N/A')}</strong> à <strong>{course.get('time', 'N/A')}</strong>.
+            </p>
+            
+            {late_warning}
+            
+            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0; font-weight: bold; color: #92400e;">⚠️ Rappel des règles Jabadriver</p>
+                <ul style="margin: 10px 0 0 0; padding-left: 20px; color: #92400e; font-size: 13px;">
+                    <li>Annulation < 1 heure avant prise en charge = annulation tardive</li>
+                    <li><strong>3 annulations tardives entraînent la désactivation automatique du compte</strong></li>
+                    <li>Les annulations répétées impactent la qualité de service et la priorité d'attribution</li>
+                </ul>
+            </div>
+            
+            <p style="color: #475569; font-size: 14px; margin-top: 20px;">
+                Nous comptons sur votre professionnalisme.<br/><br/>
+                Merci de votre engagement.<br/><br/>
+                <strong>JABADRIVER – Plateforme Sous-Traitance</strong>
+            </p>
+        </div>
+    </div>
+    """
+    
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [driver_email],
+            "subject": f"Confirmation d'annulation – Rappel des règles",
+            "html": html_content
+        }
+        logger.info(f"[EMAIL] Sending cancel confirmation to driver | Course: {course_id_short}")
+        response = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"[EMAIL] ✅ Cancel confirmation to driver sent | Resend ID: {response.get('id', 'N/A')}")
+    except Exception as e:
+        logger.error(f"[EMAIL] ❌ Failed to send cancel confirmation to driver | Error: {str(e)}")
+
+# ============================================
+# EMAIL - DRIVER AUTO-DEACTIVATION (3 late cancellations)
+# ============================================
+async def send_driver_deactivation_email(driver: dict):
+    """Email to driver when auto-deactivated due to late cancellations"""
+    driver_email = driver.get('email')
+    if not driver_email or not SENDER_EMAIL:
+        return
+    
+    if not resend.api_key:
+        resend.api_key = os.environ.get('RESEND_API_KEY', '')
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #dc2626; color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0;">🚫 COMPTE DÉSACTIVÉ</h1>
+        </div>
+        <div style="padding: 30px; background: #F8FAFC;">
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+                Bonjour {driver.get('name', '').split()[0] if driver.get('name') else ''},<br/><br/>
+                Suite à <strong>3 annulations tardives</strong> (moins d'1h avant prise en charge), votre compte a été <strong>automatiquement désactivé</strong> conformément aux règles de la plateforme.
+            </p>
+            
+            <div style="background: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0; color: #dc2626; font-size: 14px;">
+                    Vous ne pouvez plus réclamer de courses tant que votre compte n'est pas réactivé.
+                </p>
+            </div>
+            
+            <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+                Pour toute demande de réactivation, merci de contacter l'administration :<br/>
+                📧 contact@jabadriver.fr<br/>
+                📞 07 56 92 37 11
+            </p>
+            
+            <p style="color: #475569; font-size: 14px; margin-top: 20px;">
+                Cordialement,<br/>
+                <strong>JABADRIVER</strong>
+            </p>
+        </div>
+    </div>
+    """
+    
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [driver_email],
+            "subject": f"Compte temporairement désactivé – Annulations tardives",
+            "html": html_content
+        }
+        logger.info(f"[EMAIL] Sending deactivation email to driver | Driver: {driver.get('id', '')[:8]}")
+        response = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"[EMAIL] ✅ Deactivation email to driver sent | Resend ID: {response.get('id', 'N/A')}")
+    except Exception as e:
+        logger.error(f"[EMAIL] ❌ Failed to send deactivation email to driver | Error: {str(e)}")
+
+async def send_driver_deactivation_to_admin(driver: dict):
+    """Email to admin when driver is auto-deactivated"""
+    if not ADMIN_EMAIL or not SENDER_EMAIL:
+        return
+    
+    if not resend.api_key:
+        resend.api_key = os.environ.get('RESEND_API_KEY', '')
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #dc2626; color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0;">🚫 CHAUFFEUR DÉSACTIVÉ AUTO</h1>
+        </div>
+        <div style="padding: 30px; background: #F8FAFC;">
+            <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <h3 style="margin-top: 0; color: #dc2626;">Désactivation automatique</h3>
+                <p><strong>Chauffeur :</strong> {driver.get('name', 'N/A')}</p>
+                <p><strong>Société :</strong> {driver.get('company_name', 'N/A')}</p>
+                <p><strong>Email :</strong> {driver.get('email', 'N/A')}</p>
+                <p><strong>Raison :</strong> 3 annulations tardives (< 1h)</p>
+            </div>
+            
+            <p style="color: #475569; font-size: 14px; margin-top: 20px;">
+                Le chauffeur a été notifié. Réactivation manuelle possible depuis l'admin.
+            </p>
+        </div>
+    </div>
+    """
+    
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [ADMIN_EMAIL],
+            "subject": f"🚫 Chauffeur désactivé – {driver.get('name', 'N/A')} – 3 annulations tardives",
+            "html": html_content
+        }
+        logger.info(f"[EMAIL] Sending driver deactivation to admin")
+        response = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"[EMAIL] ✅ Driver deactivation to admin sent | Resend ID: {response.get('id', 'N/A')}")
+    except Exception as e:
+        logger.error(f"[EMAIL] ❌ Failed to send driver deactivation to admin | Error: {str(e)}")
+
 async def send_driver_registration_confirmation(driver: dict):
     """Send confirmation email to driver after registration (pending validation)"""
     driver_email = driver.get('email')
