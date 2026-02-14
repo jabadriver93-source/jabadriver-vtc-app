@@ -86,6 +86,14 @@ Application VTC complète avec un module de sous-traitance permettant :
 
 ## What's Been Implemented
 
+### 2025-02-15 (Session 3)
+- ✅ Bouton "Annuler la course" dans l'espace chauffeur finalisé
+  - Apparaît uniquement pour les courses status=ASSIGNED
+  - Modale de confirmation avec avertissement annulation tardive (< 1h)
+  - Appel API /api/driver/courses/{course_id}/cancel
+  - Refresh automatique de la liste après annulation
+  - Gestion des toasts (succès, warning tardive, erreur)
+
 ### 2025-02-13 (Session 2)
 - ✅ Email admin automatique quand course attribuée après paiement commission
   - ID réservation, trajet, prix, commission, infos chauffeur, PaymentIntent Stripe
