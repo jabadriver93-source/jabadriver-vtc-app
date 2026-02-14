@@ -457,9 +457,28 @@ export default function AdminSubcontractingPage() {
                         <span className="text-white font-medium">{driver.company_name}</span>
                         <span className="text-slate-500 text-sm ml-2">({driver.name})</span>
                       </div>
-                      <span className={`px-2 py-1 rounded text-xs border ${driver.is_active ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}`}>
-                        {driver.is_active ? 'Actif' : 'En attente'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {/* Late cancellation badge */}
+                        {(() => {
+                          const count = driver.late_cancellation_count || 0;
+                          let badgeColor = 'bg-green-500/20 text-green-400 border-green-500/30';
+                          if (count >= 3) badgeColor = 'bg-red-500/20 text-red-400 border-red-500/30';
+                          else if (count >= 1) badgeColor = 'bg-orange-500/20 text-orange-400 border-orange-500/30';
+                          return (
+                            <span 
+                              className={`px-2 py-1 rounded text-xs border flex items-center gap-1 ${badgeColor}`}
+                              title="Annulations tardives"
+                              data-testid={`driver-late-count-${driver.id}`}
+                            >
+                              <AlertTriangle className="w-3 h-3" />
+                              {count}/3
+                            </span>
+                          );
+                        })()}
+                        <span className={`px-2 py-1 rounded text-xs border ${driver.is_active ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'}`}>
+                          {driver.is_active ? 'Actif' : 'En attente'}
+                        </span>
+                      </div>
                     </div>
                     
                     <div className="grid grid-cols-2 gap-2 text-sm text-slate-400 mb-3">
