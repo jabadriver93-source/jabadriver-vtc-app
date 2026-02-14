@@ -39,6 +39,12 @@ Application VTC complète avec un module de sous-traitance permettant :
 - ✅ Annulation chauffeur tardive (< 1h) : flag, compteur, commission non remboursée
 - ✅ Annulation client tardive (< 1h) : statut spécifique, traçabilité
 - ✅ Statuts : CANCELLED_LATE_DRIVER, CANCELLED_LATE_CLIENT
+- ✅ Bouton "Annuler la course" dans l'espace chauffeur (DriverCoursesPage.jsx)
+  - Visible uniquement pour les courses avec statut ASSIGNED
+  - Modale de confirmation avec avertissement si annulation tardive (< 1h)
+  - Appel API POST /api/driver/courses/{course_id}/cancel
+  - Toast de succès/erreur + rafraîchissement de la liste
+  - Désactivation automatique après 3 annulations tardives
 
 ### Portail Client Léger (NEW)
 - ✅ Accès via token sécurisé `/my-booking/{token}`
