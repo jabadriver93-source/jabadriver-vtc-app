@@ -956,6 +956,82 @@ async def send_driver_cancel_confirmation(course: dict, driver: dict, is_late: b
         logger.error(f"[EMAIL] ❌ Failed to send cancel confirmation to driver | Error: {str(e)}")
 
 # ============================================
+# EMAIL - DRIVER LATE CANCELLATION WARNING (1 or 2 late cancellations)
+# ============================================
+async def send_driver_late_warning_email(driver: dict, late_count: int):
+    """Email warning to driver after 1 or 2 late cancellations"""
+    driver_email = driver.get('email')
+    if not driver_email or not SENDER_EMAIL:
+        return
+    
+    if not resend.api_key:
+        resend.api_key = os.environ.get('RESEND_API_KEY', '')
+    
+    # Different severity based on count
+    if late_count == 1:
+        severity = "AVERTISSEMENT"
+        severity_color = "#f59e0b"  # Orange
+        message = "C'est votre <strong>première annulation tardive</strong>. Nous comprenons que des imprévus peuvent survenir, mais nous vous rappelons l'importance de respecter vos engagements."
+        remaining = "Il vous reste <strong>2 annulations tardives</strong> avant la désactivation automatique de votre compte."
+    else:  # late_count == 2
+        severity = "AVERTISSEMENT SÉRIEUX"
+        severity_color = "#dc2626"  # Red
+        message = "Vous avez maintenant <strong>2 annulations tardives</strong> à votre compteur. Ceci est un avertissement sérieux."
+        remaining = "<strong>⚠️ ATTENTION : Une 3ème annulation tardive entraînera la désactivation automatique de votre compte.</strong>"
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: {severity_color}; color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0;">⚠️ {severity}</h1>
+            <p style="margin: 10px 0 0 0; font-size: 16px;">Annulation tardive – Compteur {late_count}/3</p>
+        </div>
+        <div style="padding: 30px; background: #F8FAFC;">
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+                Bonjour {driver.get('name', '').split()[0] if driver.get('name') else ''},
+            </p>
+            
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+                {message}
+            </p>
+            
+            <div style="background: {'#fef3c7' if late_count == 1 else '#fef2f2'}; border-left: 4px solid {severity_color}; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0; color: {'#92400e' if late_count == 1 else '#991b1b'}; font-size: 14px;">
+                    {remaining}
+                </p>
+            </div>
+            
+            <div style="background: #f1f5f9; border-radius: 8px; padding: 15px; margin: 20px 0;">
+                <p style="margin: 0 0 10px 0; font-weight: bold; color: #475569;">📋 Rappel des règles :</p>
+                <ul style="margin: 0; padding-left: 20px; color: #64748b; font-size: 13px;">
+                    <li>Une annulation est considérée comme tardive si elle intervient moins d'1 heure avant la prise en charge</li>
+                    <li>Chaque annulation tardive est comptabilisée</li>
+                    <li>À 3 annulations tardives, votre compte est automatiquement désactivé</li>
+                </ul>
+            </div>
+            
+            <p style="color: #475569; font-size: 14px; margin-top: 20px;">
+                Nous comptons sur votre professionnalisme pour maintenir la qualité de service Jabadriver.<br/><br/>
+                Cordialement,<br/>
+                <strong>L'équipe JABADRIVER</strong>
+            </p>
+        </div>
+    </div>
+    """
+    
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [driver_email],
+            "subject": f"⚠️ {severity} – Annulation tardive ({late_count}/3)",
+            "html": html_content
+        }
+        logger.info(f"[EMAIL] Sending late warning to driver | Count: {late_count}/3")
+        response = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"[EMAIL] ✅ Late warning sent to driver | Resend ID: {response.get('id', 'N/A')}")
+    except Exception as e:
+        logger.error(f"[EMAIL] ❌ Failed to send late warning to driver | Error: {str(e)}")
+
+# ============================================
 # EMAIL - DRIVER AUTO-DEACTIVATION (3 late cancellations)
 # ============================================
 async def send_driver_deactivation_email(driver: dict):
