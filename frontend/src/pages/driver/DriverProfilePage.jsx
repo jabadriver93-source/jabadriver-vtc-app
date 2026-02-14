@@ -217,6 +217,20 @@ export default function DriverProfilePage() {
                 </p>
               </div>
               
+              {/* Late Cancellations Section */}
+              <div className="pt-4 border-t border-slate-700">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertTriangle className={`w-4 h-4 ${(profile.late_cancellation_count || 0) >= 3 ? 'text-red-400' : (profile.late_cancellation_count || 0) >= 1 ? 'text-orange-400' : 'text-green-400'}`} />
+                  <span className="text-slate-300 text-sm font-medium">Annulations tardives :</span>
+                  <span className={`font-bold ${(profile.late_cancellation_count || 0) >= 3 ? 'text-red-400' : (profile.late_cancellation_count || 0) >= 1 ? 'text-orange-400' : 'text-green-400'}`} data-testid="late-cancellation-counter">
+                    {profile.late_cancellation_count || 0} / 3
+                  </span>
+                </div>
+                <p className="text-slate-500 text-xs">
+                  ⚠️ 3 annulations tardives (moins d'1h avant la prise en charge) entraînent une désactivation automatique du compte.
+                </p>
+              </div>
+              
               <Button 
                 type="submit" 
                 className="w-full bg-sky-500 hover:bg-sky-600"
