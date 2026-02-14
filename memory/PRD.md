@@ -93,6 +93,10 @@ Application VTC complète avec un module de sous-traitance permettant :
   - Appel API /api/driver/courses/{course_id}/cancel
   - Refresh automatique de la liste après annulation
   - Gestion des toasts (succès, warning tardive, erreur)
+- ✅ Compteur d'annulations tardives visible
+  - **Admin** : Badge coloré X/3 dans la liste des chauffeurs (vert=0, orange=1-2, rouge=3)
+  - **Chauffeur** : Section dans le profil avec compteur et avertissement
+  - **Emails automatiques** : Avertissement à 1 et 2 annulations, désactivation à 3
 
 ### 2025-02-13 (Session 2)
 - ✅ Email admin automatique quand course attribuée après paiement commission
