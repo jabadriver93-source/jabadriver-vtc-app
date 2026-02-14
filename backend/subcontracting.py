@@ -1527,6 +1527,12 @@ async def driver_cancel_course(request: Request, course_id: str, reason: Optiona
                 await send_driver_deactivation_to_admin(updated_driver)
             except Exception as e:
                 logger.error(f"[SUBCONTRACTING] Failed to send deactivation emails: {e}")
+        else:
+            # Send warning email for 1st or 2nd late cancellation
+            try:
+                await send_driver_late_warning_email(driver, late_count)
+            except Exception as e:
+                logger.error(f"[SUBCONTRACTING] Failed to send late warning email: {e}")
     
     # Create activity log
     await create_activity_log(
