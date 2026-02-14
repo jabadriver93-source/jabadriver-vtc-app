@@ -1824,6 +1824,9 @@ async def admin_cancel_course_by_client(course_id: str, data: ClientCancellation
     # Check if late cancellation
     is_late = is_late_cancellation(course["date"], course["time"])
     
+    # Check if course was assigned to a driver (for notification)
+    assigned_driver_id = course.get("assigned_driver_id")
+    
     # Determine new status
     new_status = CourseStatusEnum.CANCELLED_LATE_CLIENT if is_late else CourseStatusEnum.CANCELLED
     
@@ -1847,16 +1850,30 @@ async def admin_cancel_course_by_client(course_id: str, data: ClientCancellation
         details={
             "reason": data.reason,
             "admin_note": data.admin_note,
-            "is_late_cancellation": is_late
+            "is_late_cancellation": is_late,
+            "assigned_driver_id": assigned_driver_id
         }
     )
     
-    logger.info(f"[SUBCONTRACTING] Course {course_id[:8]} cancelled by client{' (LATE)' if is_late else ''}")
+    # If course was assigned to a driver, send notification email
+    driver_notified = False
+    if assigned_driver_id:
+        try:
+            driver = await db.drivers.find_one({"id": assigned_driver_id}, {"_id": 0, "password_hash": 0})
+            if driver:
+                await send_driver_cancellation_notification(course, driver, is_late)
+                driver_notified = True
+                logger.info(f"[SUBCONTRACTING] Driver {assigned_driver_id[:8]} notified of client cancellation")
+        except Exception as e:
+            logger.error(f"[SUBCONTRACTING] Failed to notify driver of cancellation: {str(e)}")
+    
+    logger.info(f"[SUBCONTRACTING] Course {course_id[:8]} cancelled by client{' (LATE)' if is_late else ''} | Driver notified: {driver_notified}")
     
     return {
         "message": "Annulation client enregistrée",
         "is_late_cancellation": is_late,
-        "status": new_status
+        "status": new_status,
+        "driver_notified": driver_notified
     }
 
 @admin_subcontracting_router.put("/courses/{course_id}/admin-notes")
