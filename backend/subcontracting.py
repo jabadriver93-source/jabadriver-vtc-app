@@ -1383,6 +1383,8 @@ async def get_driver_course_detail(request: Request, course_id: str):
 # ============================================
 # DRIVER CANCELLATION
 # ============================================
+MAX_LATE_CANCELLATIONS = 3  # Auto-deactivate after 3 late cancellations
+
 @driver_router.post("/courses/{course_id}/cancel")
 async def driver_cancel_course(request: Request, course_id: str, reason: Optional[str] = None):
     """Driver cancels an assigned course"""
@@ -1418,13 +1420,37 @@ async def driver_cancel_course(request: Request, course_id: str, reason: Optiona
     }
     await db.courses.update_one({"id": course_id}, {"$set": update_data})
     
+    # Get updated late cancellation count
+    late_count = driver.get('late_cancellation_count', 0)
+    auto_deactivated = False
+    
     # If late cancellation, increment driver's late cancellation count
     if is_late:
+        late_count += 1
         await db.drivers.update_one(
             {"id": driver["id"]},
             {"$inc": {"late_cancellation_count": 1}}
         )
-        logger.warning(f"[SUBCONTRACTING] ⚠️ Late cancellation by driver {driver['id'][:8]} for course {course_id[:8]}")
+        logger.warning(f"[SUBCONTRACTING] ⚠️ Late cancellation by driver {driver['id'][:8]} for course {course_id[:8]} | Count: {late_count}/{MAX_LATE_CANCELLATIONS}")
+        
+        # Check if driver should be auto-deactivated
+        if late_count >= MAX_LATE_CANCELLATIONS:
+            await db.drivers.update_one(
+                {"id": driver["id"]},
+                {"$set": {"is_active": False}}
+            )
+            auto_deactivated = True
+            logger.error(f"[SUBCONTRACTING] 🚫 Driver {driver['id'][:8]} AUTO-DEACTIVATED after {late_count} late cancellations")
+            
+            # Get updated driver for emails
+            updated_driver = await db.drivers.find_one({"id": driver["id"]}, {"_id": 0, "password_hash": 0})
+            
+            # Send deactivation emails
+            try:
+                await send_driver_deactivation_email(updated_driver)
+                await send_driver_deactivation_to_admin(updated_driver)
+            except Exception as e:
+                logger.error(f"[SUBCONTRACTING] Failed to send deactivation emails: {e}")
     
     # Create activity log
     await create_activity_log(
@@ -1436,19 +1462,40 @@ async def driver_cancel_course(request: Request, course_id: str, reason: Optiona
         details={
             "reason": reason,
             "is_late_cancellation": is_late,
+            "late_count": late_count,
+            "auto_deactivated": auto_deactivated,
             "commission_paid": course.get("commission_paid", False),
             "commission_amount": course.get("commission_amount", 0)
         }
     )
     
-    # Note: Commission is NOT refunded for late cancellations
+    # Send notification emails
+    try:
+        # 1. Email to client
+        await send_driver_cancel_to_client(course)
+        
+        # 2. Email to admin
+        driver_with_count = {**driver, "late_cancellation_count": late_count}
+        await send_driver_cancel_to_admin(course, driver_with_count, is_late)
+        
+        # 3. Confirmation email to driver
+        await send_driver_cancel_confirmation(course, driver, is_late, late_count)
+        
+    except Exception as e:
+        logger.error(f"[SUBCONTRACTING] Failed to send cancellation notification emails: {e}")
+    
+    # Build response message
     message = "Course annulée."
     if is_late:
-        message = "Course annulée. ⚠️ Annulation tardive (< 1h avant prise en charge) : la commission reste due."
+        message = f"Course annulée. ⚠️ Annulation tardive (< 1h) : compteur {late_count}/{MAX_LATE_CANCELLATIONS}."
+    if auto_deactivated:
+        message = f"Course annulée. 🚫 Votre compte a été désactivé après {MAX_LATE_CANCELLATIONS} annulations tardives."
     
     return {
         "message": message,
         "is_late_cancellation": is_late,
+        "late_cancellation_count": late_count,
+        "auto_deactivated": auto_deactivated,
         "commission_refunded": False  # Never refund automatically
     }
 
