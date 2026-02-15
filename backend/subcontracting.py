@@ -2266,6 +2266,8 @@ async def finalize_attribution(course_id: str, driver_id: str, payment_session_i
         
         if driver and updated_course:
             await send_course_assigned_notification(updated_course, driver, payment_intent_id)
+            # Also send email to client
+            await send_course_assigned_to_client(updated_course, driver)
     except Exception as e:
         logger.error(f"[SUBCONTRACTING] Failed to send assignment notification: {str(e)}")
         # Don't fail attribution if email fails
