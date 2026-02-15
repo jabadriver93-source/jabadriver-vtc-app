@@ -330,12 +330,18 @@ export default function AdminSubcontractingPage() {
               </Card>
             ) : (
               courses.map((course) => (
-                <Card key={course.id} className="bg-slate-800/50 border-slate-700" data-testid={`admin-course-${course.id}`}>
+                <Card key={course.id} className={`bg-slate-800/50 border-slate-700 ${course.is_test ? 'ring-2 ring-orange-500/50' : ''}`} data-testid={`admin-course-${course.id}`}>
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-3">
-                      <div>
+                      <div className="flex items-center gap-2">
                         <span className="text-white font-medium">{course.client_name}</span>
-                        <span className="text-slate-500 text-sm ml-2">#{course.id.slice(0,8)}</span>
+                        <span className="text-slate-500 text-sm">#{course.id.slice(0,8)}</span>
+                        {course.is_test && (
+                          <span className="px-2 py-0.5 rounded text-xs font-medium bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center gap-1" data-testid={`test-badge-${course.id}`}>
+                            <FlaskConical className="w-3 h-3" />
+                            TEST
+                          </span>
+                        )}
                       </div>
                       <span className={`px-2 py-1 rounded text-xs border ${getStatusColor(course.status)}`}>
                         {course.status}
@@ -350,6 +356,7 @@ export default function AdminSubcontractingPage() {
                       <div className="flex items-center gap-2 text-sky-400">
                         <Euro className="w-4 h-4" />
                         {course.price_total?.toFixed(2)} €
+                        {course.is_test && <span className="text-orange-400 text-xs">(test)</span>}
                       </div>
                       <div className="flex items-center gap-2 text-amber-400">
                         Commission: {course.commission_amount?.toFixed(2)} €
@@ -381,6 +388,22 @@ export default function AdminSubcontractingPage() {
                     
                     {/* Actions */}
                     <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-700">
+                      {/* Test Toggle Button - Always visible */}
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className={course.is_test 
+                          ? "border-orange-600 text-orange-400 hover:bg-orange-900/30" 
+                          : "border-slate-600 text-slate-300 hover:bg-slate-700/50"
+                        }
+                        onClick={() => toggleTestCourse(course.id, course.is_test)}
+                        data-testid={`toggle-test-btn-${course.id}`}
+                        title={course.is_test ? "Retirer du mode test" : "Marquer comme test"}
+                      >
+                        <FlaskConical className="w-4 h-4 mr-1" />
+                        {course.is_test ? 'Mode Test' : 'Test'}
+                      </Button>
+                      
                       {course.status !== 'CANCELLED' && course.status !== 'DONE' && (
                         <>
                           <Button
