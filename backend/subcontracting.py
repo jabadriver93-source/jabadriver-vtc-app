@@ -43,14 +43,15 @@ SUBCONTRACTING_ENABLED = True  # Feature flag
 class DriverCreate(BaseModel):
     email: str
     password: str
-    company_name: str
+    company_name: str  # Raison sociale ou Nom/Prénom si micro
     name: str
     phone: str
     address: str
     siret: str
+    vat_mention: str = "TVA non applicable – art. 293 B du CGI"  # Mention TVA obligatoire
     vat_applicable: bool = False
     vat_number: Optional[str] = None
-    invoice_prefix: str = "DRI"
+    driver_code: str = ""  # Code court chauffeur (ex: DR01) - généré auto si vide
 
 class DriverLogin(BaseModel):
     email: str
@@ -62,23 +63,25 @@ class DriverProfileUpdate(BaseModel):
     phone: Optional[str] = None
     address: Optional[str] = None
     siret: Optional[str] = None
+    vat_mention: Optional[str] = None
     vat_applicable: Optional[bool] = None
     vat_number: Optional[str] = None
-    invoice_prefix: Optional[str] = None
+    driver_code: Optional[str] = None
 
 class Driver(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     email: str
     password_hash: str  # Simple hash for demo - use bcrypt in production
-    company_name: str
+    company_name: str  # Raison sociale ou Nom/Prénom si micro
     name: str
     phone: str
     address: str
     siret: str
+    vat_mention: str = "TVA non applicable – art. 293 B du CGI"  # Mention TVA obligatoire
     vat_applicable: bool = False
     vat_number: Optional[str] = None
-    invoice_prefix: str = "DRI"
-    invoice_next_number: int = 1
+    driver_code: str = ""  # Code court chauffeur (ex: DR01) pour numérotation factures
+    invoice_next_number: int = 1  # Compteur séquentiel propre au chauffeur
     is_active: bool = False  # Requires admin validation
     late_cancellation_count: int = 0  # Number of late cancellations (< 1h before pickup)
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
