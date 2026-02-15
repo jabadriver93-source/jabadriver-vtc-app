@@ -35,9 +35,9 @@ export default function DriverLoginPage() {
     phone: '',
     address: '',
     siret: '',
+    vat_mention: 'TVA non applicable – art. 293 B du CGI',
     vat_applicable: false,
-    vat_number: '',
-    invoice_prefix: 'DRI'
+    vat_number: ''
   });
 
   const handleLogin = async (e) => {
