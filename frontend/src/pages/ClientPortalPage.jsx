@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -12,10 +12,65 @@ import {
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
+const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 // Price calculation constants - must match backend
 const PRICE_PER_KM = 1.50;
 const PRICE_PER_MIN = 0.50;
+
+// Google Maps loading state (singleton pattern to avoid multiple loads)
+let googleMapsLoaded = false;
+let googleMapsLoading = false;
+let mapsReadyCallbacks = [];
+
+const notifyMapsReady = () => {
+  googleMapsLoaded = true;
+  googleMapsLoading = false;
+  mapsReadyCallbacks.forEach(cb => cb());
+  mapsReadyCallbacks = [];
+};
+
+const loadGoogleMapsScript = () => {
+  return new Promise((resolve) => {
+    if (googleMapsLoaded && window.google?.maps?.places) {
+      resolve();
+      return;
+    }
+
+    if (googleMapsLoading) {
+      mapsReadyCallbacks.push(resolve);
+      return;
+    }
+
+    if (window.google?.maps?.places) {
+      googleMapsLoaded = true;
+      resolve();
+      return;
+    }
+
+    googleMapsLoading = true;
+    mapsReadyCallbacks.push(resolve);
+
+    const callbackName = `gmapsCallback_portal_${Date.now()}`;
+    
+    window[callbackName] = () => {
+      notifyMapsReady();
+      delete window[callbackName];
+    };
+
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&language=fr&region=FR&callback=${callbackName}`;
+    script.async = true;
+    script.defer = true;
+    script.onerror = () => {
+      googleMapsLoading = false;
+      console.error("Failed to load Google Maps script");
+      delete window[callbackName];
+    };
+    
+    document.head.appendChild(script);
+  });
+};
 
 export default function ClientPortalPage() {
   const { token } = useParams();
