@@ -1488,7 +1488,30 @@ async def client_portal_get_reservation(token: str):
     if not reservation:
         raise HTTPException(status_code=404, detail="Réservation non trouvée ou lien invalide")
     
-    # Return limited info for privacy
+    # Check if there's a linked course in subcontracting and get its invoice status
+    course = None
+    can_modify = True
+    invoice_status = "DRAFT"
+    assigned_driver_name = None
+    
+    if reservation.get("subcontracting_course_id"):
+        course = await db.courses.find_one(
+            {"id": reservation["subcontracting_course_id"]},
+            {"_id": 0}
+        )
+        if course:
+            invoice_status = course.get("invoice_status", "DRAFT")
+            can_modify = invoice_status != "ISSUED"
+            
+            # Get driver name if assigned
+            if course.get("assigned_driver_id"):
+                driver = await db.drivers.find_one(
+                    {"id": course["assigned_driver_id"]},
+                    {"_id": 0, "name": 1, "company_name": 1, "phone": 1}
+                )
+                if driver:
+                    assigned_driver_name = driver.get("company_name") or driver.get("name")
+    
     return {
         "id": reservation.get("id"),
         "name": reservation.get("name"),
@@ -1498,8 +1521,14 @@ async def client_portal_get_reservation(token: str):
         "dropoff_address": reservation.get("dropoff_address"),
         "passengers": reservation.get("passengers"),
         "estimated_price": reservation.get("estimated_price"),
+        "distance_km": reservation.get("distance_km"),
+        "duration_min": reservation.get("duration_min"),
         "status": reservation.get("status"),
-        "created_at": reservation.get("created_at")
+        "created_at": reservation.get("created_at"),
+        # New fields for modification
+        "can_modify": can_modify,
+        "invoice_status": invoice_status,
+        "assigned_driver_name": assigned_driver_name
     }
 
 @api_router.post("/client-portal/{token}/message")
