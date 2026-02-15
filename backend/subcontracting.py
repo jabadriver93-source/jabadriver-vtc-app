@@ -2764,6 +2764,9 @@ async def admin_get_commissions(
         if test_mode is not None and is_test_mode != test_mode:
             continue
         
+        # Check if course is marked as test
+        is_test_course = course.get("is_test", False) if course else False
+        
         enriched = {
             **payment,
             "course": {
@@ -2773,6 +2776,7 @@ async def admin_get_commissions(
                 "price_total": course.get("price_total") if course else None,
                 "pickup_city": extract_city_department(course.get("pickup_address", "")) if course else None,
                 "dropoff_city": extract_city_department(course.get("dropoff_address", "")) if course else None,
+                "is_test": is_test_course,
             } if course else None,
             "driver": {
                 "id": driver.get("id") if driver else None,
@@ -2780,12 +2784,13 @@ async def admin_get_commissions(
                 "company_name": driver.get("company_name") if driver else None,
                 "email": driver.get("email") if driver else None,
             } if driver else None,
-            "is_test_mode": is_test_mode
+            "is_test_mode": is_test_mode,
+            "is_test_course": is_test_course
         }
         enriched_payments.append(enriched)
         
-        # Sum up paid commissions
-        if payment.get("status") == "paid":
+        # Sum up paid commissions - EXCLUDE test courses from stats
+        if payment.get("status") == "paid" and not is_test_course:
             total_commission += payment.get("amount", 0)
     
     return {
