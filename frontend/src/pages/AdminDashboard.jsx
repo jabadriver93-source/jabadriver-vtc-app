@@ -43,6 +43,7 @@ export default function AdminDashboard() {
   const [statusFilter, setStatusFilter] = useState("");
   const [updatingId, setUpdatingId] = useState(null);
   const [invoiceModalReservation, setInvoiceModalReservation] = useState(null);
+  const [showTestReservations, setShowTestReservations] = useState(false); // Filter: default OFF = hide test
 
   useEffect(() => {
     const auth = sessionStorage.getItem("adminAuth");
