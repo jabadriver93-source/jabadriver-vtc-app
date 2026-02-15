@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,23 @@ export default function DriverLoginPage() {
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
+  
+  // Set driver manifest and apple-touch-icon for PWA
+  useEffect(() => {
+    // Update manifest
+    const manifestLink = document.querySelector('link[rel="manifest"]');
+    if (manifestLink) manifestLink.href = '/manifest-driver.json';
+    
+    // Update apple-touch-icon
+    const appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
+    if (appleIcon) appleIcon.href = '/icons/driver/apple-touch-icon.png';
+    
+    return () => {
+      // Restore client manifest on unmount
+      if (manifestLink) manifestLink.href = '/manifest.json';
+      if (appleIcon) appleIcon.href = '/icons/apple-touch-icon.png';
+    };
+  }, []);
   
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [registerData, setRegisterData] = useState({
