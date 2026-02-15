@@ -1590,6 +1590,233 @@ async def client_portal_send_message(token: str, data: ClientPortalMessage):
     
     return {"message": "Votre message a été envoyé à l'équipe."}
 
+# ============================================
+# DIRECT MODIFICATION BY CLIENT (NEW)
+# ============================================
+PRICE_PER_KM = 1.50  # €/km
+PRICE_PER_MIN = 0.50  # €/min
+
+def calculate_course_price(distance_km: float, duration_min: float) -> float:
+    """Calculate course price: 1.50€/km + 0.50€/min"""
+    price_distance = distance_km * PRICE_PER_KM
+    price_duration = duration_min * PRICE_PER_MIN
+    return round(price_distance + price_duration, 2)
+
+@api_router.post("/client-portal/{token}/modify-direct")
+async def client_portal_modify_direct(token: str, data: ClientDirectModification):
+    """Client directly modifies course (only if invoice_status != ISSUED)"""
+    reservation = await db.reservations.find_one({"client_portal_token": token}, {"_id": 0})
+    if not reservation:
+        raise HTTPException(status_code=404, detail="Réservation non trouvée")
+    
+    # Check if there's a linked course and its invoice status
+    course = None
+    if reservation.get("subcontracting_course_id"):
+        course = await db.courses.find_one(
+            {"id": reservation["subcontracting_course_id"]},
+            {"_id": 0}
+        )
+        if course and course.get("invoice_status") == "ISSUED":
+            raise HTTPException(
+                status_code=400, 
+                detail="La facture a été émise. Modification impossible. Contactez-nous pour assistance."
+            )
+    
+    # Store old values for comparison
+    old_values = {
+        "pickup_address": reservation.get("pickup_address"),
+        "dropoff_address": reservation.get("dropoff_address"),
+        "date": reservation.get("date"),
+        "time": reservation.get("time"),
+        "passengers": reservation.get("passengers"),
+        "estimated_price": reservation.get("estimated_price")
+    }
+    
+    # Build update
+    update_fields = {}
+    changes_made = []
+    
+    if data.pickup_address and data.pickup_address != old_values["pickup_address"]:
+        update_fields["pickup_address"] = data.pickup_address
+        changes_made.append(f"Départ: {old_values['pickup_address'][:50]}... → {data.pickup_address[:50]}...")
+    
+    if data.dropoff_address and data.dropoff_address != old_values["dropoff_address"]:
+        update_fields["dropoff_address"] = data.dropoff_address
+        changes_made.append(f"Arrivée: {old_values['dropoff_address'][:50]}... → {data.dropoff_address[:50]}...")
+    
+    if data.date and data.date != old_values["date"]:
+        update_fields["date"] = data.date
+        changes_made.append(f"Date: {old_values['date']} → {data.date}")
+    
+    if data.time and data.time != old_values["time"]:
+        update_fields["time"] = data.time
+        changes_made.append(f"Heure: {old_values['time']} → {data.time}")
+    
+    if data.passengers and data.passengers != old_values["passengers"]:
+        update_fields["passengers"] = data.passengers
+        changes_made.append(f"Passagers: {old_values['passengers']} → {data.passengers}")
+    
+    if not update_fields:
+        return {"message": "Aucune modification détectée", "changes": []}
+    
+    # Recalculate price if distance/duration changed
+    new_price = old_values["estimated_price"]
+    if data.new_distance_km and data.new_duration_min:
+        new_price = calculate_course_price(data.new_distance_km, data.new_duration_min)
+        update_fields["distance_km"] = data.new_distance_km
+        update_fields["duration_min"] = data.new_duration_min
+        update_fields["estimated_price"] = new_price
+        update_fields["base_price"] = new_price
+        changes_made.append(f"Prix: {old_values['estimated_price']}€ → {new_price}€")
+    
+    # Update reservation
+    await db.reservations.update_one(
+        {"id": reservation["id"]},
+        {"$set": update_fields}
+    )
+    
+    # Also update the linked course if exists
+    if course:
+        course_update = {}
+        if "pickup_address" in update_fields:
+            course_update["pickup_address"] = update_fields["pickup_address"]
+        if "dropoff_address" in update_fields:
+            course_update["dropoff_address"] = update_fields["dropoff_address"]
+        if "date" in update_fields:
+            course_update["date"] = update_fields["date"]
+        if "time" in update_fields:
+            course_update["time"] = update_fields["time"]
+        if "distance_km" in update_fields:
+            course_update["distance_km"] = update_fields["distance_km"]
+        if "duration_min" in update_fields:
+            course_update["duration_min"] = update_fields["duration_min"]
+        if "estimated_price" in update_fields:
+            course_update["price_total"] = update_fields["estimated_price"]
+            course_update["price_base"] = update_fields["estimated_price"]
+            # Recalculate commission
+            course_update["commission_amount"] = round(new_price * 0.10, 2)
+        
+        # Track modification
+        course_update["last_modified_at"] = datetime.now(timezone.utc).isoformat()
+        course_update["last_modified_by"] = "client"
+        
+        if course_update:
+            await db.courses.update_one(
+                {"id": course["id"]},
+                {
+                    "$set": course_update,
+                    "$push": {
+                        "modification_history": {
+                            "date": datetime.now(timezone.utc).isoformat(),
+                            "by": "client",
+                            "changes": changes_made
+                        }
+                    }
+                }
+            )
+    
+    # Log the modification
+    from subcontracting import create_activity_log, ActivityLogType
+    await create_activity_log(
+        log_type=ActivityLogType.CLIENT_MODIFICATION_REQUEST,
+        entity_type="reservation",
+        entity_id=reservation["id"],
+        actor_type="client",
+        actor_id=None,
+        details={
+            "modification_type": "direct",
+            "changes": changes_made,
+            "old_price": old_values["estimated_price"],
+            "new_price": new_price,
+            "client_name": reservation.get("name")
+        }
+    )
+    
+    # Send email notification to admin
+    changes_html = "<br>".join([f"• {change}" for change in changes_made])
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [DRIVER_EMAIL],
+            "subject": f"✏️ MODIFICATION AUTOMATIQUE - Réservation {reservation['id'][:8].upper()}",
+            "html": f"""
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <div style="background: #f59e0b; color: #0a0a0a; padding: 20px; text-align: center;">
+                    <h2 style="margin: 0;">✏️ Modification effectuée par le client</h2>
+                </div>
+                <div style="padding: 20px; background: #f8fafc;">
+                    <p><strong>Client :</strong> {reservation.get('name')}</p>
+                    <p><strong>Téléphone :</strong> {reservation.get('phone')}</p>
+                    <p><strong>Réservation :</strong> {reservation['id'][:8].upper()}</p>
+                    
+                    <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                        <p style="margin: 0 0 10px 0; font-weight: bold; color: #92400e;">📝 Modifications appliquées:</p>
+                        <p style="margin: 0; color: #92400e;">{changes_html}</p>
+                    </div>
+                    
+                    <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                        <p style="margin: 5px 0;"><strong>Ancien prix:</strong> {old_values['estimated_price']}€</p>
+                        <p style="margin: 5px 0;"><strong>Nouveau prix:</strong> {new_price}€</p>
+                    </div>
+                    
+                    <p style="color: #64748b; font-size: 12px;">
+                        Recalcul: {PRICE_PER_KM}€/km + {PRICE_PER_MIN}€/min
+                    </p>
+                </div>
+            </div>
+            """
+        }
+        await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"[CLIENT PORTAL] Direct modification applied for reservation {reservation['id'][:8]}")
+    except Exception as e:
+        logger.error(f"[CLIENT PORTAL] Failed to send modification email: {e}")
+    
+    # Send email to driver if course is assigned
+    if course and course.get("assigned_driver_id"):
+        driver = await db.drivers.find_one({"id": course["assigned_driver_id"]}, {"_id": 0})
+        if driver and driver.get("email"):
+            try:
+                driver_params = {
+                    "from": SENDER_EMAIL,
+                    "to": [driver["email"]],
+                    "subject": f"✏️ Modification course - {reservation['id'][:8].upper()}",
+                    "html": f"""
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                        <div style="background: #f59e0b; color: #0a0a0a; padding: 20px; text-align: center;">
+                            <h2 style="margin: 0;">✏️ Votre course a été modifiée</h2>
+                        </div>
+                        <div style="padding: 20px; background: #f8fafc;">
+                            <p>Bonjour {driver.get('name', '')},</p>
+                            <p>Le client a modifié les détails de la course <strong>{reservation['id'][:8].upper()}</strong>.</p>
+                            
+                            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                                <p style="margin: 0 0 10px 0; font-weight: bold; color: #92400e;">📝 Modifications:</p>
+                                <p style="margin: 0; color: #92400e;">{changes_html}</p>
+                            </div>
+                            
+                            <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                                <p style="margin: 5px 0;"><strong>Nouveau prix course:</strong> {new_price}€</p>
+                            </div>
+                            
+                            <p style="color: #64748b;">
+                                Le bon de commande a été automatiquement mis à jour.
+                            </p>
+                        </div>
+                    </div>
+                    """
+                }
+                await asyncio.to_thread(resend.Emails.send, driver_params)
+                logger.info(f"[CLIENT PORTAL] Modification notification sent to driver {driver['email']}")
+            except Exception as e:
+                logger.error(f"[CLIENT PORTAL] Failed to send driver notification: {e}")
+    
+    return {
+        "message": "Modification appliquée avec succès",
+        "changes": changes_made,
+        "old_price": old_values["estimated_price"],
+        "new_price": new_price
+    }
+
 @api_router.post("/client-portal/{token}/modification-request")
 async def client_portal_modification_request(token: str, data: ClientModificationRequest):
     """Client requests a modification"""
