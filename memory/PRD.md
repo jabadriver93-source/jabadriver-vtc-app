@@ -43,7 +43,7 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 - Email envoyé au client avec infos chauffeur lors de l'attribution
 - Mention que toute modification entraîne un recalcul automatique
 
-### 7. Filtre Courses de Test (isTest) ✅ [NEW - 2026-02-15]
+### 7. Filtre Courses de Test (isTest) ✅ [2026-02-15]
 - **Champ is_test**: Boolean sur le modèle Course (défaut: false)
 - **Endpoint toggle**: `POST /api/admin/subcontracting/courses/{id}/toggle-test`
 - **Exclusion des stats**: Les courses test sont exclues du total_commission
@@ -56,6 +56,16 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
   - Badge "COURSE TEST" visible
   - Montant barré pour les paiements liés à des courses test
 - **Aucune suppression de données**: Les courses test restent dans la base
+
+### 8. Correction Autocomplétion Google Places - Page Token ✅ [2026-02-15]
+- **Problème**: L'autocomplétion d'adresses ne fonctionnait pas sur la page de modification client (`/my-booking/:token`)
+- **Cause**: Variable d'environnement incorrecte (`REACT_APP_PUBLIC_GOOGLE_MAPS_API_KEY` au lieu de `REACT_APP_GOOGLE_MAPS_API_KEY`)
+- **Correction**: Alignement avec `BookingPage.jsx` pour utiliser la bonne variable d'env
+- **Comportement actuel**:
+  - Suggestions Google Places apparaissent après 3+ caractères
+  - Sélection d'une suggestion remplit le champ d'adresse
+  - Recalcul automatique du prix déclenché après sélection
+  - Compatible mobile (testé sur viewport iPhone)
 
 ## Technical Implementation
 
