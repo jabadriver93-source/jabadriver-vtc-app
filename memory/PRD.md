@@ -1,153 +1,97 @@
 # JABADRIVER - Module de Sous-traitance VTC
 
 ## Original Problem Statement
-Application VTC complète avec un module de sous-traitance permettant :
-- À l'admin de générer des liens de "claim" sécurisés pour les courses
-- Aux chauffeurs partenaires de réclamer les courses en payant une commission de 10% via Stripe
-- Génération manuelle de PDF (bon de commande, facture) au nom du chauffeur
+Application VTC (Jabadriver) avec un module de sous-traitance permettant aux chauffeurs de recevoir des courses et de gérer leur facturation.
 
-## Core Requirements
+## Core Requirements - IMPLEMENTED
 
-### Module de Sous-traitance
-- ✅ Réservation client → création automatique d'une course "OPEN" en sous-traitance
-- ✅ Génération de lien claim sécurisé avec token unique
-- ✅ Réservation temporaire de 3 minutes pour le chauffeur
-- ✅ Paiement de commission 10% via Stripe (SDK natif)
-- ✅ Attribution définitive après paiement confirmé (webhook Stripe)
-- ✅ Génération manuelle de PDF (bon de commande, facture)
+### 1. FACTURATION - Courses Attribuées ✅
+- **Émetteur = Chauffeur**: Le BDC et la Facture sont émis au nom du chauffeur (pas Jabadriver)
+- **Informations chauffeur affichées**:
+  - Raison sociale / Nom commercial
+  - Adresse professionnelle
+  - SIRET
+  - Mention TVA (ex: "TVA non applicable – art. 293 B du CGI")
+- **Pied de page Jabadriver**: Texte légal indiquant que Jabadriver est intermédiaire technique
 
-### Rôles et Authentification
-- ✅ Rôle ADMIN : gestion complète des réservations et chauffeurs
-- ✅ Rôle DRIVER : inscription, connexion, profil légal, claim de courses
-- ✅ Validation des chauffeurs par admin avant activation
+### 2. Numérotation Factures ✅
+- **Format**: `{DRIVER_CODE}-{ANNÉE}-{SEQUENCE}` (ex: DR01-2026-001)
+- **Compteur indépendant par chauffeur**: Chaque chauffeur a sa propre séquence
+- **Séquence continue et chronologique**
+- **Code chauffeur auto-généré**: Format DR01, DR02, etc.
 
-### Sécurité
-- ✅ Anonymisation des données sensibles sur la page claim (avant paiement)
-- ✅ Seuls nom client, prix, date/heure et villes visibles (pas adresses complètes)
+### 3. Workflow Facture (DRAFT → ISSUED) ✅
+- **DRAFT**: Facture modifiable (suppléments possibles)
+- **ISSUED**: Facture figée, plus aucune modification possible
+- **Seul le chauffeur peut émettre la facture**
 
-### Emails
-- ✅ Email confirmation client (sans PDF)
-- ✅ Email admin "Nouvelle réservation" avec lien claim
-- ✅ Bouton "Partager via WhatsApp" dans l'email admin
-- ✅ Email admin "Nouveau chauffeur inscrit" avec bouton validation
-- ✅ Email admin "Course attribuée" après paiement commission
-- ✅ Email chauffeur "Compte validé" après activation par admin
-- ✅ Email chauffeur "Dossier reçu" après inscription (liste des pièces à fournir)
-- ✅ Bouton "Gérer ma réservation" dans email confirmation client (NEW)
+### 4. Suppléments Chauffeur ✅
+- Péage (montant libre)
+- Parking (montant libre)
+- Attente (calcul automatique: 0,50€/minute)
+- **Bloqués après émission facture**
 
-### Gestion des Annulations (NEW)
-- ✅ Annulation chauffeur tardive (< 1h) : flag, compteur, commission non remboursée
-- ✅ Annulation client tardive (< 1h) : statut spécifique, traçabilité
-- ✅ Statuts : CANCELLED_LATE_DRIVER, CANCELLED_LATE_CLIENT
-- ✅ Bouton "Annuler la course" dans l'espace chauffeur (DriverCoursesPage.jsx)
-  - Visible uniquement pour les courses avec statut ASSIGNED
-  - Modale de confirmation avec avertissement si annulation tardive (< 1h)
-  - Appel API POST /api/driver/courses/{course_id}/cancel
-  - Toast de succès/erreur + rafraîchissement de la liste
-  - Désactivation automatique après 3 annulations tardives
+### 5. Modification Client (Page Token) ✅
+- **Autorisée si**: invoiceStatus ≠ ISSUED
+- **Champs modifiables**: Adresse départ/arrivée, Date, Heure, Passagers
+- **Recalcul automatique**: 1,50€/km + 0,50€/min
+- **Notifications**: Email admin + Email chauffeur
+- **BDC auto-mis à jour**
+- **Bloquée après émission facture**
 
-### Portail Client Léger (NEW)
-- ✅ Accès via token sécurisé `/my-booking/{token}`
-- ✅ Voir sa réservation
-- ✅ Envoyer un message à l'admin
-- ✅ Demander modification
-- ✅ Demander annulation
-- ✅ Sans création de compte
+### 6. Email Attribution Client ✅
+- Email envoyé au client avec infos chauffeur lors de l'attribution
+- Mention que toute modification entraîne un recalcul automatique
 
-### Sécurité & Qualité (NEW)
-- ✅ Flag client abusif (`is_abusive_client`)
-- ✅ Compteur annulations tardives chauffeur (`late_cancellation_count`)
-- ✅ Journal d'activité (collection `activity_logs`)
-- ✅ Logs : attribution, annulations, changements statut, messages client
+## Technical Implementation
 
-### Administration
-- ✅ Page historique des commissions /admin/commissions (NEW)
-  - Tableau détaillé avec filtres (date, chauffeur, statut, mode test/live)
-  - Total des commissions sur la période
-  - Export CSV
+### Backend (FastAPI)
+- **Modèle Driver**: Champs obligatoires (company_name, address, siret, vat_mention, driver_code)
+- **Modèle Course**: Nouveaux champs (invoice_status, invoice_number, supplements)
+- **Routes**:
+  - `PATCH /api/driver/courses/{id}/supplements` - Ajout suppléments
+  - `POST /api/driver/courses/{id}/issue-invoice` - Émission facture
+  - `GET /api/driver/courses/{id}/invoice-status` - Statut facture
+  - `POST /api/client-portal/{token}/modify-direct` - Modification directe client
+  - `GET /api/calculate-route` - Calcul itinéraire Google Maps
 
-## Tech Stack
-- **Backend:** FastAPI, Motor (MongoDB async), ReportLab (PDF), Resend (emails)
-- **Frontend:** React, TailwindCSS, Shadcn UI
-- **Paiement:** Stripe SDK Python natif
-- **Database:** MongoDB
+### Frontend (React)
+- **DriverLoginPage**: Formulaire inscription avec champ "Mention TVA *"
+- **DriverCoursesPage**: Gestion suppléments, émission facture, badges statut
+- **ClientPortalPage**: Modification directe, affichage blocage si facture émise
 
-## Key API Endpoints
-- `POST /api/reservations` - Création réservation + course sous-traitance
-- `POST /api/driver/register` - Inscription chauffeur (+ email admin)
-- `POST /api/driver/login` - Connexion chauffeur
-- `GET /api/subcontracting/claim/{token}` - Infos course à réclamer
-- `POST /api/subcontracting/claim/{token}/reserve` - Réservation 3 min
-- `POST /api/subcontracting/claim/{token}/initiate-payment` - Session Stripe
-- `POST /api/subcontracting/stripe-webhook` - Confirmation paiement
-- `POST /api/admin/subcontracting/drivers/{id}/activate` - Activer chauffeur (+ email)
-- `GET /api/admin/subcontracting/commissions` - Historique commissions (NEW)
-- `GET /api/admin/subcontracting/commissions/export-csv` - Export CSV (NEW)
+### PDF Generation (ReportLab)
+- **Bon de Commande**: Émetteur = Chauffeur, pied de page Jabadriver
+- **Facture**: Émetteur = Chauffeur, suppléments détaillés, pied de page Jabadriver
 
-## What's Been Implemented
-
-### 2025-02-15 (Session 3)
-- ✅ Bouton "Annuler la course" dans l'espace chauffeur finalisé
-  - Apparaît uniquement pour les courses status=ASSIGNED
-  - Modale de confirmation avec avertissement annulation tardive (< 1h)
-  - Appel API /api/driver/courses/{course_id}/cancel
-  - Refresh automatique de la liste après annulation
-  - Gestion des toasts (succès, warning tardive, erreur)
-- ✅ Compteur d'annulations tardives visible
-  - **Admin** : Badge coloré X/3 dans la liste des chauffeurs (vert=0, orange=1-2, rouge=3)
-  - **Chauffeur** : Section dans le profil avec compteur et avertissement
-  - **Emails automatiques** : Avertissement à 1 et 2 annulations, désactivation à 3
-
-### 2025-02-13 (Session 2)
-- ✅ Email admin automatique quand course attribuée après paiement commission
-  - ID réservation, trajet, prix, commission, infos chauffeur, PaymentIntent Stripe
-- ✅ Email chauffeur automatique quand compte validé par admin
-  - Message de bienvenue, explication du fonctionnement, lien espace chauffeur
-- ✅ Page /admin/commissions - Historique des commissions encaissées
-  - Tableau complet avec toutes les infos de paiement
-  - Filtres par période, chauffeur, statut, mode test/live
-  - Total des commissions sur la période filtrée
-  - Export CSV
-  - Bouton d'accès depuis la page admin sous-traitance
-
-### 2025-02-13 (Session 1)
-- ✅ Bouton "Partager via WhatsApp" dans l'email admin (nouvelle réservation)
-- ✅ Email automatique à l'admin lors de l'inscription d'un nouveau chauffeur
-
-### Previous Sessions
-- Module sous-traitance complet (subcontracting.py)
-- Intégration Stripe fonctionnelle
-- Interface admin et espace chauffeur
-- Corrections UI/UX mobile
-- Bug fix URLs production
-
-## Architecture Files
-```
-/app/backend/
-├── server.py           # Routes principales, emails, PDF
-├── subcontracting.py   # Module sous-traitance isolé
-└── .env                # Config (Stripe, Resend, MongoDB)
-
-/app/frontend/src/
-├── pages/
-│   ├── BookingPage.jsx
-│   ├── ClaimPage.jsx
-│   ├── AdminDashboard.jsx
-│   ├── admin/
-│   │   ├── AdminSubcontractingPage.jsx
-│   │   └── AdminCommissionsPage.jsx  # NEW
-│   └── driver/
-│       ├── DriverLoginPage.jsx
-│       ├── DriverCoursesPage.jsx
-│       └── DriverProfilePage.jsx
-└── App.js
-```
+## Non-Regression Confirmed
+- ✅ Paiement Stripe inchangé
+- ✅ Système de claim chauffeur inchangé
+- ✅ Commission 10% inchangée
+- ✅ Layout mobile préservé
+- ✅ Environnements preview/production identiques
 
 ## Test Credentials
-- **Admin:** admin / admin123
-- **Driver (test):** chauffeur1@test.com / test123
+- **Chauffeur**: nouveau.chauffeur@test.com / test123
+- **Admin**: admin / admin123
 
-## Backlog / Future Tasks
-- P1: Dashboard statistiques admin avancées
-- P2: Notifications push chauffeurs (optionnel)
-- P3: Chat en temps réel
+## Test Results
+- Backend: 17/17 tests passés (100%)
+- Frontend: Tous les flux vérifiés
+
+---
+
+## Prioritized Backlog
+
+### P1 - Dashboard Statistiques Admin
+- Tableau de bord avec statistiques (courses, revenus, chauffeurs)
+- Graphiques d'évolution
+
+### P2 - Améliorations
+- Notifications push chauffeurs
+- Chat en temps réel
+- Historique des commissions
+
+### P3 - Backlog
+- Application mobile native
+- Intégration GPS temps réel
