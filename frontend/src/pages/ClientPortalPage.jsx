@@ -98,6 +98,13 @@ export default function ClientPortalPage() {
   });
   const [calculatingPrice, setCalculatingPrice] = useState(false);
   const [newEstimate, setNewEstimate] = useState(null);
+  
+  // Google Maps autocomplete refs
+  const [mapsReady, setMapsReady] = useState(false);
+  const pickupInputRef = useRef(null);
+  const dropoffInputRef = useRef(null);
+  const pickupAutocompleteRef = useRef(null);
+  const dropoffAutocompleteRef = useRef(null);
 
   useEffect(() => {
     fetchReservation();
