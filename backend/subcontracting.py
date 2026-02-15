@@ -3371,8 +3371,9 @@ async def driver_generate_invoice(request: Request, course_id: str):
 
 @driver_router.post("/courses/{course_id}/send-invoice")
 async def driver_send_invoice_to_client(request: Request, course_id: str):
-    """Send invoice to client via email"""
+    """Send invoice to client via email - auto-issues if DRAFT"""
     import resend
+    import base64
     
     driver = await get_driver_from_token(request.headers.get("Authorization"))
     
@@ -3386,38 +3387,66 @@ async def driver_send_invoice_to_client(request: Request, course_id: str):
     if not course.get("client_email"):
         raise HTTPException(status_code=400, detail="Pas d'email client")
     
-    # Generate invoice
-    prefix = driver.get("invoice_prefix", "DRI")
-    year = datetime.now().year
-    next_num = driver.get("invoice_next_number", 1)
-    invoice_number = f"{prefix}-{year}-{next_num:04d}"
+    # If invoice not issued yet, issue it now
+    if course.get("invoice_status") != "ISSUED":
+        driver_code = driver.get("driver_code", "DR00")
+        year = datetime.now().year
+        next_num = driver.get("invoice_next_number", 1)
+        invoice_number = f"{driver_code}-{year}-{next_num:03d}"
+        invoice_date = datetime.now().strftime("%d/%m/%Y")
+        
+        # Increment driver's invoice counter
+        await db.drivers.update_one(
+            {"id": driver["id"]},
+            {"$inc": {"invoice_next_number": 1}}
+        )
+        
+        # Update course to ISSUED
+        await db.courses.update_one(
+            {"id": course_id},
+            {"$set": {
+                "invoice_status": "ISSUED",
+                "invoice_number": invoice_number,
+                "invoice_date": invoice_date,
+                "invoice_issued_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        # Refresh course data
+        course["invoice_status"] = "ISSUED"
+        course["invoice_number"] = invoice_number
+        course["invoice_date"] = invoice_date
+    else:
+        invoice_number = course["invoice_number"]
+        invoice_date = course.get("invoice_date", datetime.now().strftime("%d/%m/%Y"))
     
-    await db.drivers.update_one(
-        {"id": driver["id"]},
-        {"$inc": {"invoice_next_number": 1}}
-    )
-    
-    invoice_date = datetime.now().strftime("%d/%m/%Y")
+    # Generate PDF
     pdf_bytes = generate_driver_invoice_pdf(course, driver, invoice_number, invoice_date)
-    
-    # Send email
-    import base64
     pdf_base64 = base64.b64encode(pdf_bytes).decode()
+    
+    # Calculate total for email
+    price_total = course.get("price_with_supplements") or course.get("price_total", 0)
     
     html_content = f"""
     <html>
     <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">Facture pour votre course VTC</h2>
-        <p>Bonjour {course.get('client_name', '')},</p>
-        <p>Veuillez trouver ci-joint la facture pour votre course du {course.get('date', '')}.</p>
-        <p><strong>Détails:</strong></p>
-        <ul>
-            <li>Départ: {course.get('pickup_address', '')}</li>
-            <li>Arrivée: {course.get('dropoff_address', '')}</li>
-            <li>Montant: {course.get('price_total', 0):.2f} €</li>
-        </ul>
-        <p>Merci de votre confiance.</p>
-        <p>Cordialement,<br>{driver.get('company_name', '')}</p>
+        <div style="background: #0a0a0a; color: white; padding: 20px; text-align: center;">
+            <h2 style="margin: 0;">Facture pour votre course VTC</h2>
+        </div>
+        <div style="padding: 20px;">
+            <p>Bonjour {course.get('client_name', '')},</p>
+            <p>Veuillez trouver ci-joint la facture <strong>{invoice_number}</strong> pour votre course du {course.get('date', '')}.</p>
+            <div style="background: #f1f5f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 5px 0;"><strong>Départ:</strong> {course.get('pickup_address', '')}</p>
+                <p style="margin: 5px 0;"><strong>Arrivée:</strong> {course.get('dropoff_address', '')}</p>
+                <p style="margin: 5px 0;"><strong>Montant total:</strong> {price_total:.2f} €</p>
+            </div>
+            <p>Merci de votre confiance.</p>
+            <p>Cordialement,<br><strong>{driver.get('company_name', '')}</strong></p>
+        </div>
+        <div style="background: #f8fafc; padding: 15px; font-size: 11px; color: #64748b; text-align: center;">
+            Jabadriver est une plateforme de mise en relation entre clients et chauffeurs VTC indépendants.<br>
+            www.jabadriver.fr
+        </div>
     </body>
     </html>
     """
@@ -3436,7 +3465,11 @@ async def driver_send_invoice_to_client(request: Request, course_id: str):
     try:
         await asyncio.to_thread(resend.Emails.send, params)
         logger.info(f"[DRIVER] Invoice {invoice_number} sent to {course['client_email']}")
-        return {"message": f"Facture {invoice_number} envoyée à {course['client_email']}"}
+        return {
+            "message": f"Facture {invoice_number} envoyée à {course['client_email']}",
+            "invoice_number": invoice_number,
+            "invoice_status": "ISSUED"
+        }
     except Exception as e:
         logger.error(f"[DRIVER] Failed to send invoice: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Erreur envoi email: {str(e)}")
