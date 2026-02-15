@@ -593,6 +593,21 @@ export default function AdminDashboard() {
                       <FileText className="w-4 h-4" />
                       {reservation.invoice_generated ? 'Voir facture' : 'Facture'}
                     </button>
+                    
+                    {/* Test Toggle Button */}
+                    <button
+                      onClick={() => toggleTestReservation(reservation.id, reservation.is_test)}
+                      className={`action-btn ${
+                        reservation.is_test 
+                          ? 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/30' 
+                          : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60'
+                      }`}
+                      data-testid={`toggle-test-btn-${reservation.id}`}
+                      title={reservation.is_test ? "Retirer du mode test" : "Marquer comme test"}
+                    >
+                      <FlaskConical className="w-4 h-4" />
+                      <span className="hidden sm:inline">{reservation.is_test ? 'Mode Test' : 'Test'}</span>
+                    </button>
                   </div>
                 </div>
               ))}
