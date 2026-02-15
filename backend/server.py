@@ -1489,6 +1489,60 @@ class ClientDirectModification(BaseModel):
     new_distance_km: Optional[float] = None
     new_duration_min: Optional[float] = None
 
+# ============================================
+# ROUTE CALCULATION (PUBLIC)
+# ============================================
+import urllib.request
+import json
+
+GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY', '')
+
+@api_router.get("/calculate-route")
+async def calculate_route(origin: str = Query(...), destination: str = Query(...)):
+    """Calculate route distance and duration using Google Maps API"""
+    if not GOOGLE_MAPS_API_KEY:
+        raise HTTPException(status_code=500, detail="Google Maps API key not configured")
+    
+    try:
+        # URL encode addresses
+        origin_encoded = quote(origin)
+        destination_encoded = quote(destination)
+        
+        url = f"https://maps.googleapis.com/maps/api/directions/json?origin={origin_encoded}&destination={destination_encoded}&key={GOOGLE_MAPS_API_KEY}&language=fr"
+        
+        # Make request
+        def fetch_directions():
+            req = urllib.request.Request(url)
+            with urllib.request.urlopen(req, timeout=10) as response:
+                return json.loads(response.read().decode())
+        
+        data = await asyncio.to_thread(fetch_directions)
+        
+        if data.get("status") != "OK" or not data.get("routes"):
+            logger.warning(f"[ROUTE] Google Maps API returned status: {data.get('status')}")
+            raise HTTPException(status_code=400, detail="Impossible de calculer l'itinéraire")
+        
+        route = data["routes"][0]["legs"][0]
+        distance_m = route["distance"]["value"]  # meters
+        duration_s = route["duration"]["value"]  # seconds
+        
+        distance_km = round(distance_m / 1000, 2)
+        duration_min = round(duration_s / 60, 1)
+        
+        return {
+            "distance_km": distance_km,
+            "duration_min": duration_min,
+            "distance_text": route["distance"]["text"],
+            "duration_text": route["duration"]["text"],
+            "start_address": route.get("start_address", origin),
+            "end_address": route.get("end_address", destination)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[ROUTE] Error calculating route: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur calcul itinéraire: {str(e)}")
+
 @api_router.get("/client-portal/{token}")
 async def client_portal_get_reservation(token: str):
     """Get reservation info via client portal token (public, no auth)"""
