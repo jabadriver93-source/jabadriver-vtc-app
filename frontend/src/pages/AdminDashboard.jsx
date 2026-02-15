@@ -136,6 +136,25 @@ export default function AdminDashboard() {
     setInvoiceModalReservation(prev => prev ? { ...prev, ...invoiceData } : null);
   };
 
+  const toggleTestReservation = async (reservationId, currentIsTest) => {
+    try {
+      const res = await fetch(`${API}/reservations/${reservationId}/toggle-test`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail);
+      
+      // Update local state
+      setReservations(prev => prev.map(r => 
+        r.id === reservationId ? { ...r, is_test: data.is_test } : r
+      ));
+      
+      toast.success(data.message);
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
   const formatDate = (dateStr) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
