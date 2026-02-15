@@ -616,26 +616,38 @@ export default function ClientPortalPage() {
             </p>
             
             <div className="space-y-4">
-              {/* Pickup Address */}
+              {/* Pickup Address with Autocomplete */}
               <div>
-                <Label className="text-gray-300 text-sm">Adresse de départ</Label>
-                <Input
-                  value={modifyData.pickup_address}
+                <Label className="text-gray-300 text-sm flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-emerald-500" />
+                  Adresse de départ
+                </Label>
+                <input
+                  ref={pickupInputRef}
+                  type="text"
+                  defaultValue={modifyData.pickup_address}
                   onChange={(e) => setModifyData({...modifyData, pickup_address: e.target.value})}
-                  className="bg-gray-800 border-gray-700 text-white"
-                  placeholder="Ex: 10 rue de Paris, 75001 Paris"
+                  className="w-full h-10 px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  placeholder="Tapez pour rechercher une adresse..."
+                  autoComplete="off"
                   data-testid="modify-pickup-input"
                 />
               </div>
 
-              {/* Dropoff Address */}
+              {/* Dropoff Address with Autocomplete */}
               <div>
-                <Label className="text-gray-300 text-sm">Adresse d'arrivée</Label>
-                <Input
-                  value={modifyData.dropoff_address}
+                <Label className="text-gray-300 text-sm flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-red-500" />
+                  Adresse d'arrivée
+                </Label>
+                <input
+                  ref={dropoffInputRef}
+                  type="text"
+                  defaultValue={modifyData.dropoff_address}
                   onChange={(e) => setModifyData({...modifyData, dropoff_address: e.target.value})}
-                  className="bg-gray-800 border-gray-700 text-white"
-                  placeholder="Ex: Aéroport CDG Terminal 2"
+                  className="w-full h-10 px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent"
+                  placeholder="Tapez pour rechercher une adresse..."
+                  autoComplete="off"
                   data-testid="modify-dropoff-input"
                 />
               </div>
