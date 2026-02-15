@@ -374,6 +374,10 @@ export default function ClientPortalPage() {
   };
 
   const openModifyModal = () => {
+    // Reset autocomplete refs for new initialization
+    pickupAutocompleteRef.current = null;
+    dropoffAutocompleteRef.current = null;
+    
     // Reset form to current reservation values
     setModifyData({
       pickup_address: reservation.pickup_address || '',
