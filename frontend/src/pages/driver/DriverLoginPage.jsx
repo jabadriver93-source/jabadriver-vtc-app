@@ -15,19 +15,15 @@ export default function DriverLoginPage() {
   
   // Set driver manifest and apple-touch-icon for PWA
   useEffect(() => {
-    // Update manifest
+    // Update manifest to driver version with cache bust
     const manifestLink = document.querySelector('link[rel="manifest"]');
-    if (manifestLink) manifestLink.href = '/manifest-driver.json';
+    if (manifestLink) manifestLink.href = '/manifest-driver.json?v=5';
     
-    // Update apple-touch-icon
+    // Update apple-touch-icon to driver version
     const appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
-    if (appleIcon) appleIcon.href = '/icons/driver/apple-touch-icon.png';
+    if (appleIcon) appleIcon.href = '/icons/driver/apple-touch-icon.png?v=5';
     
-    return () => {
-      // Restore client manifest on unmount
-      if (manifestLink) manifestLink.href = '/manifest.json';
-      if (appleIcon) appleIcon.href = '/icons/apple-touch-icon.png';
-    };
+    // No cleanup - keep driver manifest even on unmount for PWA consistency
   }, []);
   
   const [loginData, setLoginData] = useState({ email: '', password: '' });
