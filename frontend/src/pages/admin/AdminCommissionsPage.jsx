@@ -387,9 +387,12 @@ export default function AdminCommissionsPage() {
                           )}
                         </td>
                         <td className="py-3 text-right">
-                          <span className="font-bold text-green-400">
+                          <span className={`font-bold ${payment.is_test_course ? 'text-orange-400 line-through' : 'text-green-400'}`}>
                             {payment.amount?.toFixed(2)}€
                           </span>
+                          {payment.is_test_course && (
+                            <span className="block text-xs text-orange-400">(test - exclu)</span>
+                          )}
                         </td>
                         <td className="py-3 text-right">
                           <span className="text-gray-300">
@@ -419,15 +422,22 @@ export default function AdminCommissionsPage() {
                           )}
                         </td>
                         <td className="py-3">
-                          {payment.is_test_mode ? (
-                            <span className="px-2 py-1 rounded text-xs font-medium bg-orange-900/50 text-orange-400 border border-orange-700">
-                              TEST
-                            </span>
-                          ) : (
-                            <span className="px-2 py-1 rounded text-xs font-medium bg-green-900/50 text-green-400 border border-green-700">
-                              LIVE
-                            </span>
-                          )}
+                          <div className="flex flex-col gap-1">
+                            {payment.is_test_mode ? (
+                              <span className="px-2 py-1 rounded text-xs font-medium bg-orange-900/50 text-orange-400 border border-orange-700">
+                                TEST
+                              </span>
+                            ) : (
+                              <span className="px-2 py-1 rounded text-xs font-medium bg-green-900/50 text-green-400 border border-green-700">
+                                LIVE
+                              </span>
+                            )}
+                            {payment.is_test_course && (
+                              <span className="px-2 py-1 rounded text-xs font-medium bg-orange-900/50 text-orange-400 border border-orange-700">
+                                COURSE TEST
+                              </span>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
