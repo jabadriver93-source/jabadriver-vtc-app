@@ -357,9 +357,12 @@ export default function ClientPortalPage() {
   const handleDirectModification = async () => {
     setSubmitting(true);
     try {
+      // Get current values from refs (autocomplete may have updated them)
+      const { pickup, dropoff } = getCurrentAddresses();
+      
       const payload = {
-        pickup_address: modifyData.pickup_address !== reservation.pickup_address ? modifyData.pickup_address : null,
-        dropoff_address: modifyData.dropoff_address !== reservation.dropoff_address ? modifyData.dropoff_address : null,
+        pickup_address: pickup !== reservation.pickup_address ? pickup : null,
+        dropoff_address: dropoff !== reservation.dropoff_address ? dropoff : null,
         date: modifyData.date !== reservation.date ? modifyData.date : null,
         time: modifyData.time !== reservation.time ? modifyData.time : null,
         passengers: modifyData.passengers !== reservation.passengers ? modifyData.passengers : null,
