@@ -233,6 +233,68 @@ export default function ClientPortalPage() {
     }
   };
 
+  // Helper to get current address values from refs (autocomplete may update DOM directly)
+  const getCurrentAddresses = useCallback(() => {
+    const pickup = pickupInputRef.current?.value || modifyData.pickup_address;
+    const dropoff = dropoffInputRef.current?.value || modifyData.dropoff_address;
+    return { pickup, dropoff };
+  }, [modifyData.pickup_address, modifyData.dropoff_address]);
+
+  // Wrapper to trigger price calculation with ref values
+  const calculateNewPrice = useCallback(async () => {
+    const { pickup, dropoff } = getCurrentAddresses();
+    
+    if (!pickup || !dropoff) {
+      setNewEstimate(null);
+      return;
+    }
+    
+    // Check if addresses actually changed from original
+    if (pickup === reservation?.pickup_address && 
+        dropoff === reservation?.dropoff_address) {
+      setNewEstimate(null);
+      return;
+    }
+
+    // Update modifyData with current ref values
+    setModifyData(prev => ({
+      ...prev,
+      pickup_address: pickup,
+      dropoff_address: dropoff
+    }));
+
+    setCalculatingPrice(true);
+    
+    try {
+      const params = new URLSearchParams({
+        origin: pickup,
+        destination: dropoff
+      });
+      
+      const res = await fetch(`${API_URL}/api/calculate-route?${params}`);
+      if (res.ok) {
+        const data = await res.json();
+        const distanceKm = data.distance_km || 0;
+        const durationMin = data.duration_min || 0;
+        const newPrice = (distanceKm * PRICE_PER_KM) + (durationMin * PRICE_PER_MIN);
+        
+        setNewEstimate({
+          distance_km: distanceKm,
+          duration_min: durationMin,
+          price: Math.round(newPrice * 100) / 100
+        });
+      } else {
+        setNewEstimate(null);
+        toast.warning('Impossible de calculer l\'itinéraire');
+      }
+    } catch (err) {
+      console.error('Route calculation error:', err);
+      setNewEstimate(null);
+    } finally {
+      setCalculatingPrice(false);
+    }
+  }, [getCurrentAddresses, reservation]);
+
   // Calculate route and price using Google Maps
   const calculateRoute = useCallback(async () => {
     if (!modifyData.pickup_address || !modifyData.dropoff_address) {
