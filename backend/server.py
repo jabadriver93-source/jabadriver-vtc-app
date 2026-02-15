@@ -1478,6 +1478,17 @@ class ClientModificationRequest(BaseModel):
     modification_type: str  # "date", "time", "address", "passengers", "other"
     details: str
 
+class ClientDirectModification(BaseModel):
+    """For direct modification by client"""
+    pickup_address: Optional[str] = None
+    dropoff_address: Optional[str] = None
+    date: Optional[str] = None
+    time: Optional[str] = None
+    passengers: Optional[int] = None
+    # Calculated by frontend using Google Maps API
+    new_distance_km: Optional[float] = None
+    new_duration_min: Optional[float] = None
+
 @api_router.get("/client-portal/{token}")
 async def client_portal_get_reservation(token: str):
     """Get reservation info via client portal token (public, no auth)"""
