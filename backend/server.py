@@ -204,6 +204,8 @@ class Reservation(BaseModel):
     is_late_cancellation: bool = False
     cancelled_at: Optional[str] = None
     admin_internal_notes: Optional[str] = None
+    # Test flag - test reservations are excluded from revenue stats
+    is_test: bool = False
 
 class StatusUpdate(BaseModel):
     status: str
