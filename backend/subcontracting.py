@@ -1358,34 +1358,80 @@ async def check_and_expire_reservation(course: dict) -> dict:
 # ============================================
 # DRIVER AUTHENTICATION ROUTES
 # ============================================
+
+async def generate_driver_code():
+    """Generate unique driver code (ex: DR01, DR02, ...)"""
+    # Find the highest existing driver code number
+    drivers = await db.drivers.find({"driver_code": {"$regex": "^DR\\d+$"}}, {"driver_code": 1}).to_list(1000)
+    max_num = 0
+    for d in drivers:
+        code = d.get("driver_code", "")
+        if code.startswith("DR"):
+            try:
+                num = int(code[2:])
+                if num > max_num:
+                    max_num = num
+            except ValueError:
+                pass
+    return f"DR{max_num + 1:02d}"
+
+def validate_driver_billing_fields(data: DriverCreate):
+    """Validate required billing fields for driver"""
+    errors = []
+    if not data.company_name or not data.company_name.strip():
+        errors.append("Raison sociale / Nom obligatoire")
+    if not data.address or not data.address.strip():
+        errors.append("Adresse obligatoire")
+    if not data.siret or not data.siret.strip():
+        errors.append("SIRET obligatoire")
+    if not data.vat_mention or not data.vat_mention.strip():
+        errors.append("Mention TVA obligatoire (ex: TVA non applicable – art. 293 B du CGI)")
+    return errors
+
 @driver_router.post("/register")
 async def register_driver(data: DriverCreate):
     """Register a new driver account (requires admin validation)"""
     if not SUBCONTRACTING_ENABLED:
         raise HTTPException(status_code=503, detail="Module sous-traitance désactivé")
     
+    # Validate required billing fields
+    validation_errors = validate_driver_billing_fields(data)
+    if validation_errors:
+        raise HTTPException(status_code=400, detail="; ".join(validation_errors))
+    
     # Check if email already exists
     existing = await db.drivers.find_one({"email": data.email})
     if existing:
         raise HTTPException(status_code=400, detail="Cet email est déjà utilisé")
     
+    # Generate unique driver code if not provided
+    driver_code = data.driver_code.strip() if data.driver_code else ""
+    if not driver_code:
+        driver_code = await generate_driver_code()
+    else:
+        # Check if code is already used
+        existing_code = await db.drivers.find_one({"driver_code": driver_code})
+        if existing_code:
+            raise HTTPException(status_code=400, detail=f"Le code chauffeur {driver_code} est déjà utilisé")
+    
     driver = Driver(
         email=data.email,
         password_hash=simple_hash(data.password),
-        company_name=data.company_name,
-        name=data.name,
-        phone=data.phone,
-        address=data.address,
-        siret=data.siret,
+        company_name=data.company_name.strip(),
+        name=data.name.strip(),
+        phone=data.phone.strip(),
+        address=data.address.strip(),
+        siret=data.siret.strip(),
+        vat_mention=data.vat_mention.strip(),
         vat_applicable=data.vat_applicable,
-        vat_number=data.vat_number,
-        invoice_prefix=data.invoice_prefix,
+        vat_number=data.vat_number.strip() if data.vat_number else None,
+        driver_code=driver_code,
         is_active=False  # Requires admin validation
     )
     
     driver_dict = driver.model_dump()
     await db.drivers.insert_one(driver_dict)
-    logger.info(f"[DRIVER] New driver registered: {data.email} (pending validation)")
+    logger.info(f"[DRIVER] New driver registered: {data.email} | Code: {driver_code} (pending validation)")
     
     # Send confirmation email to driver (pending validation)
     try:
