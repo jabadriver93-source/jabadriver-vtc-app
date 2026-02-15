@@ -3175,7 +3175,7 @@ def generate_commission_invoice_pdf(course: dict, driver: dict, invoice_number: 
 # ============================================
 @driver_router.get("/courses/{course_id}/bon-commande-pdf")
 async def driver_generate_bon_commande(request: Request, course_id: str):
-    """Generate bon de commande PDF for driver"""
+    """Generate bon de commande PDF for driver - always reflects latest version"""
     driver = await get_driver_from_token(request.headers.get("Authorization"))
     
     course = await db.courses.find_one(
@@ -3193,9 +3193,18 @@ async def driver_generate_bon_commande(request: Request, course_id: str):
         headers={"Content-Disposition": f"attachment; filename=bon_commande_{course_id[:8]}.pdf"}
     )
 
-@driver_router.get("/courses/{course_id}/invoice-pdf")
-async def driver_generate_invoice(request: Request, course_id: str):
-    """Generate invoice PDF for driver"""
+# ============================================
+# INVOICE SUPPLEMENTS & STATUS MANAGEMENT
+# ============================================
+
+class SupplementsUpdate(BaseModel):
+    supplement_peage: Optional[float] = None
+    supplement_parking: Optional[float] = None
+    supplement_attente_minutes: Optional[int] = None
+
+@driver_router.get("/courses/{course_id}/invoice-status")
+async def driver_get_invoice_status(request: Request, course_id: str):
+    """Get invoice status and supplements for a course"""
     driver = await get_driver_from_token(request.headers.get("Authorization"))
     
     course = await db.courses.find_one(
@@ -3205,19 +3214,153 @@ async def driver_generate_invoice(request: Request, course_id: str):
     if not course:
         raise HTTPException(status_code=404, detail="Course non trouvée ou non attribuée")
     
-    # Generate invoice number
-    prefix = driver.get("invoice_prefix", "DRI")
+    return {
+        "invoice_status": course.get("invoice_status", "DRAFT"),
+        "invoice_number": course.get("invoice_number"),
+        "invoice_date": course.get("invoice_date"),
+        "price_base": course.get("price_base") or course.get("price_total", 0),
+        "supplement_peage": course.get("supplement_peage", 0),
+        "supplement_parking": course.get("supplement_parking", 0),
+        "supplement_attente_minutes": course.get("supplement_attente_minutes", 0),
+        "supplement_attente_amount": course.get("supplement_attente_amount", 0),
+        "price_with_supplements": course.get("price_with_supplements") or course.get("price_total", 0),
+        "can_modify": course.get("invoice_status", "DRAFT") != "ISSUED"
+    }
+
+@driver_router.patch("/courses/{course_id}/supplements")
+async def driver_update_supplements(request: Request, course_id: str, data: SupplementsUpdate):
+    """Update supplements for a course (only if invoice_status = DRAFT)"""
+    driver = await get_driver_from_token(request.headers.get("Authorization"))
+    
+    course = await db.courses.find_one(
+        {"id": course_id, "assigned_driver_id": driver["id"]},
+        {"_id": 0}
+    )
+    if not course:
+        raise HTTPException(status_code=404, detail="Course non trouvée ou non attribuée")
+    
+    # Check if invoice is already issued
+    if course.get("invoice_status") == "ISSUED":
+        raise HTTPException(status_code=400, detail="Facture déjà émise - modification impossible")
+    
+    # Calculate updates
+    update_fields = {}
+    price_base = course.get("price_base") or course.get("price_total", 0)
+    
+    # Store original price_base if not set
+    if not course.get("price_base"):
+        update_fields["price_base"] = price_base
+    
+    # Update supplements
+    if data.supplement_peage is not None:
+        update_fields["supplement_peage"] = max(0, data.supplement_peage)
+    if data.supplement_parking is not None:
+        update_fields["supplement_parking"] = max(0, data.supplement_parking)
+    if data.supplement_attente_minutes is not None:
+        minutes = max(0, data.supplement_attente_minutes)
+        update_fields["supplement_attente_minutes"] = minutes
+        update_fields["supplement_attente_amount"] = round(minutes * 0.50, 2)  # 0.50€/min
+    
+    # Recalculate total with supplements
+    supplement_peage = update_fields.get("supplement_peage", course.get("supplement_peage", 0))
+    supplement_parking = update_fields.get("supplement_parking", course.get("supplement_parking", 0))
+    supplement_attente = update_fields.get("supplement_attente_amount", course.get("supplement_attente_amount", 0))
+    
+    price_with_supplements = price_base + supplement_peage + supplement_parking + supplement_attente
+    update_fields["price_with_supplements"] = round(price_with_supplements, 2)
+    update_fields["last_modified_at"] = datetime.now(timezone.utc).isoformat()
+    update_fields["last_modified_by"] = "driver"
+    
+    await db.courses.update_one(
+        {"id": course_id},
+        {"$set": update_fields}
+    )
+    
+    logger.info(f"[DRIVER] Supplements updated for course {course_id[:8]} | Total: {price_with_supplements}€")
+    
+    return {
+        "message": "Suppléments mis à jour",
+        "price_base": price_base,
+        "supplement_peage": supplement_peage,
+        "supplement_parking": supplement_parking,
+        "supplement_attente_amount": supplement_attente,
+        "price_with_supplements": price_with_supplements
+    }
+
+@driver_router.post("/courses/{course_id}/issue-invoice")
+async def driver_issue_invoice(request: Request, course_id: str):
+    """Émettre/figer la facture (change status DRAFT -> ISSUED)"""
+    driver = await get_driver_from_token(request.headers.get("Authorization"))
+    
+    course = await db.courses.find_one(
+        {"id": course_id, "assigned_driver_id": driver["id"]},
+        {"_id": 0}
+    )
+    if not course:
+        raise HTTPException(status_code=404, detail="Course non trouvée ou non attribuée")
+    
+    # Check if already issued
+    if course.get("invoice_status") == "ISSUED":
+        return {
+            "message": "Facture déjà émise",
+            "invoice_number": course.get("invoice_number"),
+            "invoice_status": "ISSUED"
+        }
+    
+    # Generate invoice number using driver's sequential counter
+    driver_code = driver.get("driver_code", "DR00")
     year = datetime.now().year
     next_num = driver.get("invoice_next_number", 1)
-    invoice_number = f"{prefix}-{year}-{next_num:04d}"
+    invoice_number = f"{driver_code}-{year}-{next_num:03d}"
+    invoice_date = datetime.now().strftime("%d/%m/%Y")
     
-    # Increment invoice number
+    # Increment driver's invoice counter
     await db.drivers.update_one(
         {"id": driver["id"]},
         {"$inc": {"invoice_next_number": 1}}
     )
     
-    invoice_date = datetime.now().strftime("%d/%m/%Y")
+    # Update course to ISSUED status
+    await db.courses.update_one(
+        {"id": course_id},
+        {"$set": {
+            "invoice_status": "ISSUED",
+            "invoice_number": invoice_number,
+            "invoice_date": invoice_date,
+            "invoice_issued_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    logger.info(f"[DRIVER] Invoice {invoice_number} ISSUED for course {course_id[:8]}")
+    
+    return {
+        "message": f"Facture {invoice_number} émise avec succès",
+        "invoice_number": invoice_number,
+        "invoice_date": invoice_date,
+        "invoice_status": "ISSUED"
+    }
+
+@driver_router.get("/courses/{course_id}/invoice-pdf")
+async def driver_generate_invoice(request: Request, course_id: str):
+    """Generate invoice PDF for driver (can be downloaded anytime, but number assigned only when ISSUED)"""
+    driver = await get_driver_from_token(request.headers.get("Authorization"))
+    
+    course = await db.courses.find_one(
+        {"id": course_id, "assigned_driver_id": driver["id"]},
+        {"_id": 0}
+    )
+    if not course:
+        raise HTTPException(status_code=404, detail="Course non trouvée ou non attribuée")
+    
+    # If invoice is ISSUED, use the stored number
+    if course.get("invoice_status") == "ISSUED" and course.get("invoice_number"):
+        invoice_number = course["invoice_number"]
+        invoice_date = course.get("invoice_date", datetime.now().strftime("%d/%m/%Y"))
+    else:
+        # Draft preview - show "BROUILLON" as number
+        invoice_number = f"BROUILLON-{course_id[:8].upper()}"
+        invoice_date = datetime.now().strftime("%d/%m/%Y")
+    
     pdf_bytes = generate_driver_invoice_pdf(course, driver, invoice_number, invoice_date)
     
     return Response(
