@@ -1,0 +1,59 @@
+{
+  "summary": "Completed testing of is_test filter feature for courses. Backend: 8/9 tests passed (89%). Frontend: All UI elements verified. The toggle-test endpoint works correctly, is_test field displays correctly in course list with TEST badge and (test) price indicator, and test courses are properly excluded from commission totals.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "/api/health",
+        "issue": "Health endpoint returns 404 (endpoint does not exist)",
+        "priority": "LOW"
+      },
+      {
+        "endpoint": "/api/admin/subcontracting/courses",
+        "issue": "Some older courses have is_test=None instead of is_test=False (created before field was added)",
+        "priority": "LOW"
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_is_test_filter.py",
+    "/app/test_reports/pytest/pytest_results_is_test.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "is_test field correctly added to Course model with default False",
+    "Toggle endpoint POST /api/admin/subcontracting/courses/{id}/toggle-test correctly toggles is_test flag",
+    "Commissions endpoint correctly excludes test courses from total_commission calculation (line 2793)",
+    "Frontend AdminSubcontractingPage correctly shows TEST badge and Mode Test button with data-testid attributes",
+    "Frontend AdminCommissionsPage correctly shows is_test_course with COURSE TEST badge and strikethrough"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_is_test_filter.py"
+  ],
+  "success_rate": {
+    "backend": "89% (8/9 tests passed - /api/health endpoint does not exist which is not related to is_test feature)",
+    "frontend": "100% - all UI elements verified"
+  },
+  "test_credentials": {
+    "admin": {"password": "admin123"}
+  },
+  "seed_data_creation": "Created test course TEST_Client_1ed14750 during pytest run, marked as is_test=True",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "is_test feature fully working. Course 8d0cdd8c-b11d-4feb-b6aa-a1dc49185397 is marked as test. The total_commission in commissions endpoint is 18€ (correctly excluding test courses). The UI shows TEST badges and Mode Test buttons for test courses.",
+  "features_verified": {
+    "toggle_test_endpoint": "Working - POST /api/admin/subcontracting/courses/{id}/toggle-test toggles is_test flag",
+    "courses_list_is_test_field": "Working - GET /api/admin/subcontracting/courses returns is_test field for each course",
+    "commissions_test_exclusion": "Working - GET /api/admin/subcontracting/commissions excludes test courses from total_commission",
+    "frontend_test_badge": "Working - TEST badge visible on courses with is_test=true",
+    "frontend_toggle_button": "Working - Mode Test/Test button visible and functional",
+    "frontend_commissions_display": "Working - is_test_course field handled with COURSE TEST badge and strikethrough",
+    "test_price_indicator": "Working - (test) label shown next to price for test courses"
+  },
+  "rca_of_the_issue": null
+}
