@@ -430,7 +430,13 @@ export default function BookingPage() {
         <header className="px-5 py-5">
           <div className="max-w-5xl mx-auto flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img src={LOGO_URL} alt="JABA DRIVER" className="h-11 w-auto drop-shadow-lg" />
+              <img 
+                src={LOGO_URL} 
+                srcSet="/logo.png 1x, /logo@2x.png 2x"
+                alt="JABA DRIVER" 
+                className="h-11 w-auto drop-shadow-lg" 
+                style={{ imageRendering: 'auto' }}
+              />
               <span className="text-xl font-bold text-white tracking-tight hidden sm:block drop-shadow-lg" style={{ fontFamily: 'Manrope, sans-serif' }}>
                 JABA DRIVER
               </span>
