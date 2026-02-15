@@ -2900,8 +2900,9 @@ def generate_driver_bon_commande_pdf(course: dict, driver: dict):
     return buffer.getvalue()
 
 
+
 def generate_driver_invoice_pdf(course: dict, driver: dict, invoice_number: str, invoice_date: str):
-    """Generate invoice from driver to client"""
+    """Generate invoice from driver to client (émetteur = chauffeur) with supplements"""
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
@@ -2909,6 +2910,7 @@ def generate_driver_invoice_pdf(course: dict, driver: dict, invoice_number: str,
     dark = HexColor("#0a0a0a")
     accent = HexColor("#7dd3fc")
     gray = HexColor("#64748b")
+    light_gray = HexColor("#f1f5f9")
     
     # Header
     c.setFillColor(dark)
@@ -2927,96 +2929,147 @@ def generate_driver_invoice_pdf(course: dict, driver: dict, invoice_number: str,
     c.setFont("Helvetica", 10)
     c.drawRightString(width - 40, height - 55, f"Date: {invoice_date}")
     
-    y = height - 120
+    y = height - 115
     
-    # Driver info
+    # ÉMETTEUR = CHAUFFEUR (not Jabadriver)
     c.setFillColor(dark)
     c.setFont("Helvetica-Bold", 10)
     c.drawString(40, y, "ÉMETTEUR")
-    y -= 18
+    y -= 16
     c.setFont("Helvetica", 9)
     c.setFillColor(gray)
     c.drawString(40, y, driver.get("company_name", ""))
-    y -= 14
+    y -= 13
     c.drawString(40, y, driver.get("address", ""))
-    y -= 14
+    y -= 13
     c.drawString(40, y, f"SIRET: {driver.get('siret', '')}")
+    y -= 13
+    # Mention TVA obligatoire
+    vat_mention = driver.get("vat_mention", "TVA non applicable – art. 293 B du CGI")
+    c.drawString(40, y, vat_mention)
     if driver.get("vat_applicable") and driver.get("vat_number"):
-        y -= 14
-        c.drawString(40, y, f"TVA: {driver['vat_number']}")
+        y -= 13
+        c.drawString(40, y, f"N° TVA: {driver['vat_number']}")
     
-    # Client info
-    y = height - 120
+    # CLIENT
+    y = height - 115
     c.setFillColor(dark)
     c.setFont("Helvetica-Bold", 10)
     c.drawString(320, y, "CLIENT")
-    y -= 18
+    y -= 16
     c.setFont("Helvetica", 9)
     c.setFillColor(gray)
     c.drawString(320, y, course.get("client_name", ""))
-    y -= 14
+    y -= 13
     c.drawString(320, y, course.get("client_email", ""))
+    y -= 13
+    c.drawString(320, y, course.get("client_phone", ""))
     
     # Table header
-    y = height - 260
+    y = height - 240
     c.setFillColor(dark)
-    c.rect(40, y - 5, width - 80, 25, fill=True, stroke=False)
+    c.rect(40, y - 5, width - 80, 22, fill=True, stroke=False)
     c.setFillColor(HexColor("#ffffff"))
     c.setFont("Helvetica-Bold", 9)
-    c.drawString(50, y + 5, "DESCRIPTION")
-    c.drawString(350, y + 5, "QTÉ")
-    c.drawString(420, y + 5, "PRIX HT")
-    c.drawString(490, y + 5, "TOTAL")
+    c.drawString(50, y + 3, "DESCRIPTION")
+    c.drawString(400, y + 3, "MONTANT")
     
-    # Service line
-    y -= 30
+    # Price breakdown
+    price_base = course.get("price_base") or course.get("price_total", 0)
+    supplement_peage = course.get("supplement_peage", 0)
+    supplement_parking = course.get("supplement_parking", 0)
+    supplement_attente = course.get("supplement_attente_amount", 0)
+    attente_min = course.get("supplement_attente_minutes", 0)
+    price_total = course.get("price_with_supplements") or course.get("price_total", 0)
+    
+    # Service line - Transport
+    y -= 25
     c.setFillColor(gray)
     c.setFont("Helvetica", 9)
-    service_desc = f"Transport VTC {course.get('date', '')} - {course.get('pickup_address', '')[:30]}... → {course.get('dropoff_address', '')[:30]}..."
-    c.drawString(50, y, service_desc[:60])
-    c.drawString(350, y, "1")
+    pickup_short = course.get('pickup_address', '')[:40]
+    dropoff_short = course.get('dropoff_address', '')[:40]
+    c.drawString(50, y, f"Transport VTC {course.get('date', '')} à {course.get('time', '')}")
+    c.drawRightString(width - 50, y, f"{price_base:.2f} €")
+    y -= 14
+    c.setFont("Helvetica", 8)
+    c.drawString(50, y, f"De: {pickup_short}...")
+    y -= 12
+    c.drawString(50, y, f"À: {dropoff_short}...")
     
-    price_total = course.get("price_total", 0)
+    # Supplements
+    if supplement_peage > 0:
+        y -= 20
+        c.setFont("Helvetica", 9)
+        c.drawString(50, y, "Supplément péage")
+        c.drawRightString(width - 50, y, f"{supplement_peage:.2f} €")
     
+    if supplement_parking > 0:
+        y -= 20
+        c.setFont("Helvetica", 9)
+        c.drawString(50, y, "Supplément parking")
+        c.drawRightString(width - 50, y, f"{supplement_parking:.2f} €")
+    
+    if supplement_attente > 0:
+        y -= 20
+        c.setFont("Helvetica", 9)
+        c.drawString(50, y, f"Supplément attente ({attente_min} min x 0,50€/min)")
+        c.drawRightString(width - 50, y, f"{supplement_attente:.2f} €")
+    
+    # Total section
+    y -= 35
+    c.setStrokeColor(gray)
+    c.setLineWidth(0.5)
+    c.line(300, y + 10, width - 40, y + 10)
+    
+    # TVA calculation
     if driver.get("vat_applicable"):
         price_ht = round(price_total / 1.10, 2)
         tva = round(price_total - price_ht, 2)
-    else:
-        price_ht = price_total
-        tva = 0
+        
+        c.setFillColor(gray)
+        c.setFont("Helvetica", 10)
+        c.drawRightString(450, y, "Total HT:")
+        c.drawRightString(width - 50, y, f"{price_ht:.2f} €")
+        y -= 16
+        c.drawRightString(450, y, "TVA (10%):")
+        c.drawRightString(width - 50, y, f"{tva:.2f} €")
+        y -= 20
     
-    c.drawString(420, y, f"{price_ht:.2f} €")
-    c.drawString(490, y, f"{price_ht:.2f} €")
-    
-    # Totals
-    y -= 50
+    # Total TTC
     c.setFillColor(dark)
-    c.setFont("Helvetica", 10)
-    c.drawRightString(470, y, "Total HT:")
-    c.drawRightString(550, y, f"{price_ht:.2f} €")
-    
-    if driver.get("vat_applicable"):
-        y -= 18
-        c.drawRightString(470, y, "TVA (10%):")
-        c.drawRightString(550, y, f"{tva:.2f} €")
-    
-    y -= 25
     c.setFont("Helvetica-Bold", 12)
-    c.drawRightString(470, y, "TOTAL TTC:")
+    c.drawRightString(450, y, "TOTAL TTC:")
     c.setFillColor(accent)
-    c.drawRightString(550, y, f"{price_total:.2f} €")
+    c.setFont("Helvetica-Bold", 14)
+    c.drawRightString(width - 50, y, f"{price_total:.2f} €")
     
-    # Footer
-    c.setFillColor(dark)
-    c.rect(0, 0, width, 40, fill=True, stroke=False)
-    c.setFillColor(HexColor("#ffffff"))
-    c.setFont("Helvetica", 8)
-    c.drawCentredString(width / 2, 20, f"{driver.get('company_name', '')} — SIRET: {driver.get('siret', '')}")
-    c.drawCentredString(width / 2, 8, f"Email: {driver.get('email', '')}")
+    # Invoice status indicator
+    invoice_status = course.get("invoice_status", "DRAFT")
+    if invoice_status == "ISSUED":
+        y -= 40
+        c.setFillColor(HexColor("#dcfce7"))
+        c.roundRect(40, y - 5, 120, 25, 5, fill=True, stroke=False)
+        c.setFillColor(HexColor("#166534"))
+        c.setFont("Helvetica-Bold", 10)
+        c.drawString(50, y + 3, "✓ FACTURE ÉMISE")
+    
+    # Jabadriver footer (legal text)
+    footer_y = 90
+    c.setFillColor(light_gray)
+    c.rect(0, 0, width, footer_y, fill=True, stroke=False)
+    
+    c.setFillColor(gray)
+    c.setFont("Helvetica", 7)
+    footer_lines = JABADRIVER_FOOTER_TEXT.split('\n')
+    text_y = footer_y - 15
+    for line in footer_lines:
+        c.drawCentredString(width / 2, text_y, line.strip())
+        text_y -= 10
     
     c.save()
     buffer.seek(0)
     return buffer.getvalue()
+
 
 def generate_commission_invoice_pdf(course: dict, driver: dict, invoice_number: str):
     """Generate commission invoice from JABADRIVER to driver"""
