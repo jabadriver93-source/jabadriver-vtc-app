@@ -276,6 +276,26 @@ export default function AdminDashboard() {
               <Download className="w-4 h-4" />
               <span className="hidden sm:inline">Export CSV</span>
             </button>
+            
+            {/* Test Reservations Filter Toggle */}
+            <button
+              onClick={() => setShowTestReservations(!showTestReservations)}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                showTestReservations 
+                  ? "bg-orange-500/20 text-orange-400 border border-orange-500/30 hover:bg-orange-500/30" 
+                  : "bg-white/5 text-white/50 border border-white/10 hover:bg-white/10 hover:text-white/70"
+              }`}
+              data-testid="toggle-show-test-reservations"
+              title={showTestReservations ? "Masquer les réservations test" : "Afficher les réservations test"}
+            >
+              <FlaskConical className="w-4 h-4" />
+              <span className="hidden sm:inline">{showTestReservations ? 'Masquer tests' : 'Afficher tests'}</span>
+              {testReservationsCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full text-xs bg-orange-500/30 text-orange-300">
+                  {testReservationsCount}
+                </span>
+              )}
+            </button>
           </div>
         </div>
       </div>
