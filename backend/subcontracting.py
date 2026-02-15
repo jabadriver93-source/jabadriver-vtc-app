@@ -555,6 +555,131 @@ async def send_course_assigned_notification(course: dict, driver: dict, payment_
         logger.error(f"[EMAIL] ❌ Failed to send course assigned notification | Error: {str(e)}")
         logger.exception("Full exception trace:")
 
+async def send_course_assigned_to_client(course: dict, driver: dict):
+    """Send email to client when a driver is assigned to their course"""
+    client_email = course.get('client_email')
+    if not client_email or not SENDER_EMAIL:
+        logger.warning("[EMAIL] Skipping client assignment notification - email not configured")
+        return
+    
+    if not resend.api_key:
+        resend.api_key = os.environ.get('RESEND_API_KEY', '')
+    
+    course_id_short = course.get('id', '')[:8].upper()
+    price_total = course.get('price_total', 0)
+    
+    # Client portal link if available
+    client_portal_link = ""
+    if FRONTEND_URL:
+        # Get reservation token from reservation linked to this course
+        reservation = await db.reservations.find_one(
+            {"subcontracting_course_id": course.get("id")},
+            {"client_portal_token": 1}
+        )
+        if reservation and reservation.get("client_portal_token"):
+            portal_url = f"{FRONTEND_URL}/my-booking/{reservation['client_portal_token']}"
+            client_portal_link = f"""
+                <div style="text-align: center; margin: 25px 0;">
+                    <a href="{portal_url}" style="display: inline-block; background-color: #3b82f6; color: white; padding: 14px 35px; text-decoration: none; border-radius: 8px; font-weight: 700;">
+                        📋 Gérer ma réservation
+                    </a>
+                </div>
+            """
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #22c55e; color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0;">✅ CHAUFFEUR ATTRIBUÉ</h1>
+        </div>
+        <div style="padding: 30px; background: #F8FAFC;">
+            
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+                Bonjour <strong>{course.get('client_name', '')}</strong>,<br/><br/>
+                Bonne nouvelle ! Un chauffeur a été attribué à votre réservation <strong>#{course_id_short}</strong>.
+            </p>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e2e8f0;">
+                <h3 style="margin-top: 0; color: #1e3a5f;">👤 Votre chauffeur</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b; width: 40%;">Société :</td>
+                        <td style="padding: 8px 0; font-weight: bold;">{driver.get('company_name', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Nom :</td>
+                        <td style="padding: 8px 0;">{driver.get('name', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Téléphone :</td>
+                        <td style="padding: 8px 0;"><a href="tel:{driver.get('phone', '')}" style="color: #3b82f6;">{driver.get('phone', 'N/A')}</a></td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0; border: 1px solid #e2e8f0;">
+                <h3 style="margin-top: 0; color: #1e3a5f;">📋 Récapitulatif course</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Date :</td>
+                        <td style="padding: 8px 0; font-weight: bold;">{course.get('date', 'N/A')} à {course.get('time', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Départ :</td>
+                        <td style="padding: 8px 0;">{course.get('pickup_address', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Arrivée :</td>
+                        <td style="padding: 8px 0;">{course.get('dropoff_address', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Prix :</td>
+                        <td style="padding: 8px 0; font-weight: bold; color: #22c55e;">{int(price_total)}€</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0; font-weight: bold; color: #92400e;">📝 Modification</p>
+                <p style="margin: 10px 0 0 0; font-size: 14px; color: #92400e;">
+                    Toute modification de votre réservation entraînera un recalcul automatique du prix selon nos tarifs (1,50€/km + 0,50€/min).
+                </p>
+            </div>
+            
+            {client_portal_link}
+            
+            <div style="background: #f1f5f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0; color: #475569; font-size: 13px;">
+                    <strong>Besoin d'aide ?</strong><br/>
+                    WhatsApp : <a href="https://wa.me/message/MQ6BTZ7KU26OM1" style="color: #25D366;">Cliquez ici</a><br/>
+                    Email : contact@jabadriver.fr
+                </p>
+            </div>
+            
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 8px;">
+                <p style="margin: 0; color: #64748b; font-size: 12px;">
+                    <strong>JABADRIVER</strong><br/>
+                    Service VTC Premium — Île-de-France
+                </p>
+            </div>
+        </div>
+    </div>
+    """
+    
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [client_email],
+            "subject": f"✅ Chauffeur attribué – Réservation {course_id_short}",
+            "html": html_content
+        }
+        
+        logger.info(f"[EMAIL] Sending assignment notification to client | Course: {course_id_short}")
+        response = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"[EMAIL] ✅ Client assignment notification sent | Resend ID: {response.get('id', 'N/A')}")
+    except Exception as e:
+        logger.error(f"[EMAIL] ❌ Failed to send client assignment notification | Error: {str(e)}")
+        logger.exception("Full exception trace:")
+
 async def send_driver_cancellation_notification(course: dict, driver: dict, is_late: bool):
     """Send email to driver when client cancels their assigned course"""
     driver_email = driver.get('email')
