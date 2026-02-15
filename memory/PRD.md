@@ -107,6 +107,7 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 - Backend: 17/17 tests passés (100%)
 - Frontend: Tous les flux vérifiés
 - Feature isTest: 89% backend (8/9), 100% frontend
+- Autocomplétion Google Places: 100% (desktop + mobile) [2026-02-15]
 
 ---
 
