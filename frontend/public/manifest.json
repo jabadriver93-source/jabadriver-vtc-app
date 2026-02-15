@@ -1,6 +1,6 @@
 {
-  "name": "Jabadriver",
-  "short_name": "Jabadriver",
+  "name": "JABA",
+  "short_name": "JABA",
   "start_url": "/",
   "display": "standalone",
   "theme_color": "#000000",
@@ -49,6 +49,11 @@
     {
       "src": "/icons/icon-512x512.png",
       "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-1024x1024.png",
+      "sizes": "1024x1024",
       "type": "image/png"
     },
     {
