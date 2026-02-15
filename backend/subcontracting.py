@@ -1595,7 +1595,6 @@ def extract_city_department(address: str) -> str:
     parts = address.split(',')
     
     # Try to find postal code pattern (5 digits)
-    import re
     postal_match = re.search(r'\b(\d{5})\b', address)
     
     if postal_match:
