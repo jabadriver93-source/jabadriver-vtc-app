@@ -43,22 +43,39 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 - Email envoyé au client avec infos chauffeur lors de l'attribution
 - Mention que toute modification entraîne un recalcul automatique
 
+### 7. Filtre Courses de Test (isTest) ✅ [NEW - 2026-02-15]
+- **Champ is_test**: Boolean sur le modèle Course (défaut: false)
+- **Endpoint toggle**: `POST /api/admin/subcontracting/courses/{id}/toggle-test`
+- **Exclusion des stats**: Les courses test sont exclues du total_commission
+- **UI Admin**:
+  - Badge TEST orange visible sur les courses test
+  - Bouton "Mode Test" / "Test" pour basculer le flag
+  - Contour orange sur les cartes de courses test
+  - Indicateur "(test)" à côté du prix
+- **Page Commissions**:
+  - Badge "COURSE TEST" visible
+  - Montant barré pour les paiements liés à des courses test
+- **Aucune suppression de données**: Les courses test restent dans la base
+
 ## Technical Implementation
 
 ### Backend (FastAPI)
 - **Modèle Driver**: Champs obligatoires (company_name, address, siret, vat_mention, driver_code)
-- **Modèle Course**: Nouveaux champs (invoice_status, invoice_number, supplements)
+- **Modèle Course**: Nouveaux champs (invoice_status, invoice_number, supplements, is_test)
 - **Routes**:
   - `PATCH /api/driver/courses/{id}/supplements` - Ajout suppléments
   - `POST /api/driver/courses/{id}/issue-invoice` - Émission facture
   - `GET /api/driver/courses/{id}/invoice-status` - Statut facture
   - `POST /api/client-portal/{token}/modify-direct` - Modification directe client
   - `GET /api/calculate-route` - Calcul itinéraire Google Maps
+  - `POST /api/admin/subcontracting/courses/{id}/toggle-test` - Bascule mode test
 
 ### Frontend (React)
 - **DriverLoginPage**: Formulaire inscription avec champ "Mention TVA *"
 - **DriverCoursesPage**: Gestion suppléments, émission facture, badges statut
 - **ClientPortalPage**: Modification directe, affichage blocage si facture émise
+- **AdminSubcontractingPage**: Bouton toggle test, badge TEST, indicateur prix test
+- **AdminCommissionsPage**: Badge COURSE TEST, montant barré pour courses test
 
 ### PDF Generation (ReportLab)
 - **Bon de Commande**: Émetteur = Chauffeur, pied de page Jabadriver
@@ -70,6 +87,7 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 - ✅ Commission 10% inchangée
 - ✅ Layout mobile préservé
 - ✅ Environnements preview/production identiques
+- ✅ Numérotation factures préservée
 
 ## Test Credentials
 - **Chauffeur**: nouveau.chauffeur@test.com / test123
@@ -78,6 +96,7 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 ## Test Results
 - Backend: 17/17 tests passés (100%)
 - Frontend: Tous les flux vérifiés
+- Feature isTest: 89% backend (8/9), 100% frontend
 
 ---
 
@@ -95,3 +114,6 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 ### P3 - Backlog
 - Application mobile native
 - Intégration GPS temps réel
+
+### P4 - Connu mais non prioritaire
+- Correction icône PWA chauffeur (problème mineur)
