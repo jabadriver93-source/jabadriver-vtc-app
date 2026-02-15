@@ -201,25 +201,26 @@ export default function DriverLoginPage() {
                   required
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label className="text-slate-300 text-sm">SIRET *</Label>
-                  <Input
-                    value={registerData.siret}
-                    onChange={(e) => setRegisterData({...registerData, siret: e.target.value})}
-                    className="bg-slate-700 border-slate-600 text-white text-sm"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label className="text-slate-300 text-sm">Préfixe facture</Label>
-                  <Input
-                    value={registerData.invoice_prefix}
-                    onChange={(e) => setRegisterData({...registerData, invoice_prefix: e.target.value})}
-                    className="bg-slate-700 border-slate-600 text-white text-sm"
-                    placeholder="DRI"
-                  />
-                </div>
+              <div>
+                <Label className="text-slate-300 text-sm">SIRET *</Label>
+                <Input
+                  value={registerData.siret}
+                  onChange={(e) => setRegisterData({...registerData, siret: e.target.value})}
+                  className="bg-slate-700 border-slate-600 text-white text-sm"
+                  placeholder="12345678900012"
+                  required
+                />
+              </div>
+              <div>
+                <Label className="text-slate-300 text-sm">Mention TVA *</Label>
+                <Input
+                  value={registerData.vat_mention}
+                  onChange={(e) => setRegisterData({...registerData, vat_mention: e.target.value})}
+                  className="bg-slate-700 border-slate-600 text-white text-sm"
+                  placeholder="TVA non applicable – art. 293 B du CGI"
+                  required
+                />
+                <p className="text-slate-400 text-xs mt-1">Ex: "TVA non applicable – art. 293 B du CGI" pour micro-entreprise</p>
               </div>
               <div className="flex items-center gap-2">
                 <input
@@ -238,6 +239,7 @@ export default function DriverLoginPage() {
                     value={registerData.vat_number}
                     onChange={(e) => setRegisterData({...registerData, vat_number: e.target.value})}
                     className="bg-slate-700 border-slate-600 text-white text-sm"
+                    placeholder="FR12345678901"
                   />
                 </div>
               )}
