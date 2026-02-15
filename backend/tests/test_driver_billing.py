@@ -15,7 +15,7 @@ import uuid
 from datetime import datetime, timedelta
 
 # Get API URL from environment
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://vtc-driver-portal.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://ride-test-filter.preview.emergentagent.com')
 
 # Test data
 TEST_DRIVER_EMAIL = f"test_driver_{uuid.uuid4().hex[:8]}@test.com"

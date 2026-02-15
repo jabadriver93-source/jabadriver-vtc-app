@@ -1,67 +1,57 @@
 <analysis>**original_problem_statement:**
-L'utilisateur a demandé l'ajout de plusieurs fonctionnalités à son application VTC (Jabadriver), construite sur une base existante avec un module de sous-traitance. Les demandes successives comprenaient :
+L'utilisateur a demandé d'implémenter un ensemble de fonctionnalités complexes pour son application VTC (Jabadriver) concernant la facturation, la modification des courses et la génération de documents.
 
 **PRODUCT REQUIREMENTS:**
-- **Notifications par Email :**
-    1.  Ajouter un bouton de partage WhatsApp dans l'email de notification de nouvelle course pour l'admin.
-    2.  Envoyer un email à l'admin lors de l'inscription d'un nouveau chauffeur pour validation.
-    3.  Envoyer un email à l'admin lorsqu'une course est attribuée à un chauffeur.
-    4.  Envoyer un email au chauffeur après la validation de son compte par l'admin.
-    5.  Envoyer un email au chauffeur (Dossier reçu) immédiatement après son inscription, listant les documents à fournir.
-    6.  Notifier le chauffeur par email lorsqu'un client annule une course qui lui était attribuée (avec une logique différente pour les annulations tardives).
-    7.  Notifier le client et le chauffeur lorsqu'un admin annule une course.
-    8.  Notifier le client et l'admin lorsqu'un chauffeur annule une course, et envoyer une confirmation au chauffeur lui-même.
-    9.  Envoyer un email de désactivation automatique au chauffeur après 3 annulations tardives.
-- **Fonctionnalités & Règles Métier :**
-    1.  Créer une page d'historique des commissions pour l'admin () avec filtres et export CSV.
-    2.  Ajouter un bouton de contact WhatsApp flottant sur la page d'accueil.
-    3.  Implémenter une règle de réservation anticipée : une course doit être réservée au moins 6 heures à l'avance (validation frontend et backend).
-    4.  Améliorer le sélecteur d'heure pour empêcher dynamiquement la sélection de créneaux invalides et désactiver le bouton de confirmation.
-    5.  Corriger un bug de filtre dans le tableau de bord admin où le filtre par date ne correspondait pas aux données affichées, en ajoutant deux filtres distincts (date de création vs. date de course).
-    6.  Mettre en place des règles d'annulation (client et chauffeur), en loguant les événements et en ajoutant des statuts spécifiques (, etc.).
-    7.  Implémenter une règle anti-abus : après 3 annulations tardives (< 1h avant la course), le compte d'un chauffeur est automatiquement désactivé.
-    8.  Créer un portail client léger (sans authentification complète) via un lien sécurisé dans l'email de confirmation, permettant de voir la course et de demander des modifications/annulations.
-- **Interface Utilisateur (Chauffeur) :**
-    1.  Ajouter un bouton Annuler la course dans l'espace chauffeur pour les courses qui lui sont attribuées.
+1.  **Facturation au nom du chauffeur :** Pour les courses attribuées, les factures et bons de commande (BDC) doivent être émis au nom du chauffeur (raison sociale, adresse, SIRET, mention TVA) et non plus au nom de Jabadriver. Un pied de page légal pour Jabadriver doit être ajouté.
+2.  **Numérotation des factures par chauffeur :** Chaque chauffeur doit avoir sa propre séquence de numérotation de factures (ex: ), indépendante de la plateforme.
+3.  **Modification de course par le client :** Permettre au client de modifier sa réservation (adresses, date, heure, passagers) via sa page token, avec recalcul automatique du prix, tant que la facture n'est pas émise. Des notifications doivent être envoyées à l'admin et au chauffeur.
+4.  **Gestion des suppléments par le chauffeur :** Permettre au chauffeur d'ajouter des suppléments (péage, parking, attente) à une course avant l'émission de la facture.
+5.  **Workflow de facturation (Draft/Issued) :** Mettre en place un statut de facture. Seul le chauffeur peut finaliser (émettre) une facture. Une fois émise, la course et la facture deviennent non modifiables.
+6.  **Notifications par email :** Envoyer un email au client lorsqu'une course lui est attribuée, avec les détails du chauffeur.
+7.  **Champs chauffeur obligatoires :** Rendre les informations légales du chauffeur (raison sociale, adresse, SIRET, mention TVA) obligatoires à l'inscription.
+8.  **Filtre pour les courses de test :** (Dernière demande) Ajouter un booléen  sur les courses pour les exclure des statistiques de revenus et de commissions, avec un bouton de basculement dans l'interface d'administration.
 
 **User's preferred language**: Français
 
 **what currently exists?**
-Une application VTC full-stack (React/FastAPI/MongoDB) avec un module de sous-traitance fonctionnel. Le système gère les réservations, les chauffeurs, l'attribution des courses via un lien de claim, le paiement des commissions via Stripe (SDK natif), la génération de PDF (bons de commande, factures) et de multiples flux de notification par email via Resend. De nombreuses règles métier ont été ajoutées, notamment pour les annulations, la réservation anticipée, et la gestion des chauffeurs. Un portail client léger et un historique des commissions pour l'admin sont également en place.
+Une application VTC full-stack (React/FastAPI/MongoDB) avec gestion des réservations, des chauffeurs et des commissions (Stripe). Le système vient d'être massivement mis à jour pour inclure un système de facturation complet au nom du chauffeur, avec des numéros de facture séquentiels par chauffeur, un statut /, la gestion des suppléments par le chauffeur, et la modification des courses en libre-service par le client. Toutes ces fonctionnalités ont été implémentées et testées avec succès, y compris les modifications du frontend pour les portails chauffeur et client.
 
 **Last working item**:
-    - Last item agent was working: Implémentation du bouton Annuler la course dans l'espace chauffeur (). L'agent tentait d'ajouter le bouton, une modale de confirmation et la logique d'appel à l'API d'annulation.
-    - Status: IN PROGRESS
+    - Last item agent was working: Implémentation d'un filtre pour les courses de test. L'agent s'apprêtait à démarrer le développement de la fonctionnalité  demandée par l'utilisateur.
+    - Status: NOT STARTED
     - Agent Testing Done: N
-    - Which testing method agent to use? frontend testing agent. Le test doit valider l'ensemble du flux sur la page  : 1. Le bouton Annuler n'apparaît que pour les courses avec le statut . 2. Au clic, une modale de confirmation s'affiche. 3. La modale affiche un avertissement si l'annulation est tardive (< 1h). 4. La confirmation appelle l'API . 5. La liste des courses est rafraîchie et un toast de succès/erreur s'affiche.
+    - Which testing method agent to use? both. L'agent devra :
+        1.  Modifier le modèle backend () et les routes de statistiques pour exclure les courses .
+        2.  Ajouter un bouton de basculement dans l'interface d'administration (React).
+        3.  Utiliser l'agent de test backend pour vérifier que les calculs ignorent bien les courses de test.
+        4.  Utiliser l'agent de test frontend pour valider le fonctionnement du bouton dans l'interface admin.
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  - Issue 1: Finaliser la fonctionnalité d'annulation de course par le chauffeur (P0 - HIGHEST)
+  - Issue 1: Implémenter le filtre pour les courses de test (P0 - HIGHEST)
 
   Issues Detail:
   - Issue 1: 
-     - **Description:** La demande de l'utilisateur était d'ajouter un bouton d'annulation dans l'espace chauffeur. L'implémentation a été chaotique et interrompue à plusieurs reprises. Le code a été ajouté à  mais n'a pas été finalisé ni testé de bout en bout.
-     - **Attempted fixes:** L'agent a modifié le fichier  pour ajouter le bouton, la modale de confirmation () et la fonction . Cependant, la séquence d'actions a été très fragmentée, et l'état final du code est incertain.
+     - **Description:** Ajouter un champ booléen  aux courses. Les courses marquées comme test ne doivent pas être incluses dans les tableaux de bord, les statistiques de revenus et les calculs de commission. Un bouton doit être ajouté dans l'interface d'administration pour marquer/démarquer une course comme test.
+     - **Attempted fixes:** Aucun, la tâche vient d'être demandée.
      - **Next debug checklist:**
-       1.  Examiner attentivement le fichier .
-       2.  Vérifier que le bouton Annuler la course s'affiche conditionnellement pour les courses avec .
-       3.  Assurer le bon fonctionnement de la modale de confirmation, y compris l'affichage du message d'avertissement pour annulation tardive.
-       4.  Confirmer que la fonction  appelle correctement l'endpoint backend .
-       5.  Valider que l'interface utilisateur est mise à jour après une annulation réussie (toast, rafraîchissement de la liste des courses).
-       6.  Vérifier la gestion des erreurs si l'appel API échoue.
-     - **Why fix this issue and what will be achieved with the fix?** Compléter cette fonctionnalité est une demande directe de l'utilisateur et finalisera le cycle de vie des annulations côté chauffeur.
-     - **Status:** IN PROGRESS
+       1.  Modifier le modèle Pydantic  dans  pour ajouter .
+       2.  Créer une nouvelle route API (ex: ) pour basculer la valeur de .
+       3.  Modifier toutes les routes de calcul de statistiques et de commissions pour filtrer les courses avec .
+       4.  Dans l'interface d'administration React, ajouter un bouton sur chaque ligne de course pour appeler la nouvelle API.
+       5.  Vérifier qu'aucune donnée existante n'est supprimée et que la numérotation des factures n'est pas affectée.
+     - **Why fix this issue and what will be achieved with the fix?** Permettre à l'administrateur de créer des courses de test sans fausser les statistiques financières de la plateforme.
+     - **Status:** NOT STARTED
      - **Is recurring issue?** N
-     - **Should Test frontend/backend/both after fix?** frontend
+     - **Should Test frontend/backend/both after fix?** both
      - **Blocked on other issue:** None
 
 **In progress Task List**:
-- Il n'y a pas de tâches en cours distinctes du problème listé ci-dessus.
+- Aucune.
 
 **Upcoming and Future Tasks**
     **Upcoming Tasks:**
-    - **P1: Dashboard statistiques admin:** Tel que mentionné dans le , créer un tableau de bord avec des statistiques pour l'administrateur.
+    - **P1: Dashboard statistiques admin:** Créer un tableau de bord avec des statistiques pour l'administrateur. Cette tâche est directement liée à l'implémentation du flag .
     
     **Future Tasks:**
     - Notifications push pour les chauffeurs.
@@ -69,110 +59,109 @@ Une application VTC full-stack (React/FastAPI/MongoDB) avec un module de sous-tr
     - Améliorations du dashboard statistiques.
 
 **Completed work in this session**
-- **Logique d'annulation complète :**
-  - Ajout d'une règle désactivant les chauffeurs après 3 annulations tardives ().
-  - Implémentation des notifications par email pour toutes les scenarios d'annulation (initiées par l'admin, le client ou le chauffeur) ().
-- **Portail Client Léger :**
-  - Création d'un portail accessible via un token sécurisé pour que les clients puissent voir leur réservation et demander des modifications/annulations (, ).
-  - Le lien du portail a été ajouté à l'email de confirmation de réservation client.
-- **Règles de Réservation :**
-  - Instauration d'un délai de réservation minimum de 6 heures, appliqué sur le frontend et le backend (, ).
-  - L'interface de réservation bloque désormais les créneaux horaires invalides et désactive le bouton de confirmation.
-- **Améliorations Admin :**
-  - Correction d'un bug de filtre de date sur le tableau de bord principal en séparant le filtre par date de création et date de course (, ).
-  - Création d'une page pour l'historique des commissions (, ).
-- **Améliorations UI/UX :**
-  - Ajout d'un bouton de contact WhatsApp flottant et responsive sur la page d'accueil ().
-  - Ajout d'une zone de sécurité sur mobile pour éviter que les éléments flottants ne se chevauchent (, ).
-- **Nouvelles Notifications par Email :**
-  - Email à l'admin pour chaque nouveau chauffeur inscrit.
-  - Email au chauffeur pour confirmer son inscription et lister les documents requis.
-  - Email à l'admin lorsqu'une course est attribuée.
-  - Email au chauffeur lorsque son compte est validé.
+- **Refonte Complète du Système de Facturation:**
+  - **Modèles de Données :** Ajout des champs , , , ,  au modèle . Ajout de , , ,  au modèle .
+  - **Facturation Chauffeur :** La génération de PDF pour les BDC et factures a été modifiée pour utiliser les informations du chauffeur comme émetteur et inclure un pied de page légal Jabadriver.
+  - **Numérotation Indépendante :** Implémentation d'une logique pour générer un  unique à l'inscription et une séquence de factures par chauffeur ().
+  - **Workflow DRAFT/ISSUED :** Mise en place d'un flux où le chauffeur peut ajouter des suppléments (péage, parking, attente) tant que la facture est en , puis l'émettre pour la rendre immuable ().
+- **Modification de Course par le Client :**
+  - Le portail client () a été entièrement reconstruit pour permettre la modification directe des détails de la course avec recalcul automatique du prix. La modification est bloquée une fois la facture émise.
+- **Mise à jour des Interfaces :**
+  - L'espace chauffeur () a été refait pour intégrer la gestion des suppléments et l'émission des factures.
+  - Le formulaire d'inscription chauffeur () a été mis à jour avec les nouveaux champs obligatoires.
+- **Backend :** Ajout de multiples endpoints dans  pour gérer les nouvelles fonctionnalités (, , , ).
+- **Tests :** L'ensemble des nouvelles fonctionnalités a été validé avec succès par  (rapport disponible), confirmant l'absence de régressions sur les systèmes existants (Stripe, claim, commissions).
 
 **Earlier issues found/mentioned but not fixed**
-- Aucun problème identifié n'a été laissé sans solution.
+   - **Issue 1: Incohérence des icônes PWA.** L'icône de la PWA chauffeur est incorrecte sur la page  en production. Cette tâche a été mise en attente car l'utilisateur a priorisé une refonte majeure des fonctionnalités de facturation. L'utilisateur n'a pas mentionné ce problème à nouveau durant la session.
 
 **Known issue recurrence from previous fork**
-- Le problème récurrent des URLs en production a été signalé comme résolu par le support. L'agent a correctement suivi l'instruction de ne pas modifier cette logique.
+  - La gestion des assets PWA a été un problème récurrent dans les forks précédents, nécessitant plusieurs ajustements pour atteindre la parité entre la prévisualisation et la production.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **Backend:** FastAPI, Pydantic, Motor (MongoDB asynchrone), ReportLab (PDF), Resend (emails).
-- **Frontend:** React, TailwindCSS, Axios, Shadcn UI, Sonner (toasts).
-- **Paiement:** Stripe (SDK Python natif).
-- **Base de données:** MongoDB.
+- **Backend:** FastAPI, Pydantic (validation des modèles), Motor (MongoDB driver), ReportLab (génération PDF).
+- **Frontend:** React, TailwindCSS, Shadcn UI, hooks (, ) pour la gestion d'état et les appels API.
+- **Architecture:** API RESTful, application monopage (SPA).
 
 **key DB schema**
-- ****: Ajout de , .
-- ****: Évolution du champ  (ex: , ), ajout de , , .
-- ****: Ajout de , .
-- ****: (Nouvelle collection) Pour tracer les événements clés (attribution, annulation, etc.).
-- ****: (Nouvelle collection) Pour les liens sécurisés du portail client.
+- ** collection:**
+  - : string
+  - : string
+  - : string
+  - : string
+  - : string (ex: DR01)
+- ** collection:**
+  - : string (DRAFT ou ISSUED)
+  - : string (ex: DR01-2026-001)
+  - : datetime
+  - : dict { : float, : float, : float }
+  - : boolean (à ajouter)
 
 **changes in tech stack**
-- Aucune modification de la stack technologique.
+- Aucune.
 
 **All files of reference**
-- : Modifié pour la règle de réservation anticipée, la création du portail client et les endpoints associés.
-- : Fortement modifié pour intégrer les règles d'annulation, la désactivation automatique des chauffeurs, de nombreux nouveaux endpoints et fonctions d'envoi d'email.
-- : Fichier en cours de modification pour la fonctionnalité d'annulation par le chauffeur.
-- : Modifié pour la règle de réservation anticipée et les ajustements UI (bouton WhatsApp, padding).
-- : Modifié pour corriger la logique des filtres de date.
-- : Modifié pour ajouter les nouvelles routes (, ).
-- : Créé et mis à jour tout au long de la session.
+- : Fichier principal du backend, contient la logique pour la plupart des nouvelles fonctionnalités.
+- : Interface de modification de course pour le client.
+- : Interface de gestion des courses/factures pour le chauffeur.
+- : Formulaire d'inscription du chauffeur.
+- : Contient les exigences produit à jour.
+- : Rapport de test validant la dernière session de développement.
 
 **Areas that need refactoring**:
-- Les fichiers  et surtout  (plus de 2000 lignes) sont devenus très volumineux. La logique des emails pourrait être extraite dans un module dédié (ex: ) pour améliorer la lisibilité et la maintenance.
-- Le composant  contient une quantité importante de logique et de styles inline/injectés qui pourraient être réorganisés en hooks personnalisés et en composants plus petits.
+- Le fichier  est devenu très volumineux et complexe. Il devrait être découpé en plusieurs routeurs (fichiers) par domaine fonctionnel (ex: , , , ) pour améliorer la maintenabilité.
+- La logique de basculement de manifeste PWA, mentionnée dans le fork précédent, pourrait être extraite dans un hook React personnalisé () pour éviter la duplication de code.
 
 **key api endpoints**
-- : Permet à un chauffeur d'annuler une course.
-- : Permet à un admin d'annuler une course.
-- : Récupère l'historique des actions.
-- : Récupère l'historique des paiements de commission.
-- : Accède aux données d'une réservation pour le portail client.
-- : Permet à un client d'envoyer un message via le portail.
+- : Modifie une course existante.
+- : Ajoute des suppléments à une course.
+- : Finalise et émet une facture.
+- : Calcule le prix d'un itinéraire.
+- : (À créer) Bascule le statut de test d'une course.
 
 **Critical Info for New Agent**
-- **Suivre les instructions utilisateur:** L'utilisateur est très précis et technique. Respectez scrupuleusement ses demandes, en particulier l'interdiction de toucher au flux de paiement Stripe et à la logique de génération d'URL.
-- **Isoler les modifications:** Tout ajout de fonctionnalité doit préserver l'intégrité des flux existants qui sont en production.
-- **Poursuivre le travail en cours:** La priorité absolue est de finaliser et de tester la fonctionnalité d'annulation de course dans l'espace chauffeur, qui a été laissée inachevée.
+- **Priorité Absolue :** La nouvelle tâche consiste à implémenter le flag . Cette modification touche aux calculs financiers, il est donc impératif de ne créer **aucune régression** sur le système de facturation, de commissionnement Stripe, ou de génération de PDF qui vient d'être validé.
+- **Tests Rigoureux :** L'utilisateur a explicitement demandé de ne rien casser. Après avoir implémenté la fonctionnalité , des tests de non-régression complets sont nécessaires.
+- **Base de Code Stable :** Vous partez d'une base de code stable et entièrement testée pour le périmètre fonctionnel précédent. Le rapport de test  le confirme.
+- **Problème en Attente :** Le problème d'icône PWA du fork précédent est toujours non résolu mais de priorité basse. Ne l'adressez pas sauf si l'utilisateur le demande explicitement.
 
 **documents and test reports created in this job**
 - 
+- 
 
 **Last 10 User Messages and any pending HUMAN messages** 
-10. **(user):** Demande d'ajouter le bouton Annuler la course dans l'espace chauffeur avec une modale de confirmation et un appel à l'endpoint existant.
-9.  **(user):** Répète la demande d'implémenter le bouton d'annulation chauffeur sans pause, de manière continue.
-8.  **(user):** Réitère la demande de ne pas s'arrêter pendant l'implémentation.
-7.  **(user):** Demande d'implémenter UNIQUEMENT l'UI du bouton d'annulation dans .
-6.  **(user):** Répète la demande de continuer sans pause.
-5.  **(user):** Répète la demande de continuer sans pause.
-4.  **(user):** Répète la demande de continuer sans pause jusqu'à la fin.
-3.  **(user):** Demande d'ajouter les notifications d'annulation (quand l'admin ou le chauffeur annule) et la règle de désactivation après 3 annulations tardives.
-2.  **(user):** Demande d'ajouter une notification par email au chauffeur quand un client annule une course.
-1.  **(user):** Demande l'ajout de plusieurs améliorations : règles d'annulation, portail client léger, et logs d'activité.
+10. **(user):** Demande de mettre en place un système pour marquer des courses comme test afin de les exclure des statistiques, sans supprimer de données ni réinitialiser les compteurs.
+9.  **(agent):** Confirme la fin de l'implémentation et la mise à jour du PRD.
+8.  **(agent):** Note que la validation des champs vides fonctionne et que le rapport du testing agent était un faux positif sur ce point.
+7.  **(agent):** Annonce que le testing agent a validé toutes les fonctionnalités à 100% et qu'il va corriger une recommandation mineure.
+6.  **(agent):** Appelle le  pour une validation complète.
+5.  **(agent):** Confirme via une capture d'écran que l'interface chauffeur se met à jour correctement après l'émission de la facture (boutons désactivés, badge mis à jour).
+4.  **(agent):** Confirme via une capture d'écran que la page client bloque bien les modifications après l'émission de la facture.
+3.  **(agent):** Confirme que la facture a bien été émise avec le numéro de séquence correct pour le chauffeur.
+2.  **(agent):** Confirme que les PDF de facture et de bon de commande sont bien générés.
+1.  **(agent):** Confirme via une capture d'écran que la modale de modification de course côté client fonctionne comme prévu.
 
 **Project Health Check:**
-- **Broken:** La fonctionnalité d'annulation de course depuis l'espace chauffeur est incomplète et donc non fonctionnelle.
+- **Broken:** Aucun.
+- **Mocked:** Aucun.
 
 **3rd Party Integrations**
-- **Resend:** Envoi d'e-mails.
-- **Stripe:** Paiements (via SDK Python natif).
-- **Google Maps:** Itinéraires et autocomplétion d'adresses.
+- **Resend:** Pour l'envoi d'emails transactionnels.
+- **Stripe:** Pour la gestion des paiements et des commissions.
+- **Google Maps API:** Pour le calcul d'itinéraires et l'autocomplétion d'adresses.
 
 **Testing status**
-  - Testing agent used after significant changes: NO
+  - Testing agent used after significant changes: YES
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: []
-  - Known regressions: None, mais une fonctionnalité clé est en cours de développement.
+  - Test files created: ['/app/test_reports/iteration_1.json']
+  - Known regressions: Aucune.
 
 **Credentials to test flow:**
 - **Admin:**  / 
-- **Driver:**  / 
+- **Driver:**  /  (ou créer un nouveau chauffeur)
 
 **What agent forgot to execute**
-- L'agent n'a pas réussi à suivre l'instruction de l'utilisateur de réaliser une tâche de bout en bout sans s'arrêter (Continue without pause). Cette difficulté à gérer le flux de travail a conduit à une implémentation fragmentée et inachevée de la dernière fonctionnalité demandée (le bouton d'annulation pour le chauffeur).</analysis>
+- L'agent a consciemment mis de côté le problème de l'icône PWA (reporté du fork précédent) pour se concentrer sur la demande de refonte de la facturation, qui était une priorité beaucoup plus élevée pour l'utilisateur.</analysis>
