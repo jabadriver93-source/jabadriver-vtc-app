@@ -345,14 +345,30 @@ export default function AdminSubcontractingPage() {
         {/* Courses Tab */}
         {activeTab === 'courses' && (
           <div className="space-y-4">
-            {courses.length === 0 ? (
+            {courses.filter(c => showTestRides || !c.is_test).length === 0 ? (
               <Card className="bg-slate-800/50 border-slate-700">
                 <CardContent className="py-12 text-center">
-                  <p className="text-slate-400">Aucune course sous-traitée</p>
+                  <p className="text-slate-400">
+                    {courses.length === 0 
+                      ? "Aucune course sous-traitée" 
+                      : "Aucune course à afficher (courses test masquées)"
+                    }
+                  </p>
+                  {!showTestRides && courses.some(c => c.is_test) && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowTestRides(true)}
+                      className="mt-3 border-orange-500/50 text-orange-400"
+                    >
+                      <FlaskConical className="w-4 h-4 mr-1" />
+                      Afficher les {courses.filter(c => c.is_test).length} course(s) test
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             ) : (
-              courses.map((course) => (
+              courses.filter(c => showTestRides || !c.is_test).map((course) => (
                 <Card key={course.id} className={`bg-slate-800/50 border-slate-700 ${course.is_test ? 'ring-2 ring-orange-500/50' : ''}`} data-testid={`admin-course-${course.id}`}>
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-3">
