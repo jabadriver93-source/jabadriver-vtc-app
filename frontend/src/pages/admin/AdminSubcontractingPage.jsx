@@ -209,6 +209,25 @@ export default function AdminSubcontractingPage() {
     }
   };
 
+  const toggleTestCourse = async (courseId, currentIsTest) => {
+    try {
+      const res = await fetch(`${API_URL}/api/admin/subcontracting/courses/${courseId}/toggle-test`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail);
+      
+      // Update local state
+      setCourses(prev => prev.map(c => 
+        c.id === courseId ? { ...c, is_test: data.is_test } : c
+      ));
+      
+      toast.success(data.message);
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
   const downloadCommissionInvoice = async (courseId) => {
     try {
       const res = await fetch(`${API_URL}/api/admin/subcontracting/courses/${courseId}/commission-invoice-pdf`);
