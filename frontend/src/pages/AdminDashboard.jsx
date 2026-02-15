@@ -308,25 +308,25 @@ export default function AdminDashboard() {
             <div className="card-dark p-4">
               <p className="text-xs text-white/40 mb-1 uppercase tracking-wider">Total</p>
               <p className="text-2xl font-bold text-white" data-testid="stat-total">
-                {reservations.length}
+                {filteredReservations.length}
               </p>
             </div>
             <div className="card-dark p-4">
               <p className="text-xs text-white/40 mb-1 uppercase tracking-wider">Nouvelles</p>
               <p className="text-2xl font-bold text-[#7dd3fc]" data-testid="stat-new">
-                {reservations.filter(r => r.status === "nouvelle").length}
+                {filteredReservations.filter(r => r.status === "nouvelle").length}
               </p>
             </div>
             <div className="card-dark p-4">
               <p className="text-xs text-white/40 mb-1 uppercase tracking-wider">Confirmées</p>
               <p className="text-2xl font-bold text-emerald-500" data-testid="stat-confirmed">
-                {reservations.filter(r => r.status === "confirmée").length}
+                {filteredReservations.filter(r => r.status === "confirmée").length}
               </p>
             </div>
             <div className="card-dark p-4">
               <p className="text-xs text-white/40 mb-1 uppercase tracking-wider">Effectuées</p>
               <p className="text-2xl font-bold text-slate-400" data-testid="stat-done">
-                {reservations.filter(r => r.status === "effectuée").length}
+                {filteredReservations.filter(r => r.status === "effectuée").length}
               </p>
             </div>
             <div className="card-dark p-4 col-span-2 sm:col-span-1 bg-gradient-to-br from-[#7dd3fc]/20 to-transparent">
