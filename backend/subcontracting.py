@@ -158,6 +158,8 @@ class Course(BaseModel):
     last_modified_at: Optional[str] = None
     last_modified_by: Optional[str] = None  # "client", "driver", "admin"
     modification_history: List[dict] = Field(default_factory=list)  # History of changes
+    # Test flag - courses marked as test are excluded from revenue/commission stats
+    is_test: bool = False
 
 # ============================================
 # MODELS - CLAIM TOKENS
