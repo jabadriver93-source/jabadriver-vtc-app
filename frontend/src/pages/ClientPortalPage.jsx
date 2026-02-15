@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
-const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_PUBLIC_GOOGLE_MAPS_API_KEY;
+const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 // Price calculation constants - must match backend
 const PRICE_PER_KM = 1.50;
