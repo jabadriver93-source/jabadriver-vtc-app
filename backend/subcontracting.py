@@ -2719,8 +2719,15 @@ async def admin_export_commissions_csv(
 # ============================================
 # PDF GENERATION - DRIVER DOCUMENTS
 # ============================================
+
+# Pied de page Jabadriver (texte légal)
+JABADRIVER_FOOTER_TEXT = """Jabadriver est une plateforme de mise en relation entre clients et chauffeurs VTC indépendants.
+Le service de transport est fourni exclusivement par le chauffeur mentionné sur le présent document, agissant en son nom et pour son propre compte.
+Jabadriver intervient uniquement en qualité d'intermédiaire technique et n'est pas partie au contrat de transport.
+www.jabadriver.fr"""
+
 def generate_driver_bon_commande_pdf(course: dict, driver: dict):
-    """Generate bon de commande with driver's company info"""
+    """Generate bon de commande with driver's company info (émetteur = chauffeur)"""
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
@@ -2728,8 +2735,7 @@ def generate_driver_bon_commande_pdf(course: dict, driver: dict):
     dark = HexColor("#0a0a0a")
     accent = HexColor("#7dd3fc")
     gray = HexColor("#64748b")
-    
-    y = height - 40
+    light_gray = HexColor("#f1f5f9")
     
     # Header
     c.setFillColor(dark)
@@ -2743,7 +2749,7 @@ def generate_driver_bon_commande_pdf(course: dict, driver: dict):
     c.setFillColor(accent)
     c.drawString(40, height - 65, "Réservation préalable — Transport de personnes")
     
-    # Reference
+    # Reference box
     c.setFillColor(HexColor("#1a1a1a"))
     c.roundRect(width - 200, height - 90, 180, 70, 5, fill=True, stroke=False)
     c.setFillColor(HexColor("#ffffff"))
@@ -2757,11 +2763,11 @@ def generate_driver_bon_commande_pdf(course: dict, driver: dict):
     
     y = height - 130
     
-    # Driver company info
+    # ÉMETTEUR = CHAUFFEUR (not Jabadriver)
     c.setFillColor(dark)
     c.setFont("Helvetica-Bold", 10)
-    c.drawString(40, y, "EXPLOITANT")
-    y -= 20
+    c.drawString(40, y, "ÉMETTEUR (EXPLOITANT)")
+    y -= 18
     c.setFont("Helvetica", 10)
     c.setFillColor(gray)
     c.drawString(40, y, driver.get("company_name", ""))
@@ -2769,18 +2775,22 @@ def generate_driver_bon_commande_pdf(course: dict, driver: dict):
     c.drawString(40, y, driver.get("address", ""))
     y -= 14
     c.drawString(40, y, f"SIRET: {driver.get('siret', '')}")
+    y -= 14
+    # Mention TVA obligatoire
+    vat_mention = driver.get("vat_mention", "TVA non applicable – art. 293 B du CGI")
+    c.drawString(40, y, vat_mention)
     if driver.get("vat_applicable") and driver.get("vat_number"):
         y -= 14
-        c.drawString(40, y, f"TVA: {driver['vat_number']}")
+        c.drawString(40, y, f"N° TVA: {driver['vat_number']}")
     y -= 14
     c.drawString(40, y, f"Tél: {driver.get('phone', '')} | Email: {driver.get('email', '')}")
     
-    # Client info
+    # CLIENT
     y = height - 130
     c.setFillColor(dark)
     c.setFont("Helvetica-Bold", 10)
     c.drawString(320, y, "CLIENT")
-    y -= 20
+    y -= 18
     c.setFont("Helvetica", 10)
     c.setFillColor(gray)
     c.drawString(320, y, course.get("client_name", ""))
@@ -2790,11 +2800,11 @@ def generate_driver_bon_commande_pdf(course: dict, driver: dict):
     c.drawString(320, y, course.get("client_phone", ""))
     
     # Course details
-    y = height - 260
+    y = height - 280
     c.setFillColor(dark)
     c.setFont("Helvetica-Bold", 12)
     c.drawString(40, y, "DÉTAILS DE LA COURSE")
-    y -= 30
+    y -= 25
     
     c.setFont("Helvetica", 10)
     c.setFillColor(gray)
@@ -2807,6 +2817,8 @@ def generate_driver_bon_commande_pdf(course: dict, driver: dict):
     ]
     if course.get("distance_km"):
         details.append(("Distance", f"{course['distance_km']} km"))
+    if course.get("duration_min"):
+        details.append(("Durée estimée", f"{int(course['duration_min'])} min"))
     if course.get("notes"):
         details.append(("Notes", course["notes"]))
     
@@ -2816,27 +2828,77 @@ def generate_driver_bon_commande_pdf(course: dict, driver: dict):
         c.drawString(40, y, f"{label}:")
         c.setFillColor(gray)
         c.setFont("Helvetica", 9)
-        c.drawString(120, y, str(value)[:80])
-        y -= 18
+        # Wrap long text
+        text = str(value)[:80]
+        c.drawString(130, y, text)
+        y -= 16
     
-    # Price
-    y -= 20
+    # Price section
+    y -= 15
     c.setFillColor(dark)
-    c.setFont("Helvetica-Bold", 14)
-    c.drawString(40, y, "PRIX TOTAL:")
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(40, y, "TARIFICATION")
+    y -= 25
+    
+    # Price breakdown
+    price_base = course.get("price_base") or course.get("price_total", 0)
+    supplement_peage = course.get("supplement_peage", 0)
+    supplement_parking = course.get("supplement_parking", 0)
+    supplement_attente = course.get("supplement_attente_amount", 0)
+    price_total = course.get("price_with_supplements") or course.get("price_total", 0)
+    
+    c.setFont("Helvetica", 10)
+    c.setFillColor(gray)
+    c.drawString(40, y, "Prix course:")
+    c.drawRightString(250, y, f"{price_base:.2f} €")
+    y -= 16
+    
+    if supplement_peage > 0:
+        c.drawString(40, y, "Supplément péage:")
+        c.drawRightString(250, y, f"+ {supplement_peage:.2f} €")
+        y -= 16
+    
+    if supplement_parking > 0:
+        c.drawString(40, y, "Supplément parking:")
+        c.drawRightString(250, y, f"+ {supplement_parking:.2f} €")
+        y -= 16
+    
+    if supplement_attente > 0:
+        attente_min = course.get("supplement_attente_minutes", 0)
+        c.drawString(40, y, f"Supplément attente ({attente_min} min):")
+        c.drawRightString(250, y, f"+ {supplement_attente:.2f} €")
+        y -= 16
+    
+    # Total
+    y -= 5
+    c.setStrokeColor(dark)
+    c.setLineWidth(1)
+    c.line(40, y, 250, y)
+    y -= 18
+    c.setFillColor(dark)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(40, y, "TOTAL:")
     c.setFillColor(accent)
-    c.drawString(160, y, f"{course.get('price_total', 0):.2f} €")
+    c.setFont("Helvetica-Bold", 14)
+    c.drawRightString(250, y, f"{price_total:.2f} €")
     
-    # Footer
-    c.setFillColor(dark)
-    c.rect(0, 0, width, 35, fill=True, stroke=False)
-    c.setFillColor(HexColor("#ffffff"))
-    c.setFont("Helvetica", 8)
-    c.drawCentredString(width / 2, 15, f"{driver.get('company_name', '')} — SIRET: {driver.get('siret', '')} — {driver.get('email', '')}")
+    # Jabadriver footer (legal text)
+    footer_y = 90
+    c.setFillColor(light_gray)
+    c.rect(0, 0, width, footer_y, fill=True, stroke=False)
+    
+    c.setFillColor(gray)
+    c.setFont("Helvetica", 7)
+    footer_lines = JABADRIVER_FOOTER_TEXT.split('\n')
+    text_y = footer_y - 15
+    for line in footer_lines:
+        c.drawCentredString(width / 2, text_y, line.strip())
+        text_y -= 10
     
     c.save()
     buffer.seek(0)
     return buffer.getvalue()
+
 
 def generate_driver_invoice_pdf(course: dict, driver: dict, invoice_number: str, invoice_date: str):
     """Generate invoice from driver to client"""
