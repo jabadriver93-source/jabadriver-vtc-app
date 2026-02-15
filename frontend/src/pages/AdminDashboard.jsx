@@ -342,17 +342,31 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-center py-20">
               <Loader2 className="w-8 h-8 text-[#7dd3fc] spinner" />
             </div>
-          ) : reservations.length === 0 ? (
+          ) : filteredReservations.length === 0 ? (
             <div className="text-center py-20 card-dark">
               <Calendar className="w-12 h-12 text-white/20 mx-auto mb-4" />
-              <p className="text-white/40">Aucune réservation trouvée</p>
+              <p className="text-white/40">
+                {reservations.length === 0 
+                  ? "Aucune réservation trouvée" 
+                  : "Aucune réservation à afficher (réservations test masquées)"
+                }
+              </p>
+              {!showTestReservations && testReservationsCount > 0 && (
+                <button
+                  onClick={() => setShowTestReservations(true)}
+                  className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-orange-500/20 text-orange-400 border border-orange-500/30 rounded-lg hover:bg-orange-500/30 transition-colors"
+                >
+                  <FlaskConical className="w-4 h-4" />
+                  Afficher les {testReservationsCount} réservation(s) test
+                </button>
+              )}
             </div>
           ) : (
             <div className="space-y-4" data-testid="reservations-list">
-              {reservations.map((reservation, index) => (
+              {filteredReservations.map((reservation, index) => (
                 <div 
                   key={reservation.id} 
-                  className="reservation-row animate-fadeIn"
+                  className={`reservation-row animate-fadeIn ${reservation.is_test ? 'ring-2 ring-orange-500/40' : ''}`}
                   style={{ animationDelay: `${index * 50}ms` }}
                   data-testid={`reservation-${reservation.id}`}
                 >
@@ -360,8 +374,14 @@ export default function AdminDashboard() {
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="flex items-start gap-4">
                       <div>
-                        <h3 className="text-lg font-bold text-white" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                        <h3 className="text-lg font-bold text-white flex items-center gap-2" style={{ fontFamily: 'Manrope, sans-serif' }}>
                           {reservation.name}
+                          {reservation.is_test && (
+                            <span className="px-2 py-0.5 rounded text-xs font-medium bg-orange-500/20 text-orange-400 border border-orange-500/30 flex items-center gap-1" data-testid={`test-badge-${reservation.id}`}>
+                              <FlaskConical className="w-3 h-3" />
+                              TEST
+                            </span>
+                          )}
                         </h3>
                         <p className="text-sm text-white/40 flex items-center gap-2 mt-1">
                           <Clock className="w-4 h-4" />
