@@ -110,6 +110,78 @@ export default function ClientPortalPage() {
     fetchReservation();
   }, [token]);
 
+  // Load Google Maps script
+  useEffect(() => {
+    if (!GOOGLE_MAPS_API_KEY) {
+      console.warn("Google Maps API key not configured");
+      return;
+    }
+
+    loadGoogleMapsScript().then(() => {
+      if (window.google?.maps?.places) {
+        setMapsReady(true);
+        console.log("Google Maps Places API ready for client portal");
+      }
+    });
+  }, []);
+
+  // Initialize Autocomplete when modal opens and maps is ready
+  useEffect(() => {
+    if (!showModifyModal || !mapsReady || !window.google?.maps?.places) return;
+
+    const initAutocomplete = (inputRef, autocompleteRef, fieldName) => {
+      // Wait for input to be mounted
+      const timer = setTimeout(() => {
+        if (!inputRef.current || autocompleteRef.current) return;
+
+        try {
+          const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
+            types: ["address"],
+            componentRestrictions: { country: "fr" },
+            fields: ["formatted_address", "geometry", "name"]
+          });
+
+          autocomplete.addListener("place_changed", () => {
+            const place = autocomplete.getPlace();
+            if (place && place.formatted_address) {
+              setModifyData(prev => ({
+                ...prev,
+                [fieldName]: place.formatted_address
+              }));
+              // Update input value directly
+              if (inputRef.current) {
+                inputRef.current.value = place.formatted_address;
+              }
+              // Trigger price recalculation after address selection
+              setTimeout(() => {
+                calculateNewPrice();
+              }, 300);
+            }
+          });
+
+          autocompleteRef.current = autocomplete;
+          console.log(`Autocomplete initialized for ${fieldName}`);
+        } catch (error) {
+          console.error(`Failed to init autocomplete for ${fieldName}:`, error);
+        }
+      }, 200);
+
+      return () => clearTimeout(timer);
+    };
+
+    // Initialize autocomplete for both fields
+    const cleanup1 = initAutocomplete(pickupInputRef, pickupAutocompleteRef, "pickup_address");
+    const cleanup2 = initAutocomplete(dropoffInputRef, dropoffAutocompleteRef, "dropoff_address");
+
+    // Cleanup on modal close
+    return () => {
+      if (cleanup1) cleanup1();
+      if (cleanup2) cleanup2();
+      pickupAutocompleteRef.current = null;
+      dropoffAutocompleteRef.current = null;
+    };
+  }, [showModifyModal, mapsReady]);
+
   const fetchReservation = async () => {
     try {
       const res = await fetch(`${API_URL}/api/client-portal/${token}`);
