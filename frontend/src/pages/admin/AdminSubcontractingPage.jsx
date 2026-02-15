@@ -302,13 +302,13 @@ export default function AdminSubcontractingPage() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex flex-wrap items-center gap-2 mb-6">
           <Button
             variant={activeTab === 'courses' ? 'default' : 'outline'}
             onClick={() => setActiveTab('courses')}
             className={activeTab === 'courses' ? 'bg-sky-600' : 'border-slate-600 text-slate-300'}
           >
-            Courses ({courses.length})
+            Courses ({courses.filter(c => showTestRides || !c.is_test).length})
           </Button>
           <Button
             variant={activeTab === 'drivers' ? 'default' : 'outline'}
@@ -318,6 +318,28 @@ export default function AdminSubcontractingPage() {
             <Users className="w-4 h-4 mr-2" />
             Chauffeurs ({drivers.length})
           </Button>
+          
+          {/* Test Rides Filter Toggle */}
+          {activeTab === 'courses' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowTestRides(!showTestRides)}
+              className={showTestRides 
+                ? "border-orange-500 text-orange-400 bg-orange-500/10 hover:bg-orange-500/20 ml-auto" 
+                : "border-slate-600 text-slate-400 hover:bg-slate-700/50 ml-auto"
+              }
+              data-testid="toggle-show-test-rides"
+            >
+              <FlaskConical className="w-4 h-4 mr-1" />
+              {showTestRides ? 'Masquer tests' : 'Afficher tests'}
+              {courses.filter(c => c.is_test).length > 0 && (
+                <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-xs bg-orange-500/20">
+                  {courses.filter(c => c.is_test).length}
+                </span>
+              )}
+            </Button>
+          )}
         </div>
 
         {/* Courses Tab */}
