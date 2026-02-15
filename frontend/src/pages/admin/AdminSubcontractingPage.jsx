@@ -19,6 +19,7 @@ export default function AdminSubcontractingPage() {
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showTestRides, setShowTestRides] = useState(false); // Filter: default OFF = hide test rides
   const [newCourse, setNewCourse] = useState({
     client_name: '',
     client_email: '',
