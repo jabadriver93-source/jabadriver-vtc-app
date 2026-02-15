@@ -24,6 +24,14 @@ export default function DriverProfilePage() {
     invoice_prefix: 'DRI'
   });
 
+  // Set driver manifest for PWA
+  useEffect(() => {
+    const manifestLink = document.querySelector('link[rel="manifest"]');
+    if (manifestLink) manifestLink.href = '/manifest-driver.json?v=5';
+    const appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
+    if (appleIcon) appleIcon.href = '/icons/driver/apple-touch-icon.png?v=5';
+  }, []);
+
   useEffect(() => {
     const token = localStorage.getItem('driver_token');
     if (!token) {
