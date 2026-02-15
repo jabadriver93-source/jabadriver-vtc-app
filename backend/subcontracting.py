@@ -17,6 +17,7 @@ import secrets
 import io
 import asyncio
 import resend
+import re
 
 # PDF generation
 from reportlab.lib.pagesizes import A4
