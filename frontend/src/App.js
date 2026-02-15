@@ -27,6 +27,7 @@ function App() {
           
           {/* Client portal (token-based, no auth) */}
           <Route path="/my-booking/:token" element={<ClientPortalPage />} />
+          <Route path="/client/:token" element={<ClientPortalPage />} />
           
           {/* Admin routes */}
           <Route path="/admin" element={<AdminLoginPage />} />
