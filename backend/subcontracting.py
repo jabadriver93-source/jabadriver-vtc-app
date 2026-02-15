@@ -110,6 +110,10 @@ class CourseStatusEnum:
     CANCELLED_LATE_DRIVER = "CANCELLED_LATE_DRIVER"  # Driver cancelled < 1h before pickup
     CANCELLED_LATE_CLIENT = "CANCELLED_LATE_CLIENT"  # Client cancelled < 1h before pickup
 
+class InvoiceStatusEnum:
+    DRAFT = "DRAFT"    # Facture brouillon - modifiable
+    ISSUED = "ISSUED"  # Facture émise - figée
+
 class Course(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     client_name: str
@@ -120,6 +124,7 @@ class Course(BaseModel):
     date: str
     time: str
     distance_km: Optional[float] = None
+    duration_min: Optional[float] = None  # Durée estimée en minutes
     price_total: float
     notes: Optional[str] = None
     admin_notes: Optional[str] = None  # Internal admin notes
@@ -136,6 +141,23 @@ class Course(BaseModel):
     cancelled_by: Optional[str] = None  # "driver" or "client"
     is_late_cancellation: bool = False  # True if cancelled < 1h before pickup
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    # Invoice status and supplements
+    invoice_status: str = InvoiceStatusEnum.DRAFT  # DRAFT or ISSUED
+    invoice_number: Optional[str] = None  # Format: {DRIVER_CODE}-{YEAR}-{SEQ}
+    invoice_date: Optional[str] = None
+    invoice_issued_at: Optional[str] = None  # When invoice was finalized
+    # Supplements (only modifiable when invoice_status = DRAFT)
+    supplement_peage: float = 0.0  # Péage - montant libre
+    supplement_parking: float = 0.0  # Parking - montant libre
+    supplement_attente_minutes: int = 0  # Minutes d'attente
+    supplement_attente_amount: float = 0.0  # Calculé: 0.50€/min
+    # Total recalculé
+    price_base: Optional[float] = None  # Prix de base avant suppléments
+    price_with_supplements: Optional[float] = None  # Prix total avec suppléments
+    # Modification history
+    last_modified_at: Optional[str] = None
+    last_modified_by: Optional[str] = None  # "client", "driver", "admin"
+    modification_history: List[dict] = Field(default_factory=list)  # History of changes
 
 # ============================================
 # MODELS - CLAIM TOKENS
