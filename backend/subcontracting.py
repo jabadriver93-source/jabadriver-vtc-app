@@ -167,6 +167,9 @@ class Course(BaseModel):
     # Ride lifecycle timestamps
     started_at: Optional[str] = None  # When driver started the ride
     ended_at: Optional[str] = None  # When driver ended the ride
+    # Client confirmation
+    client_confirmation_token: Optional[str] = None  # Token for client to confirm ride
+    confirmed_at: Optional[str] = None  # When client confirmed the ride
 
 # ============================================
 # MODELS - CLAIM TOKENS
