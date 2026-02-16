@@ -90,10 +90,18 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
     - IN_PROGRESS: Navigation vers destination (dropoff)
   - Bouton principal: "Démarrer" (ASSIGNED) ou "Terminer" (IN_PROGRESS)
   - Boutons PDF: Bon de commande, Facture
+- **Dashboard Chauffeur (DriverCoursesPage)**:
+  - Bouton "Démarrer la course" pour statut ASSIGNED
+  - Bouton "Terminer la course" pour statut IN_PROGRESS  
+  - Bouton "Voir le statut" pour statut DRIVER_COMPLETED
+  - Redirection vers `/driver/ride/{id}?token={driver_access_token}`
+  - Nouveaux statuts affichés: "En cours", "Terminée (attente client)"
 - **Emails**:
-  - Attribution: Email au chauffeur avec bouton "VOIR LA COURSE"
+  - Attribution: Email au chauffeur avec bouton "VOIR LA COURSE" (lien avec token)
   - Start: Email au client + admin (course démarrée)
   - End: Email au client avec bouton "CONFIRMER MA COURSE"
+- **Configuration requise**:
+  - `FRONTEND_URL` dans backend/.env pour les liens d'email
 - **Sécurité**:
   - Token valide jusqu'à status = DONE
   - Seul le chauffeur assigné peut agir
