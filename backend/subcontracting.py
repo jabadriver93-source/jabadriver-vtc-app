@@ -3383,6 +3383,79 @@ async def finalize_attribution(course_id: str, driver_id: str, payment_session_i
     return True
 
 # ============================================
+# ADMIN ROUTES - EMAIL DIAGNOSTIC
+# ============================================
+@admin_subcontracting_router.get("/email-diagnostic")
+async def admin_email_diagnostic():
+    """Diagnostic endpoint for email configuration - helps debug production email issues"""
+    import resend as resend_module
+    
+    # Check config
+    config = {
+        "SENDER_EMAIL": SENDER_EMAIL or "NOT_SET",
+        "FRONTEND_URL": FRONTEND_URL or "NOT_SET",
+        "ADMIN_EMAIL": ADMIN_EMAIL or "NOT_SET",
+        "RESEND_API_KEY_present": bool(resend_module.api_key or os.environ.get('RESEND_API_KEY')),
+        "RESEND_API_KEY_length": len(resend_module.api_key or os.environ.get('RESEND_API_KEY', '')) if (resend_module.api_key or os.environ.get('RESEND_API_KEY')) else 0,
+        "RESEND_API_KEY_prefix": (resend_module.api_key or os.environ.get('RESEND_API_KEY', ''))[:8] + "..." if (resend_module.api_key or os.environ.get('RESEND_API_KEY')) else "N/A"
+    }
+    
+    logger.info(f"[EMAIL-DIAGNOSTIC] Config check: {config}")
+    
+    return {
+        "status": "ok",
+        "config": config,
+        "message": "Use POST /api/admin/subcontracting/test-email-driver/{course_id} to test driver email"
+    }
+
+@admin_subcontracting_router.post("/test-email-driver/{course_id}")
+async def admin_test_driver_email(course_id: str):
+    """Test sending driver assignment email for a specific course - use this to debug production email issues"""
+    logger.info(f"[EMAIL-TEST] Testing driver email for course {course_id[:8]}")
+    
+    # Find course
+    course = await db.courses.find_one({"id": course_id}, {"_id": 0})
+    if not course:
+        # Try partial match
+        course = await db.courses.find_one({"id": {"$regex": f"^{course_id}", "$options": "i"}}, {"_id": 0})
+    
+    if not course:
+        logger.error(f"[EMAIL-TEST] Course not found: {course_id}")
+        raise HTTPException(status_code=404, detail=f"Course not found: {course_id}")
+    
+    driver_id = course.get("assigned_driver_id")
+    if not driver_id:
+        logger.error(f"[EMAIL-TEST] Course {course_id[:8]} has no assigned driver")
+        raise HTTPException(status_code=400, detail="Course has no assigned driver")
+    
+    driver = await db.drivers.find_one({"id": driver_id}, {"_id": 0, "password_hash": 0})
+    if not driver:
+        logger.error(f"[EMAIL-TEST] Driver {driver_id[:8]} not found for course {course_id[:8]}")
+        raise HTTPException(status_code=404, detail=f"Driver not found: {driver_id[:8]}")
+    
+    logger.info(f"[EMAIL-TEST] Found course={course_id[:8]} driver={driver.get('email')} status={course.get('status')}")
+    
+    # Try to send email
+    try:
+        await send_course_assigned_to_driver(course, driver)
+        logger.info(f"[EMAIL-TEST] ✅ Email function completed for {driver.get('email')}")
+        return {
+            "success": True,
+            "message": f"Email sent to {driver.get('email')}",
+            "course_id": course_id[:8],
+            "driver_email": driver.get('email'),
+            "note": "Check logs for [EMAIL][ASSIGNED] to see if Resend accepted it"
+        }
+    except Exception as e:
+        logger.error(f"[EMAIL-TEST] ❌ Email failed: {str(e)}")
+        return {
+            "success": False,
+            "error": str(e),
+            "course_id": course_id[:8],
+            "driver_email": driver.get('email')
+        }
+
+# ============================================
 # ADMIN ROUTES - COURSES MANAGEMENT
 # ============================================
 @admin_subcontracting_router.get("/courses")
