@@ -113,26 +113,15 @@ export default function DriverCoursesPage() {
     navigate('/driver/login');
   };
 
-  // Helper to safely read JSON response body ONCE (fixes iOS Safari "Body is disturbed" error)
-  // Safari/iOS bug: sometimes response body is consumed by browser before we can read it
+  // Helper to safely read JSON response body ONCE
+  // Returns { ok: boolean, data: object|null, raw: string }
   const safeReadJson = async (res) => {
     try {
-      // Check if body is already used (Safari bug)
-      if (res.bodyUsed) {
-        console.warn('[FETCH] Body already used by browser - using fallback');
-        return { ok: false, data: null, raw: '' };
-      }
-      
-      // Try to read json directly
-      try {
-        const data = await res.json();
-        return { ok: true, data, raw: JSON.stringify(data) };
-      } catch (jsonErr) {
-        console.warn('[FETCH] JSON parse failed:', jsonErr.message);
-        return { ok: false, data: null, raw: '' };
-      }
+      const data = await res.json();
+      return { ok: true, data, raw: '' };
     } catch (err) {
-      console.error('[FETCH] Body read error:', err);
+      console.error('[FETCH] Body read error:', err.message || err);
+      // If JSON parsing fails, return null but mark as readable
       return { ok: false, data: null, raw: '' };
     }
   };
