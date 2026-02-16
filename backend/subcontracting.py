@@ -832,6 +832,11 @@ async def send_course_assigned_to_driver(course: dict, driver: dict):
     """
     
     try:
+        # Log sender verification (critical for debugging PROD issues)
+        actual_sender = SENDER_EMAIL or "(NOT SET!)"
+        if "onboarding" in str(actual_sender).lower():
+            logger.warning(f"[EMAIL][ASSIGNED] ⚠️ WARNING: Using onboarding@resend.dev - emails will NOT be delivered!")
+        
         params = {
             "from": SENDER_EMAIL,
             "to": [driver_email],
@@ -839,13 +844,13 @@ async def send_course_assigned_to_driver(course: dict, driver: dict):
             "html": html_content
         }
         
-        logger.info(f"[EMAIL][ASSIGNED] Sending | course={course_id_short} | to={driver_email} | from={SENDER_EMAIL}")
+        logger.info(f"[EMAIL][ASSIGNED] Sending | from={actual_sender} | to={driver_email} | course={course_id_short}")
         response = await asyncio.to_thread(resend.Emails.send, params)
         resend_id = response.get('id', 'N/A') if isinstance(response, dict) else str(response)
-        logger.info(f"[EMAIL][ASSIGNED] ✅ SUCCESS | course={course_id_short} | to={driver_email} | resend_id={resend_id}")
-        return {"success": True, "resend_id": resend_id}
+        logger.info(f"[EMAIL][ASSIGNED] ✅ SUCCESS | from={actual_sender} | to={driver_email} | course={course_id_short} | resend_id={resend_id}")
+        return {"success": True, "resend_id": resend_id, "from": actual_sender}
     except Exception as e:
-        logger.error(f"[EMAIL][ASSIGNED] ❌ FAILED | course={course_id_short} | to={driver_email} | error={str(e)}")
+        logger.error(f"[EMAIL][ASSIGNED] ❌ FAILED | from={SENDER_EMAIL} | to={driver_email} | course={course_id_short} | error={str(e)}")
         logger.exception("[EMAIL][ASSIGNED] Full exception trace:")
         return {"success": False, "error": str(e)}
 
