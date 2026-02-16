@@ -20,6 +20,7 @@ export default function AdminSubcontractingPage() {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showTestRides, setShowTestRides] = useState(false); // Filter: default OFF = hide test rides
+  const [emailTestLoading, setEmailTestLoading] = useState(null); // courseId being tested
   const [newCourse, setNewCourse] = useState({
     client_name: '',
     client_email: '',
@@ -32,6 +33,35 @@ export default function AdminSubcontractingPage() {
     price_total: '',
     notes: ''
   });
+
+  // Test driver email for a specific course
+  const testDriverEmail = async (courseId, driverEmail) => {
+    setEmailTestLoading(courseId);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/subcontracting/test-email-driver/${courseId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok && data.success) {
+        toast.success(`Email envoyé à ${driverEmail}`, {
+          description: `Vérifiez les logs pour le resend_id`
+        });
+      } else {
+        toast.error(`Échec envoi email`, {
+          description: data.error || data.detail || 'Erreur inconnue'
+        });
+      }
+    } catch (err) {
+      toast.error('Erreur réseau', {
+        description: err.message
+      });
+    } finally {
+      setEmailTestLoading(null);
+    }
+  };
 
   useEffect(() => {
     // Check admin auth (simple check)
