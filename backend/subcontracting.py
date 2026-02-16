@@ -838,12 +838,12 @@ async def send_course_assigned_to_driver(course: dict, driver: dict):
             "html": html_content
         }
         
-        logger.info(f"[EMAIL] Sending assignment notification to driver | Course: {course_id_short}")
+        logger.info(f"[EMAIL][ASSIGNED] Sending | course={course_id_short} | to={driver_email} | from={SENDER_EMAIL}")
         response = await asyncio.to_thread(resend.Emails.send, params)
-        logger.info(f"[EMAIL] ✅ Driver assignment notification sent | Resend ID: {response.get('id', 'N/A')}")
+        logger.info(f"[EMAIL][ASSIGNED] ✅ SUCCESS | course={course_id_short} | to={driver_email} | resend_id={response.get('id', 'N/A')}")
     except Exception as e:
-        logger.error(f"[EMAIL] ❌ Failed to send driver assignment notification | Error: {str(e)}")
-        logger.exception("Full exception trace:")
+        logger.error(f"[EMAIL][ASSIGNED] ❌ FAILED | course={course_id_short} | to={driver_email} | error={str(e)}")
+        logger.exception("[EMAIL][ASSIGNED] Full exception trace:")
 
 async def send_driver_cancellation_notification(course: dict, driver: dict, is_late: bool):
     """Send email to driver when client cancels their assigned course"""
