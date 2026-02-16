@@ -90,12 +90,16 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
     - IN_PROGRESS: Navigation vers destination (dropoff)
   - Bouton principal: "Démarrer" (ASSIGNED) ou "Terminer" (IN_PROGRESS)
   - Boutons PDF: Bon de commande, Facture
-- **Dashboard Chauffeur (DriverCoursesPage)**:
-  - Bouton "Démarrer la course" pour statut ASSIGNED
-  - Bouton "Terminer la course" pour statut IN_PROGRESS  
-  - Bouton "Voir le statut" pour statut DRIVER_COMPLETED
-  - Redirection vers `/driver/ride/{id}?token={driver_access_token}`
-  - Nouveaux statuts affichés: "En cours", "Terminée (attente client)"
+- **Dashboard Chauffeur (DriverCoursesPage)** - Source de vérité unique:
+  - Boutons d'action directe (sans navigation):
+    - ASSIGNED → "Démarrer la course" (appel API direct)
+    - IN_PROGRESS → "Terminer la course" (appel API direct)
+    - DRIVER_COMPLETED → "Attente confirmation" (désactivé)
+    - DONE → Pas de bouton d'action
+  - Refetch automatique après chaque action (avec cache-buster `?_t=timestamp`)
+  - Headers `Cache-Control: no-store` sur API pour iOS Safari
+  - Logs console pour debug: `[COURSES]`, `[ACTION]`, `[BUTTON]`
+  - En cas de 409, affiche le statut actuel et refetch
 - **Emails**:
   - Attribution: Email au chauffeur avec bouton "VOIR LA COURSE" (lien avec token)
   - Start: Email au client + admin (course démarrée)
