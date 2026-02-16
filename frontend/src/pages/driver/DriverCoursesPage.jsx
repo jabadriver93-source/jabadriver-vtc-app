@@ -174,8 +174,13 @@ export default function DriverCoursesPage() {
         cache: 'no-store' // Critical for Safari
       });
       
-      // Read body ONCE using helper (fixes Safari "body disturbed" error)
-      const { data } = await safeReadJson(res);
+      // Read body inline - avoid safeReadJson issues with 409 status
+      let data = null;
+      try {
+        data = await res.json();
+      } catch (parseErr) {
+        console.warn('[ACTION] Failed to parse response JSON:', parseErr.message);
+      }
       console.log(`[ACTION] Start response: status=${res.status}`, data);
       
       if (res.status === 401) {
