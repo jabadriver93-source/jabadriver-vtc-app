@@ -2450,11 +2450,12 @@ async def start_ride(ride_id: str, token: Optional[str] = Query(None, descriptio
     
     # Update status to IN_PROGRESS with audit fields
     started_at = datetime.now(timezone.utc).isoformat()
+    logger.info(f"[RIDE-START] 🔄 Attempting atomic update | ride={ride_id[:8]} | new_status=IN_PROGRESS | started_at={started_at}")
+    
     update_result = await db.courses.update_one(
         {
             "id": ride_id,
             "status": CourseStatusEnum.ASSIGNED,  # Atomic check - prevent race condition
-            "started_at": {"$exists": False}  # Double-check no started_at
         },
         {"$set": {
             "status": CourseStatusEnum.IN_PROGRESS,
@@ -2465,19 +2466,39 @@ async def start_ride(ride_id: str, token: Optional[str] = Query(None, descriptio
     
     # Verify update was successful (race condition protection)
     if update_result.modified_count == 0:
-        # Refetch to get current status
+        # Refetch to get current status - maybe it was already updated
         refreshed_course = await db.courses.find_one({"id": ride_id}, {"_id": 0, "status": 1, "started_at": 1})
-        logger.error(f"[RIDE-SECURITY] ❌ Race condition detected on ride {ride_id[:8]} - atomic update failed | current_status={refreshed_course.get('status') if refreshed_course else 'unknown'}")
+        refreshed_status = refreshed_course.get("status") if refreshed_course else "unknown"
+        refreshed_started_at = refreshed_course.get("started_at") if refreshed_course else None
+        
+        logger.warning(f"[RIDE-START] ⚠️ Atomic update returned 0 modified | ride={ride_id[:8]} | refreshed_status={refreshed_status} | refreshed_started_at={refreshed_started_at}")
+        
+        # IDEMPOTENT: If status is now IN_PROGRESS, return success (another request won the race)
+        if refreshed_status == CourseStatusEnum.IN_PROGRESS:
+            logger.info(f"[RIDE-START] ✅ RACE RESOLVED - Course {ride_id[:8]} is IN_PROGRESS (concurrent update) - returning 200 OK")
+            return {
+                "success": True,
+                "message": "Course démarrée",
+                "status": CourseStatusEnum.IN_PROGRESS,
+                "started_at": refreshed_started_at,
+                "idempotent": True,
+                "race_resolved": True
+            }
+        
+        # Otherwise, return error with detailed info
         return JSONResponse(
             status_code=409,
             content={
-                "detail": "La course a déjà été modifiée. Actualisez la page.",
-                "current_status": refreshed_course.get("status") if refreshed_course else "unknown",
-                "started_at": refreshed_course.get("started_at") if refreshed_course else None
+                "error": "race_condition",
+                "detail": "La course a été modifiée par une autre requête. Actualisez la page.",
+                "current_status": refreshed_status,
+                "expected_status": "ASSIGNED",
+                "started_at": refreshed_started_at,
+                "ride_id": ride_id[:8]
             }
         )
     
-    logger.info(f"[RIDE] 🚗 Course {ride_id[:8]} STARTED by driver {assigned_driver_id[:8]} via {auth_method} at {started_at}")
+    logger.info(f"[RIDE-START] ✅ SUCCESS | ride={ride_id[:8]} | driver={assigned_driver_id[:8]} | auth={auth_method} | started_at={started_at}")
     
     # Get driver for emails
     driver = await db.drivers.find_one(
