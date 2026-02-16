@@ -2346,13 +2346,17 @@ async def end_ride(ride_id: str, token: str = Query(..., description="Driver acc
         else:
             raise HTTPException(status_code=400, detail=f"Impossible de terminer une course avec le statut: {course.get('status')}")
     
+    # Generate client confirmation token
+    client_confirmation_token = secrets.token_urlsafe(32)
+    
     # Update status to DRIVER_COMPLETED
     ended_at = datetime.now(timezone.utc).isoformat()
     await db.courses.update_one(
         {"id": ride_id},
         {"$set": {
             "status": CourseStatusEnum.DRIVER_COMPLETED,
-            "ended_at": ended_at
+            "ended_at": ended_at,
+            "client_confirmation_token": client_confirmation_token
         }}
     )
     
@@ -2366,24 +2370,22 @@ async def end_ride(ride_id: str, token: str = Query(..., description="Driver acc
             {"_id": 0, "password_hash": 0}
         )
     
-    # Get client portal token if linked to a reservation
-    client_portal_token = None
-    reservation = await db.reservations.find_one(
-        {"subcontracting_course_id": ride_id},
-        {"client_portal_token": 1}
-    )
-    if reservation:
-        client_portal_token = reservation.get("client_portal_token")
-    
-    # Get updated course
+    # Get updated course with confirmation token
     updated_course = await db.courses.find_one({"id": ride_id}, {"_id": 0})
     
-    # Send email to client with confirmation and portal link
+    # Send email to client with confirmation button
     if driver and updated_course:
         try:
-            await send_ride_ended_to_client(updated_course, driver, client_portal_token)
+            await send_ride_ended_to_client(updated_course, driver)
         except Exception as e:
             logger.error(f"[RIDE] Failed to send ride ended notification: {e}")
+    
+    return {
+        "success": True,
+        "message": "Course terminée ! Le client a été notifié.",
+        "status": CourseStatusEnum.DRIVER_COMPLETED,
+        "ended_at": ended_at
+    }
     
     return {
         "success": True,
