@@ -47,11 +47,13 @@ export default function AdminSubcontractingPage() {
       
       if (res.ok && data.success) {
         toast.success(`Email envoyé à ${driverEmail}`, {
-          description: `Vérifiez les logs pour le resend_id`
+          description: `Resend ID: ${data.resend_id || 'N/A'}`,
+          duration: 10000 // Keep visible longer so user can copy
         });
       } else {
         toast.error(`Échec envoi email`, {
-          description: data.error || data.detail || 'Erreur inconnue'
+          description: data.error || data.detail || 'Erreur inconnue',
+          duration: 8000
         });
       }
     } catch (err) {
