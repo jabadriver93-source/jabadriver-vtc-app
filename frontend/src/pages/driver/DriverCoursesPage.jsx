@@ -266,8 +266,10 @@ export default function DriverCoursesPage() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'ASSIGNED': return 'bg-green-500/20 text-green-400 border-green-500/30';
-      case 'DONE': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+      case 'ASSIGNED': return 'bg-sky-500/20 text-sky-400 border-sky-500/30';
+      case 'IN_PROGRESS': return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+      case 'DRIVER_COMPLETED': return 'bg-green-500/20 text-green-400 border-green-500/30';
+      case 'DONE': return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
       case 'CANCELLED': return 'bg-red-500/20 text-red-400 border-red-500/30';
       case 'CANCELLED_LATE_DRIVER': return 'bg-red-500/20 text-red-400 border-red-500/30';
       case 'CANCELLED_LATE_CLIENT': return 'bg-orange-500/20 text-orange-400 border-orange-500/30';
@@ -278,11 +280,33 @@ export default function DriverCoursesPage() {
   const getStatusLabel = (status) => {
     switch (status) {
       case 'ASSIGNED': return 'Attribuée';
+      case 'IN_PROGRESS': return 'En cours';
+      case 'DRIVER_COMPLETED': return 'Terminée (attente client)';
       case 'DONE': return 'Terminée';
       case 'CANCELLED': return 'Annulée';
       case 'CANCELLED_LATE_DRIVER': return 'Annulée (chauffeur)';
       case 'CANCELLED_LATE_CLIENT': return 'Annulée (client)';
       default: return status;
+    }
+  };
+
+  // Check if course can use ride workflow
+  const canUseRideWorkflow = (course) => {
+    return ['ASSIGNED', 'IN_PROGRESS', 'DRIVER_COMPLETED'].includes(course.status) 
+      && course.driver_access_token;
+  };
+
+  // Get ride workflow button config based on status
+  const getRideWorkflowConfig = (status) => {
+    switch(status) {
+      case 'ASSIGNED': 
+        return { label: 'Démarrer la course', icon: Play, className: 'bg-amber-500 hover:bg-amber-600 text-black' };
+      case 'IN_PROGRESS': 
+        return { label: 'Terminer la course', icon: CheckCircle, className: 'bg-green-500 hover:bg-green-600 text-white' };
+      case 'DRIVER_COMPLETED': 
+        return { label: 'Voir le statut', icon: Navigation, className: 'bg-gray-600 hover:bg-gray-700 text-white' };
+      default: 
+        return { label: 'Ouvrir workflow', icon: Navigation, className: 'bg-slate-600 hover:bg-slate-700 text-white' };
     }
   };
 
