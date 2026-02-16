@@ -105,7 +105,9 @@ class CourseStatusEnum:
     OPEN = "OPEN"
     RESERVED = "RESERVED"
     ASSIGNED = "ASSIGNED"
-    DONE = "DONE"
+    IN_PROGRESS = "IN_PROGRESS"  # Driver started the ride
+    DRIVER_COMPLETED = "DRIVER_COMPLETED"  # Driver ended the ride, waiting for client confirmation
+    DONE = "DONE"  # Final status after client confirmation
     CANCELLED = "CANCELLED"
     CANCELLED_LATE_DRIVER = "CANCELLED_LATE_DRIVER"  # Driver cancelled < 1h before pickup
     CANCELLED_LATE_CLIENT = "CANCELLED_LATE_CLIENT"  # Client cancelled < 1h before pickup
