@@ -151,7 +151,7 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 
 ### Backend (FastAPI)
 - **Modèle Driver**: Champs obligatoires (company_name, address, siret, vat_mention, driver_code)
-- **Modèle Course**: Nouveaux champs (invoice_status, invoice_number, supplements, is_test, driver_access_token, started_at, ended_at, client_confirmation_token, confirmed_at)
+- **Modèle Course**: Nouveaux champs (invoice_status, invoice_number, supplements, is_test, driver_access_token, started_at, ended_at, started_by_driver_id, ended_by_driver_id, client_confirmation_token, confirmed_at)
 - **Statuts Course**: OPEN, RESERVED, ASSIGNED, IN_PROGRESS, DRIVER_COMPLETED, DONE, CANCELLED, CANCELLED_LATE_*
 - **Routes**:
   - `PATCH /api/driver/courses/{id}/supplements` - Ajout suppléments
