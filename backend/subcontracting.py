@@ -2390,13 +2390,183 @@ async def end_ride(ride_id: str, token: str = Query(..., description="Driver acc
         "status": CourseStatusEnum.DRIVER_COMPLETED,
         "ended_at": ended_at
     }
+
+# ============================================
+# CLIENT CONFIRMATION ENDPOINT
+# ============================================
+
+@driver_router.get("/confirm-ride/{ride_id}")
+async def get_ride_for_confirmation(ride_id: str, token: str = Query(..., description="Client confirmation token")):
+    """Get ride details for client confirmation page"""
+    if not SUBCONTRACTING_ENABLED:
+        raise HTTPException(status_code=503, detail="Module sous-traitance désactivé")
+    
+    # Find course by ID
+    course = await db.courses.find_one({"id": ride_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course non trouvée")
+    
+    # Validate client confirmation token
+    if not course.get("client_confirmation_token") or course.get("client_confirmation_token") != token:
+        raise HTTPException(status_code=403, detail="Lien de confirmation invalide")
+    
+    # Check if already confirmed
+    if course.get("status") == CourseStatusEnum.DONE:
+        return {
+            "id": course.get("id"),
+            "status": course.get("status"),
+            "already_confirmed": True,
+            "confirmed_at": course.get("confirmed_at"),
+            "message": "Cette course a déjà été confirmée. Merci !"
+        }
+    
+    # Must be DRIVER_COMPLETED to confirm
+    if course.get("status") != CourseStatusEnum.DRIVER_COMPLETED:
+        raise HTTPException(status_code=400, detail="Cette course n'est pas encore terminée par le chauffeur")
+    
+    # Get driver info
+    driver = None
+    if course.get("assigned_driver_id"):
+        driver = await db.drivers.find_one(
+            {"id": course["assigned_driver_id"]}, 
+            {"_id": 0, "password_hash": 0, "id": 1, "name": 1, "company_name": 1, "phone": 1}
+        )
+    
+    price_total = course.get('price_with_supplements') or course.get('price_total', 0)
+    
+    return {
+        "id": course.get("id"),
+        "status": course.get("status"),
+        "already_confirmed": False,
+        "client_name": course.get("client_name"),
+        "pickup_address": course.get("pickup_address"),
+        "dropoff_address": course.get("dropoff_address"),
+        "date": course.get("date"),
+        "time": course.get("time"),
+        "price_total": price_total,
+        "started_at": course.get("started_at"),
+        "ended_at": course.get("ended_at"),
+        "driver": {
+            "name": driver.get("name") if driver else None,
+            "company_name": driver.get("company_name") if driver else None,
+        } if driver else None
+    }
+
+@driver_router.post("/confirm-ride/{ride_id}")
+async def confirm_ride(ride_id: str, token: str = Query(..., description="Client confirmation token")):
+    """Client confirms the ride is completed - changes status to DONE"""
+    if not SUBCONTRACTING_ENABLED:
+        raise HTTPException(status_code=503, detail="Module sous-traitance désactivé")
+    
+    # Find course by ID
+    course = await db.courses.find_one({"id": ride_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course non trouvée")
+    
+    # Validate client confirmation token
+    if not course.get("client_confirmation_token") or course.get("client_confirmation_token") != token:
+        raise HTTPException(status_code=403, detail="Lien de confirmation invalide")
+    
+    # Check if already confirmed
+    if course.get("status") == CourseStatusEnum.DONE:
+        return {
+            "success": True,
+            "message": "Cette course a déjà été confirmée. Merci !",
+            "status": CourseStatusEnum.DONE,
+            "already_confirmed": True
+        }
+    
+    # Must be DRIVER_COMPLETED to confirm
+    if course.get("status") != CourseStatusEnum.DRIVER_COMPLETED:
+        raise HTTPException(status_code=400, detail="Cette course n'est pas encore terminée par le chauffeur")
+    
+    # Update status to DONE
+    confirmed_at = datetime.now(timezone.utc).isoformat()
+    await db.courses.update_one(
+        {"id": ride_id},
+        {"$set": {
+            "status": CourseStatusEnum.DONE,
+            "confirmed_at": confirmed_at,
+            # Invalidate tokens after confirmation
+            "client_confirmation_token": None,
+            "driver_access_token": None
+        }}
+    )
+    
+    logger.info(f"[RIDE] ✅ Course {ride_id[:8]} CONFIRMED by client (DONE)")
+    
+    # Send confirmation email to admin
+    try:
+        await send_ride_confirmed_to_admin(course)
+    except Exception as e:
+        logger.error(f"[RIDE] Failed to send confirmation notification to admin: {e}")
     
     return {
         "success": True,
-        "message": "Course terminée ! Le client a été notifié.",
-        "status": CourseStatusEnum.DRIVER_COMPLETED,
-        "ended_at": ended_at
+        "message": "Merci ! Votre course a été confirmée.",
+        "status": CourseStatusEnum.DONE,
+        "confirmed_at": confirmed_at
     }
+
+async def send_ride_confirmed_to_admin(course: dict):
+    """Notify admin when client confirms a ride"""
+    if not ADMIN_EMAIL or not SENDER_EMAIL:
+        return
+    
+    if not resend.api_key:
+        resend.api_key = os.environ.get('RESEND_API_KEY', '')
+    
+    course_id_short = course.get('id', '')[:8].upper()
+    price_total = course.get('price_with_supplements') or course.get('price_total', 0)
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #22c55e; color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0;">✅ COURSE CONFIRMÉE</h1>
+        </div>
+        <div style="padding: 30px; background: #F8FAFC;">
+            
+            <div style="background: #dcfce7; border-left: 4px solid #22c55e; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0; font-weight: bold; color: #166534;">Course #{course_id_short} confirmée par le client</p>
+                <p style="margin: 5px 0 0 0; font-size: 14px; color: #166534;">La commission est maintenant activée.</p>
+            </div>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b; width: 40%;">Client :</td>
+                        <td style="padding: 8px 0; font-weight: bold;">{course.get('client_name', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Trajet :</td>
+                        <td style="padding: 8px 0;">{extract_city_department(course.get('pickup_address', ''))} → {extract_city_department(course.get('dropoff_address', ''))}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Montant :</td>
+                        <td style="padding: 8px 0; font-weight: bold; color: #22c55e;">{int(price_total)}€</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Commission :</td>
+                        <td style="padding: 8px 0; font-weight: bold;">{course.get('commission_amount', 0):.2f}€</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    """
+    
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [ADMIN_EMAIL],
+            "subject": f"✅ Course #{course_id_short} confirmée par le client",
+            "html": html_content
+        }
+        logger.info(f"[EMAIL] Sending ride confirmed to admin | Course: {course_id_short}")
+        response = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"[EMAIL] ✅ Ride confirmed to admin sent | Resend ID: {response.get('id', 'N/A')}")
+    except Exception as e:
+        logger.error(f"[EMAIL] ❌ Failed to send ride confirmed to admin | Error: {str(e)}")
 
 # ============================================
 # CLAIM ROUTES (PUBLIC WITH AUTH)
