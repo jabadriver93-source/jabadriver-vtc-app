@@ -98,7 +98,8 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 
 ### Backend (FastAPI)
 - **Modèle Driver**: Champs obligatoires (company_name, address, siret, vat_mention, driver_code)
-- **Modèle Course**: Nouveaux champs (invoice_status, invoice_number, supplements, is_test)
+- **Modèle Course**: Nouveaux champs (invoice_status, invoice_number, supplements, is_test, driver_access_token, started_at, ended_at)
+- **Statuts Course**: OPEN, RESERVED, ASSIGNED, IN_PROGRESS, DRIVER_COMPLETED, DONE, CANCELLED, CANCELLED_LATE_*
 - **Routes**:
   - `PATCH /api/driver/courses/{id}/supplements` - Ajout suppléments
   - `POST /api/driver/courses/{id}/issue-invoice` - Émission facture
@@ -106,6 +107,9 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
   - `POST /api/client-portal/{token}/modify-direct` - Modification directe client
   - `GET /api/calculate-route` - Calcul itinéraire Google Maps
   - `POST /api/admin/subcontracting/courses/{id}/toggle-test` - Bascule mode test
+  - `GET /api/driver/ride/{ride_id}?token` - Détails course (accès direct token)
+  - `POST /api/driver/ride/{ride_id}/start?token` - Démarrer course
+  - `POST /api/driver/ride/{ride_id}/end?token` - Terminer course
 
 ### Frontend (React)
 - **DriverLoginPage**: Formulaire inscription avec champ "Mention TVA *"
