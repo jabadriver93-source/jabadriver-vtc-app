@@ -150,6 +150,7 @@ export default function DriverCoursesPage() {
   const [actionLoading, setActionLoading] = useState(null); // courseId being processed
 
   // Handle START ride directly from dashboard
+  // UX: After successful START, stay in dashboard with updated status (no redirect)
   const handleStartRide = async (courseId, driverAccessToken) => {
     if (actionLoading) return; // Prevent double-click
     
@@ -169,18 +170,21 @@ export default function DriverCoursesPage() {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
-        }
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        },
+        cache: 'no-store' // Critical for Safari
       });
       
-      // Read body ONCE using helper
+      // Read body ONCE using helper (fixes Safari "body disturbed" error)
       const { data } = await safeReadJson(res);
       console.log(`[ACTION] Start response: status=${res.status}`, data);
       
       if (res.status === 409) {
-        // Course already modified - show current status and refresh
-        toast.info(data?.detail || 'Course déjà démarrée');
-        console.log(`[ACTION] 409 - Current status: ${data?.current_status}`);
+        // Course already modified - show current status from response
+        const currentStatus = data?.current_status || 'unknown';
+        console.log(`[ACTION] 409 Conflict - Current status: ${currentStatus}`);
+        toast.info(data?.detail || `Course déjà en statut: ${currentStatus}`);
       } else if (res.status === 401) {
         toast.error('Session expirée. Veuillez vous reconnecter.');
         handleLogout();
@@ -192,7 +196,7 @@ export default function DriverCoursesPage() {
         toast.success(data?.message || 'Course démarrée !');
       }
       
-      // Force refetch to update UI
+      // Force refetch to update UI (critical: must update badge to IN_PROGRESS)
       console.log('[ACTION] Refetching courses after start...');
       await fetchCourses(token, 'after-start');
       
@@ -205,6 +209,7 @@ export default function DriverCoursesPage() {
   };
 
   // Handle END ride directly from dashboard
+  // UX: After successful END, stay in dashboard with status DRIVER_COMPLETED
   const handleEndRide = async (courseId, driverAccessToken) => {
     if (actionLoading) return; // Prevent double-click
     
@@ -224,18 +229,21 @@ export default function DriverCoursesPage() {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache'
-        }
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        },
+        cache: 'no-store' // Critical for Safari
       });
       
-      // Read body ONCE using helper
+      // Read body ONCE using helper (fixes Safari "body disturbed" error)
       const { data } = await safeReadJson(res);
       console.log(`[ACTION] End response: status=${res.status}`, data);
       
       if (res.status === 409) {
-        // Course already modified - show current status and refresh
-        toast.info(data?.detail || 'Course déjà terminée');
-        console.log(`[ACTION] 409 - Current status: ${data?.current_status}`);
+        // Course already modified - show current status from response
+        const currentStatus = data?.current_status || 'unknown';
+        console.log(`[ACTION] 409 Conflict - Current status: ${currentStatus}`);
+        toast.info(data?.detail || `Course déjà en statut: ${currentStatus}`);
       } else if (res.status === 401) {
         toast.error('Session expirée. Veuillez vous reconnecter.');
         handleLogout();
@@ -249,6 +257,15 @@ export default function DriverCoursesPage() {
       
       // Force refetch to update UI
       console.log('[ACTION] Refetching courses after end...');
+      await fetchCourses(token, 'after-end');
+      
+    } catch (err) {
+      console.error('[ACTION] End error:', err);
+      toast.error(`Erreur réseau: ${err.message || 'Connexion impossible'}`);
+    } finally {
+      setActionLoading(null);
+    }
+  };
       await fetchCourses(token, 'after-end');
       
     } catch (err) {
