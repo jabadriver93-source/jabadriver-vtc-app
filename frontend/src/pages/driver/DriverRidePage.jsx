@@ -201,14 +201,12 @@ export default function DriverRidePage() {
     setIsActionDisabled(true); // Immediately disable to prevent rapid clicks
     
     try {
-      const url = `${API_URL}/api/driver/ride/${rideId}/end?token=${token}`;
-      console.log('[END] Calling:', url);
+      const url = buildUrl('/end');
+      console.log('[END] Calling:', url, '| Auth mode:', authMode);
       
       const res = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        }
+        headers: getAuthHeaders()
       });
       
       console.log('[END] Response status:', res.status);
@@ -225,9 +223,27 @@ export default function DriverRidePage() {
       }
       
       if (!res.ok) {
-        // Handle specific error codes
+        // Handle specific error codes with clear messages
         if (res.status === 409) {
-          // Conflict - already ended/race condition
+          toast.error(data.detail || 'Course déjà terminée');
+          setActionSuccess('already_done');
+          // Refresh to show current state
+          setTimeout(() => fetchRide(), 1000);
+        } else if (res.status === 403) {
+          toast.error(data.detail || 'Accès refusé');
+          setError(data.detail || 'Accès refusé');
+        } else if (res.status === 401) {
+          toast.error(data.detail || 'Session expirée. Reconnectez-vous.');
+          setError(data.detail || 'Session expirée');
+        } else if (res.status === 400) {
+          toast.error(data.detail || 'Action impossible');
+          setIsActionDisabled(false);
+        } else {
+          toast.error(data.detail || `Erreur ${res.status}`);
+          setIsActionDisabled(false);
+        }
+        return;
+      }
           toast.error(data.detail || 'Cette action a déjà été effectuée');
           setActionSuccess('already_done');
         } else if (res.status === 403) {
