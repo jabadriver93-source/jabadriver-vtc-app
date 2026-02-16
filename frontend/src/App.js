@@ -16,6 +16,7 @@ import AdminCommissionsPage from "@/pages/admin/AdminCommissionsPage";
 import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
 // Client portal
 import ClientPortalPage from "@/pages/ClientPortalPage";
+import ConfirmRidePage from "@/pages/ConfirmRidePage";
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
           {/* Client portal (token-based, no auth) */}
           <Route path="/my-booking/:token" element={<ClientPortalPage />} />
           <Route path="/client/:token" element={<ClientPortalPage />} />
+          <Route path="/confirm-ride/:rideId" element={<ConfirmRidePage />} />
           
           {/* Admin routes */}
           <Route path="/admin" element={<AdminLoginPage />} />
