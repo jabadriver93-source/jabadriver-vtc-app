@@ -114,8 +114,9 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 ### Frontend (React)
 - **DriverLoginPage**: Formulaire inscription avec champ "Mention TVA *"
 - **DriverCoursesPage**: Gestion suppléments, émission facture, badges statut
+- **DriverRidePage**: Page mobile-first accès direct par token, boutons Start/End
 - **ClientPortalPage**: Modification directe, affichage blocage si facture émise
-- **AdminSubcontractingPage**: Bouton toggle test, badge TEST, indicateur prix test
+- **AdminSubcontractingPage**: Bouton toggle test, badge TEST, statuts IN_PROGRESS/DRIVER_COMPLETED
 - **AdminCommissionsPage**: Badge COURSE TEST, montant barré pour courses test
 
 ### PDF Generation (ReportLab)
