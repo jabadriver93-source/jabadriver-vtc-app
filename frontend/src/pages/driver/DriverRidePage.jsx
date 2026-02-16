@@ -119,29 +119,20 @@ export default function DriverRidePage() {
         headers: getAuthHeaders()
       });
       
+      // Read body ONCE using helper
+      const { data } = await safeReadJson(res);
+      console.log('[FETCH] Response:', res.status, data);
+      
       if (!res.ok) {
-        let data;
-        try {
-          data = await res.json();
-        } catch {
-          data = { detail: `Erreur serveur (${res.status})` };
-        }
-        console.error('[FETCH] Error:', res.status, data);
-        
-        if (res.status === 403) {
-          setError(data.detail || 'Accès refusé - token invalide');
-        } else if (res.status === 401) {
-          setError(data.detail || 'Session expirée. Reconnectez-vous.');
-        } else if (res.status === 404) {
-          setError('Course non trouvée');
+        if (res.status === 401) {
+          setError('Session expirée. Reconnectez-vous.');
         } else {
-          setError(data.detail || `Erreur ${res.status}`);
+          setError(getErrorMessage(res.status, data));
         }
         return;
       }
       
-      const data = await res.json();
-      console.log('[FETCH] Ride loaded:', data.status);
+      console.log('[FETCH] Ride loaded:', data?.status);
       setRide(data);
       // Reset action states on fresh data
       setActionSuccess(null);
@@ -173,11 +164,9 @@ export default function DriverRidePage() {
         headers: getAuthHeaders()
       });
       
-      console.log('[START] Response status:', res.status);
-      
-      let data;
-      try {
-        data = await res.json();
+      // Read body ONCE using helper
+      const { data } = await safeReadJson(res);
+      console.log('[START] Response:', res.status, data);
         console.log('[START] Response data:', data);
       } catch (parseErr) {
         console.error('[START] Failed to parse response:', parseErr);
