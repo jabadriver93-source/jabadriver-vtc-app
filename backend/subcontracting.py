@@ -249,6 +249,7 @@ def init_subcontracting(database, stripe_key, admin_email=None, sender_email=Non
     logger.info("[SUBCONTRACTING] Module initialized")
     logger.info(f"[SUBCONTRACTING] Stripe API Key present: {bool(STRIPE_API_KEY)}")
     logger.info(f"[SUBCONTRACTING] Admin Email: {ADMIN_EMAIL}")
+    logger.info(f"[SUBCONTRACTING] FRONTEND_URL: {FRONTEND_URL or '(not set)'}")
 
 # ============================================
 # HELPER FUNCTIONS
