@@ -278,6 +278,63 @@ export default function DriverRidePage() {
             </CardContent>
           </Card>
 
+          {/* Timeline Card - Only show if ride has started */}
+          {(ride?.started_at || ride?.ended_at || ride?.status === 'DONE') && (
+            <Card className="bg-gray-900 border-gray-800">
+              <CardContent className="p-4">
+                <p className="text-gray-400 text-xs uppercase tracking-wider mb-3">Timeline</p>
+                <div className="space-y-0">
+                  {/* Assigned */}
+                  <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 bg-sky-500 rounded-full ring-4 ring-sky-500/20"></div>
+                    <div className="flex-1 flex justify-between items-center">
+                      <span className="text-gray-300 text-sm">Attribuée</span>
+                      <span className="text-gray-500 text-xs">{formatTimestamp(ride?.assigned_at) || '-'}</span>
+                    </div>
+                  </div>
+                  <div className="ml-1.5 border-l-2 border-gray-700 h-4"></div>
+                  
+                  {/* Started */}
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ring-4 ${ride?.started_at ? 'bg-amber-500 ring-amber-500/20' : 'bg-gray-600 ring-gray-600/20'}`}></div>
+                    <div className="flex-1 flex justify-between items-center">
+                      <span className={`text-sm ${ride?.started_at ? 'text-gray-300' : 'text-gray-500'}`}>Démarrée</span>
+                      <span className={`text-xs ${ride?.started_at ? 'text-amber-400 font-medium' : 'text-gray-500'}`}>
+                        {formatTimestamp(ride?.started_at) || '-'}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="ml-1.5 border-l-2 border-gray-700 h-4"></div>
+                  
+                  {/* Ended */}
+                  <div className="flex items-center gap-3">
+                    <div className={`w-3 h-3 rounded-full ring-4 ${ride?.ended_at ? 'bg-green-500 ring-green-500/20' : 'bg-gray-600 ring-gray-600/20'}`}></div>
+                    <div className="flex-1 flex justify-between items-center">
+                      <span className={`text-sm ${ride?.ended_at ? 'text-gray-300' : 'text-gray-500'}`}>Terminée</span>
+                      <span className={`text-xs ${ride?.ended_at ? 'text-green-400 font-medium' : 'text-gray-500'}`}>
+                        {formatTimestamp(ride?.ended_at) || '-'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Confirmed - only if DONE */}
+                  {ride?.status === 'DONE' && (
+                    <>
+                      <div className="ml-1.5 border-l-2 border-gray-700 h-4"></div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-3 h-3 bg-emerald-500 rounded-full ring-4 ring-emerald-500/20"></div>
+                        <div className="flex-1 flex justify-between items-center">
+                          <span className="text-gray-300 text-sm">Confirmée client</span>
+                          <span className="text-emerald-400 text-xs font-medium">✓</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Addresses Card */}
           <Card className="bg-gray-900 border-gray-800">
             <CardContent className="p-4 space-y-4">
