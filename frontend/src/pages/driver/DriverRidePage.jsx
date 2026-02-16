@@ -67,37 +67,53 @@ export default function DriverRidePage() {
   };
 
   useEffect(() => {
-    if (!token) {
-      setError('Token d\'accès manquant');
+    if (!authMode) {
+      setError('Authentification requise. Connectez-vous ou utilisez le lien email.');
       setLoading(false);
       return;
     }
     fetchRide();
-  }, [rideId, token]);
+  }, [rideId, urlToken, sessionToken]);
 
   const fetchRide = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/driver/ride/${rideId}?token=${token}`);
+      const url = buildUrl('');
+      console.log('[FETCH] Loading ride:', url, '| Auth mode:', authMode);
+      
+      const res = await fetch(url, {
+        headers: getAuthHeaders()
+      });
       
       if (!res.ok) {
-        const data = await res.json();
+        let data;
+        try {
+          data = await res.json();
+        } catch {
+          data = { detail: `Erreur serveur (${res.status})` };
+        }
+        console.error('[FETCH] Error:', res.status, data);
+        
         if (res.status === 403) {
-          setError(data.detail || 'Accès refusé');
+          setError(data.detail || 'Accès refusé - token invalide');
+        } else if (res.status === 401) {
+          setError(data.detail || 'Session expirée. Reconnectez-vous.');
         } else if (res.status === 404) {
           setError('Course non trouvée');
         } else {
-          setError(data.detail || 'Erreur lors du chargement');
+          setError(data.detail || `Erreur ${res.status}`);
         }
         return;
       }
       
       const data = await res.json();
+      console.log('[FETCH] Ride loaded:', data.status);
       setRide(data);
       // Reset action states on fresh data
       setActionSuccess(null);
       setIsActionDisabled(false);
     } catch (err) {
-      setError('Erreur de connexion');
+      console.error('[FETCH] Network error:', err);
+      setError(`Erreur réseau: ${err.message || 'Connexion impossible'}`);
     } finally {
       setLoading(false);
     }
