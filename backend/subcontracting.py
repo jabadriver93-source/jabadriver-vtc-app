@@ -3440,17 +3440,30 @@ async def admin_test_driver_email(course_id: str):
     
     # Try to send email
     try:
-        await send_course_assigned_to_driver(course, driver)
-        logger.info(f"[EMAIL-TEST] ✅ Email function completed for {driver.get('email')}")
-        return {
-            "success": True,
-            "message": f"Email sent to {driver.get('email')}",
-            "course_id": course_id[:8],
-            "driver_email": driver.get('email'),
-            "note": "Check logs for [EMAIL][ASSIGNED] to see if Resend accepted it"
-        }
+        email_result = await send_course_assigned_to_driver(course, driver)
+        
+        if email_result and email_result.get("success"):
+            resend_id = email_result.get("resend_id", "N/A")
+            logger.info(f"[EMAIL-TEST] ✅ Email sent | driver={driver.get('email')} | resend_id={resend_id}")
+            return {
+                "success": True,
+                "message": f"Email envoyé à {driver.get('email')}",
+                "course_id": course_id[:8],
+                "driver_email": driver.get('email'),
+                "resend_id": resend_id,
+                "note": "Vérifiez votre boîte de réception + spam. Si non reçu, vérifiez ce resend_id dans le dashboard Resend."
+            }
+        else:
+            error_msg = email_result.get("error", "Unknown error") if email_result else "No response from email function"
+            logger.error(f"[EMAIL-TEST] ❌ Email failed | driver={driver.get('email')} | error={error_msg}")
+            return {
+                "success": False,
+                "error": error_msg,
+                "course_id": course_id[:8],
+                "driver_email": driver.get('email')
+            }
     except Exception as e:
-        logger.error(f"[EMAIL-TEST] ❌ Email failed: {str(e)}")
+        logger.error(f"[EMAIL-TEST] ❌ Exception: {str(e)}")
         return {
             "success": False,
             "error": str(e),
