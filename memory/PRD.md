@@ -116,6 +116,18 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
   - Tokens invalidés (driver + confirmation = null)
   - Email admin "Course confirmée"
 
+### 11. Boutons Navigation et Communication - DriverRidePage ✅ [2026-02-16]
+- **Navigation GPS** (mobile-first, détection auto du contexte):
+  - Google Maps: `https://www.google.com/maps/dir/?api=1&destination={lat},{lng}`
+  - Waze: `https://waze.com/ul?ll={lat},{lng}&navigate=yes`
+  - Fallback vers adresse textuelle si coordonnées absentes
+  - **Destination dynamique**: Pickup (ASSIGNED) → Dropoff (IN_PROGRESS)
+- **Communication Client**:
+  - Appeler: `tel:{phone}` - Ouvre téléphone natif
+  - WhatsApp: `https://wa.me/{phone}` - Ouvre WhatsApp
+- **UX Mobile**: Boutons larges (h-12/h-14), feedback tactile (active:scale-95)
+- **Aucune régression** sur le workflow existant (Start/End/Confirm)
+
 ## Technical Implementation
 
 ### Backend (FastAPI)
