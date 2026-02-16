@@ -81,6 +81,7 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
   - `POST /api/driver/ride/{ride_id}/end?token` - Terminer course
 - **Page DriverRidePage (mobile-first)**:
   - Badge statut dynamique
+  - **Timeline** avec timestamps (Attribuée, Démarrée, Terminée, Confirmée)
   - Infos: date/heure, client (nom + tél clickable), adresses
   - Récapitulatif financier (gain net)
   - Bouton principal: "Démarrer" (ASSIGNED) ou "Terminer" (IN_PROGRESS)
@@ -88,11 +89,28 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 - **Emails**:
   - Attribution: Email au chauffeur avec bouton "VOIR LA COURSE"
   - Start: Email au client + admin (course démarrée)
-  - End: Email au client avec lien portail
+  - End: Email au client avec bouton "CONFIRMER MA COURSE"
 - **Sécurité**:
   - Token valide jusqu'à status = DONE
   - Seul le chauffeur assigné peut agir
   - Protection double-action
+
+### 10. Confirmation Client après Fin de Course ✅ [2026-02-16]
+- **Workflow**: Chauffeur termine → Client reçoit email → Client confirme → Course validée
+- **Token**: `client_confirmation_token` généré à la fin de course
+- **Route Frontend**: `/confirm-ride/:rideId?token=xxx`
+- **Endpoints**:
+  - `GET /api/driver/confirm-ride/{ride_id}?token` - Détails pour confirmation
+  - `POST /api/driver/confirm-ride/{ride_id}?token` - Confirmer la course
+- **Page ConfirmRidePage (mobile-first)**:
+  - Récapitulatif course avec timeline
+  - Infos chauffeur, adresses, prix
+  - Bouton vert "Confirmer ma course"
+  - Écran de succès après confirmation
+- **Après confirmation**:
+  - Status → DONE
+  - Tokens invalidés (driver + confirmation = null)
+  - Email admin "Course confirmée"
 
 ## Technical Implementation
 
