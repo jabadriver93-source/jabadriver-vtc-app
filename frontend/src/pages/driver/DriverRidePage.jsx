@@ -44,6 +44,8 @@ export default function DriverRidePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [actionSuccess, setActionSuccess] = useState(null); // Track successful actions
+  const [isActionDisabled, setIsActionDisabled] = useState(false); // Prevent double-clicks
 
   useEffect(() => {
     if (!token) {
@@ -72,6 +74,9 @@ export default function DriverRidePage() {
       
       const data = await res.json();
       setRide(data);
+      // Reset action states on fresh data
+      setActionSuccess(null);
+      setIsActionDisabled(false);
     } catch (err) {
       setError('Erreur de connexion');
     } finally {
