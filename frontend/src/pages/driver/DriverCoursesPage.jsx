@@ -146,11 +146,25 @@ export default function DriverCoursesPage() {
 
   // State for action loading
   const [actionLoading, setActionLoading] = useState(null); // courseId being processed
+  
+  // Track last action to prevent rapid double-clicks (Safari double-fetch issue)
+  const lastActionRef = React.useRef({ courseId: null, timestamp: 0 });
 
   // Handle START ride directly from dashboard
   // UX: After successful START, stay in dashboard with updated status (no redirect)
   const handleStartRide = async (courseId, driverAccessToken) => {
-    if (actionLoading) return; // Prevent double-click
+    // Debounce: prevent double-click within 2 seconds
+    const now = Date.now();
+    if (lastActionRef.current.courseId === courseId && now - lastActionRef.current.timestamp < 2000) {
+      console.log(`[ACTION] Debounced duplicate START for ${courseId.substring(0,8)}`);
+      return;
+    }
+    lastActionRef.current = { courseId, timestamp: now };
+    
+    if (actionLoading) {
+      console.log(`[ACTION] Already loading, ignoring START for ${courseId.substring(0,8)}`);
+      return;
+    }
     
     const token = localStorage.getItem('driver_token');
     setActionLoading(courseId);
@@ -159,9 +173,11 @@ export default function DriverCoursesPage() {
     
     try {
       // Build URL with token if available, otherwise use session auth
+      // Add cache-buster for Safari
+      const cacheBuster = `_t=${Date.now()}`;
       const url = driverAccessToken 
-        ? `${API_URL}/api/driver/ride/${courseId}/start?token=${driverAccessToken}`
-        : `${API_URL}/api/driver/ride/${courseId}/start`;
+        ? `${API_URL}/api/driver/ride/${courseId}/start?token=${driverAccessToken}&${cacheBuster}`
+        : `${API_URL}/api/driver/ride/${courseId}/start?${cacheBuster}`;
       
       const res = await fetch(url, {
         method: 'POST',
