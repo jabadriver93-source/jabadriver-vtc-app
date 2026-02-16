@@ -71,10 +71,13 @@ export default function DriverCoursesPage() {
       console.log(`[COURSES] Fetching courses (${reason}):`, url);
       
       const res = await fetch(url, {
+        method: 'GET',
         headers: { 
           'Authorization': `Bearer ${token}`,
-          'Cache-Control': 'no-cache'
-        }
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        },
+        cache: 'no-store' // Critical for Safari
       });
       
       if (res.status === 401 || res.status === 403) {
@@ -84,14 +87,17 @@ export default function DriverCoursesPage() {
         return;
       }
       
-      const data = await res.json();
+      // Read body ONCE using helper
+      const { data } = await safeReadJson(res);
       
       // Debug log: first course status
-      if (data.length > 0) {
+      if (data && data.length > 0) {
         console.log(`[COURSES] Loaded ${data.length} courses | First: ${data[0].id?.substring(0,8)} status=${data[0].status}`);
+      } else {
+        console.log(`[COURSES] Loaded 0 courses or empty response`);
       }
       
-      setCourses(data);
+      setCourses(data || []);
       return data;
     } catch (err) {
       console.error('[COURSES] Fetch error:', err);
