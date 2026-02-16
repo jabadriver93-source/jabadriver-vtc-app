@@ -87,13 +87,21 @@ export default function DriverRidePage() {
   const getAuthHeaders = () => {
     const headers = { 
       'Content-Type': 'application/json',
-      'Cache-Control': 'no-cache'
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache'
     };
     if (!urlToken && sessionToken) {
       headers['Authorization'] = `Bearer ${sessionToken}`;
     }
     return headers;
   };
+
+  // Fetch options with no-store for Safari
+  const getFetchOptions = (method = 'GET', headers = {}) => ({
+    method,
+    headers: { ...getAuthHeaders(), ...headers },
+    cache: 'no-store' // Critical for Safari
+  });
 
   // Build URL with token if available
   const buildUrl = (endpoint) => {
