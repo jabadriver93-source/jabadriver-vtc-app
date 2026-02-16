@@ -67,6 +67,33 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
   - Recalcul automatique du prix déclenché après sélection
   - Compatible mobile (testé sur viewport iPhone)
 
+### 9. Driver Ride Workflow avec Liens Directs ✅ [2026-02-16]
+- **Token d'accès direct**: `driver_access_token` généré lors de l'attribution de la course
+- **Lifecycle des statuts**: `ASSIGNED → IN_PROGRESS → DRIVER_COMPLETED → DONE`
+  - `ASSIGNED`: Course attribuée au chauffeur
+  - `IN_PROGRESS`: Course démarrée par le chauffeur
+  - `DRIVER_COMPLETED`: Course terminée par le chauffeur, en attente de confirmation
+  - `DONE`: Course clôturée (admin confirme)
+- **Route**: `/driver/ride/:rideId?token=xxx`
+- **Endpoints**:
+  - `GET /api/driver/ride/{ride_id}?token` - Détails course (sans login)
+  - `POST /api/driver/ride/{ride_id}/start?token` - Démarrer course
+  - `POST /api/driver/ride/{ride_id}/end?token` - Terminer course
+- **Page DriverRidePage (mobile-first)**:
+  - Badge statut dynamique
+  - Infos: date/heure, client (nom + tél clickable), adresses
+  - Récapitulatif financier (gain net)
+  - Bouton principal: "Démarrer" (ASSIGNED) ou "Terminer" (IN_PROGRESS)
+  - Boutons PDF: Bon de commande, Facture
+- **Emails**:
+  - Attribution: Email au chauffeur avec bouton "VOIR LA COURSE"
+  - Start: Email au client + admin (course démarrée)
+  - End: Email au client avec lien portail
+- **Sécurité**:
+  - Token valide jusqu'à status = DONE
+  - Seul le chauffeur assigné peut agir
+  - Protection double-action
+
 ## Technical Implementation
 
 ### Backend (FastAPI)
