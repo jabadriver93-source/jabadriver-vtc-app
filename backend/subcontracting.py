@@ -2429,7 +2429,7 @@ async def get_ride_for_confirmation(ride_id: str, token: str = Query(..., descri
     if course.get("assigned_driver_id"):
         driver = await db.drivers.find_one(
             {"id": course["assigned_driver_id"]}, 
-            {"_id": 0, "password_hash": 0, "id": 1, "name": 1, "company_name": 1, "phone": 1}
+            {"_id": 0, "password_hash": 0}
         )
     
     price_total = course.get('price_with_supplements') or course.get('price_total', 0)
