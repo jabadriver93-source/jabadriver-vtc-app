@@ -547,6 +547,26 @@ export default function AdminSubcontractingPage() {
                         </>
                       )}
                       
+                      {/* Test Driver Email - available when course has assigned driver */}
+                      {course.assigned_driver && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-sky-600 text-sky-400 hover:bg-sky-900/30"
+                          onClick={() => testDriverEmail(course.id, course.assigned_driver.email)}
+                          disabled={emailTestLoading === course.id}
+                          data-testid={`test-email-btn-${course.id}`}
+                          title={`Envoyer email test à ${course.assigned_driver.email}`}
+                        >
+                          {emailTestLoading === course.id ? (
+                            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                          ) : (
+                            <Mail className="w-4 h-4 mr-1" />
+                          )}
+                          Tester email chauffeur
+                        </Button>
+                      )}
+                      
                       {/* Cancel - only for OPEN, RESERVED, ASSIGNED (not IN_PROGRESS or later) */}
                       {(course.status === 'OPEN' || course.status === 'RESERVED' || course.status === 'ASSIGNED') && (
                         <Button
