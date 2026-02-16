@@ -447,7 +447,24 @@ export default function DriverCoursesPage() {
                     
                     {/* Actions */}
                     <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-700">
-                      {/* Supplements button - only if invoice not issued */}
+                      {/* RIDE WORKFLOW BUTTON - Primary action for active rides */}
+                      {canUseRideWorkflow(course) && (() => {
+                        const config = getRideWorkflowConfig(course.status);
+                        const IconComponent = config.icon;
+                        return (
+                          <Button
+                            size="sm"
+                            className={`${config.className} font-semibold`}
+                            onClick={() => navigate(`/driver/ride/${course.id}?token=${course.driver_access_token}`)}
+                            data-testid={`ride-workflow-${course.id}`}
+                          >
+                            <IconComponent className="w-4 h-4 mr-1" />
+                            {config.label}
+                          </Button>
+                        );
+                      })()}
+                      
+                      {/* Supplements button - only if invoice not issued and ASSIGNED */}
                       {!isInvoiceIssued && course.status === 'ASSIGNED' && (
                         <Button
                           size="sm"
