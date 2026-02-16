@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
   FileText, Send, MapPin, Clock, Euro, User, X, AlertTriangle, Loader2,
-  Plus, Lock, CheckCircle, Settings
+  Plus, Lock, CheckCircle, Settings, Navigation, Play
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
