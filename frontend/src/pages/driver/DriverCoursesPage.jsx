@@ -589,15 +589,35 @@ export default function DriverCoursesPage() {
                       {canUseRideWorkflow(course) && (() => {
                         const config = getRideWorkflowConfig(course.status);
                         const IconComponent = config.icon;
+                        const isLoading = actionLoading === course.id;
+                        
+                        // Determine click handler based on action type
+                        const handleClick = () => {
+                          console.log(`[BUTTON] Clicked ${config.action} for course ${course.id.substring(0,8)}`);
+                          if (config.action === 'start') {
+                            handleStartRide(course.id, course.driver_access_token);
+                          } else if (config.action === 'end') {
+                            handleEndRide(course.id, course.driver_access_token);
+                          } else if (config.action === 'view' && course.driver_access_token) {
+                            navigate(`/driver/ride/${course.id}?token=${course.driver_access_token}`);
+                          }
+                          // 'none' action does nothing (DRIVER_COMPLETED waiting for client)
+                        };
+                        
                         return (
                           <Button
                             size="sm"
-                            className={`${config.className} font-semibold`}
-                            onClick={() => navigate(`/driver/ride/${course.id}?token=${course.driver_access_token}`)}
+                            className={`${config.className} font-semibold ${isLoading ? 'opacity-75' : ''}`}
+                            onClick={handleClick}
+                            disabled={isLoading || config.action === 'none'}
                             data-testid={`ride-workflow-${course.id}`}
                           >
-                            <IconComponent className="w-4 h-4 mr-1" />
-                            {config.label}
+                            {isLoading ? (
+                              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                            ) : (
+                              <IconComponent className="w-4 h-4 mr-1" />
+                            )}
+                            {isLoading ? 'En cours...' : config.label}
                           </Button>
                         );
                       })()}
