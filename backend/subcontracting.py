@@ -689,6 +689,139 @@ async def send_course_assigned_to_client(course: dict, driver: dict):
         logger.error(f"[EMAIL] ❌ Failed to send client assignment notification | Error: {str(e)}")
         logger.exception("Full exception trace:")
 
+async def send_course_assigned_to_driver(course: dict, driver: dict):
+    """Send email to driver when course is assigned with direct ride link"""
+    driver_email = driver.get('email')
+    if not driver_email or not SENDER_EMAIL:
+        logger.warning("[EMAIL] Skipping driver assignment notification - email not configured")
+        return
+    
+    if not resend.api_key:
+        resend.api_key = os.environ.get('RESEND_API_KEY', '')
+    
+    course_id_short = course.get('id', '')[:8].upper()
+    price_total = course.get('price_total', 0)
+    commission_amount = course.get('commission_amount', 0)
+    net_driver = price_total - commission_amount
+    
+    # Generate direct ride link
+    ride_url = get_driver_ride_url(course)
+    
+    ride_button = ""
+    if ride_url:
+        ride_button = f"""
+            <div style="text-align: center; margin: 25px 0;">
+                <a href="{ride_url}" style="display: inline-block; background-color: #f59e0b; color: black; padding: 18px 50px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 18px;">
+                    🚗 VOIR LA COURSE
+                </a>
+            </div>
+        """
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #22c55e; color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0;">🎯 COURSE ATTRIBUÉE</h1>
+            <p style="margin: 10px 0 0 0; font-size: 16px;">Félicitations ! Cette course vous est attribuée.</p>
+        </div>
+        <div style="padding: 30px; background: #F8FAFC;">
+            
+            <p style="color: #475569; font-size: 15px; line-height: 1.6;">
+                Bonjour <strong>{driver.get('name', '').split()[0] if driver.get('name') else ''}</strong>,
+            </p>
+            
+            <div style="background: #dcfce7; border-left: 4px solid #22c55e; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0; font-weight: bold; color: #166534;">✅ Commission payée — Course confirmée</p>
+                <p style="margin: 5px 0 0 0; font-size: 14px; color: #166534;">Vous êtes maintenant responsable de cette course.</p>
+            </div>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <h3 style="margin-top: 0; color: #1e3a5f;">📋 Détails de la course</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b; width: 40%;">Réservation :</td>
+                        <td style="padding: 8px 0; font-family: monospace; font-weight: bold;">#{course_id_short}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Date/Heure :</td>
+                        <td style="padding: 8px 0; font-weight: bold;">{course.get('date', 'N/A')} à {course.get('time', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Départ :</td>
+                        <td style="padding: 8px 0;">{course.get('pickup_address', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Arrivée :</td>
+                        <td style="padding: 8px 0;">{course.get('dropoff_address', 'N/A')}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <h3 style="margin-top: 0; color: #1e3a5f;">👤 Client</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b; width: 40%;">Nom :</td>
+                        <td style="padding: 8px 0; font-weight: bold;">{course.get('client_name', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Téléphone :</td>
+                        <td style="padding: 8px 0;"><a href="tel:{course.get('client_phone', '')}" style="color: #3b82f6; font-weight: bold;">{course.get('client_phone', 'N/A')}</a></td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div style="background: #f0fdf4; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #bbf7d0;">
+                <h3 style="margin-top: 0; color: #166534;">💰 Récapitulatif financier</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Prix course :</td>
+                        <td style="padding: 8px 0; font-weight: bold; text-align: right;">{int(price_total)}€</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Commission (payée) :</td>
+                        <td style="padding: 8px 0; text-align: right; color: #dc2626;">-{commission_amount:.2f}€</td>
+                    </tr>
+                    <tr style="border-top: 2px solid #22c55e;">
+                        <td style="padding: 12px 0; color: #166534; font-weight: bold;">Votre gain net :</td>
+                        <td style="padding: 12px 0; font-weight: bold; text-align: right; color: #166534; font-size: 20px;">{net_driver:.2f}€</td>
+                    </tr>
+                </table>
+            </div>
+            
+            {ride_button}
+            
+            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0; font-weight: bold; color: #92400e;">⏰ Rappel important</p>
+                <p style="margin: 5px 0 0 0; font-size: 14px; color: #92400e;">
+                    En cas d'annulation moins d'1h avant la prise en charge, des pénalités s'appliquent. 3 annulations tardives entraînent la désactivation du compte.
+                </p>
+            </div>
+            
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 8px;">
+                <p style="margin: 0; color: #64748b; font-size: 12px;">
+                    <strong>JABADRIVER</strong><br/>
+                    Module de sous-traitance
+                </p>
+            </div>
+        </div>
+    </div>
+    """
+    
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [driver_email],
+            "subject": f"🎯 Course attribuée – #{course_id_short} – {course.get('date', '')} à {course.get('time', '')}",
+            "html": html_content
+        }
+        
+        logger.info(f"[EMAIL] Sending assignment notification to driver | Course: {course_id_short}")
+        response = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"[EMAIL] ✅ Driver assignment notification sent | Resend ID: {response.get('id', 'N/A')}")
+    except Exception as e:
+        logger.error(f"[EMAIL] ❌ Failed to send driver assignment notification | Error: {str(e)}")
+        logger.exception("Full exception trace:")
+
 async def send_driver_cancellation_notification(course: dict, driver: dict, is_late: bool):
     """Send email to driver when client cancels their assigned course"""
     driver_email = driver.get('email')
