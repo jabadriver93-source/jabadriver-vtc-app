@@ -223,44 +223,32 @@ export default function DriverRidePage() {
         headers: getAuthHeaders()
       });
       
-      console.log('[END] Response status:', res.status);
-      
-      let data;
-      try {
-        data = await res.json();
-        console.log('[END] Response data:', data);
-      } catch (parseErr) {
-        console.error('[END] Failed to parse response:', parseErr);
-        toast.error(`Erreur serveur (${res.status})`);
-        setIsActionDisabled(false);
-        return;
-      }
+      // Read body ONCE using helper
+      const { data } = await safeReadJson(res);
+      console.log('[END] Response:', res.status, data);
       
       if (!res.ok) {
         // Handle specific error codes with clear messages
         if (res.status === 409) {
-          toast.error(data.detail || 'Course déjà terminée');
+          toast.error(data?.detail || 'Course déjà terminée');
           setActionSuccess('already_done');
           // Refresh to show current state
           setTimeout(() => fetchRide(), 1000);
         } else if (res.status === 403) {
-          toast.error(data.detail || 'Accès refusé');
-          setError(data.detail || 'Accès refusé');
+          toast.error(data?.detail || 'Accès refusé');
+          setError(data?.detail || 'Accès refusé');
         } else if (res.status === 401) {
-          toast.error(data.detail || 'Session expirée. Reconnectez-vous.');
-          setError(data.detail || 'Session expirée');
-        } else if (res.status === 400) {
-          toast.error(data.detail || 'Action impossible');
-          setIsActionDisabled(false);
+          toast.error('Session expirée. Reconnectez-vous.');
+          setError('Session expirée');
         } else {
-          toast.error(data.detail || `Erreur ${res.status}`);
+          toast.error(getErrorMessage(res.status, data));
           setIsActionDisabled(false);
         }
         return;
       }
       
       setActionSuccess('ended');
-      toast.success(data.message || 'Course terminée !');
+      toast.success(data?.message || 'Course terminée !');
       
       // Small delay before refresh to show success state
       setTimeout(() => {
