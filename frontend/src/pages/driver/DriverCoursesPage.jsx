@@ -266,15 +266,6 @@ export default function DriverCoursesPage() {
       setActionLoading(null);
     }
   };
-      await fetchCourses(token, 'after-end');
-      
-    } catch (err) {
-      console.error('[ACTION] End error:', err);
-      toast.error(`Erreur réseau: ${err.message}`);
-    } finally {
-      setActionLoading(null);
-    }
-  };
 
   const downloadPDF = async (courseId, type) => {
     const token = localStorage.getItem('driver_token');
