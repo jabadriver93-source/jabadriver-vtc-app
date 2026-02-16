@@ -62,10 +62,19 @@ export default function DriverCoursesPage() {
     fetchCourses(token);
   }, [navigate]);
 
-  const fetchCourses = async (token) => {
+  const fetchCourses = async (token, reason = 'init') => {
     try {
-      const res = await fetch(`${API_URL}/api/driver/courses`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      // Cache buster for iOS Safari
+      const cacheBuster = `?_t=${Date.now()}`;
+      const url = `${API_URL}/api/driver/courses${cacheBuster}`;
+      
+      console.log(`[COURSES] Fetching courses (${reason}):`, url);
+      
+      const res = await fetch(url, {
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Cache-Control': 'no-cache'
+        }
       });
       
       if (res.status === 401 || res.status === 403) {
@@ -76,8 +85,16 @@ export default function DriverCoursesPage() {
       }
       
       const data = await res.json();
+      
+      // Debug log: first course status
+      if (data.length > 0) {
+        console.log(`[COURSES] Loaded ${data.length} courses | First: ${data[0].id?.substring(0,8)} status=${data[0].status}`);
+      }
+      
       setCourses(data);
+      return data;
     } catch (err) {
+      console.error('[COURSES] Fetch error:', err);
       toast.error('Erreur chargement courses');
     } finally {
       setLoading(false);
