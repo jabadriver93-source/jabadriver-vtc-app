@@ -46,10 +46,20 @@ export default function AdminSubcontractingPage() {
       const data = await res.json();
       
       if (res.ok && data.success) {
-        toast.success(`Email envoyé à ${driverEmail}`, {
-          description: `Resend ID: ${data.resend_id || 'N/A'}`,
-          duration: 10000 // Keep visible longer so user can copy
-        });
+        const senderInfo = data.sender_used || 'N/A';
+        const isWrongSender = senderInfo.includes('onboarding');
+        
+        if (isWrongSender) {
+          toast.warning(`⚠️ Email envoyé mais avec mauvais sender !`, {
+            description: `From: ${senderInfo} → Resend ID: ${data.resend_id || 'N/A'}. L'email ne sera pas délivré.`,
+            duration: 15000
+          });
+        } else {
+          toast.success(`Email envoyé à ${driverEmail}`, {
+            description: `From: ${senderInfo} | Resend ID: ${data.resend_id || 'N/A'}`,
+            duration: 10000
+          });
+        }
       } else {
         toast.error(`Échec envoi email`, {
           description: data.error || data.detail || 'Erreur inconnue',
