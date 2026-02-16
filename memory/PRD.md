@@ -137,8 +137,11 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 - **Aucune régression** sur le workflow existant (Start/End/Confirm)
 
 ### 12. Sécurité et Anti-Double-Action - Driver Ride Workflow ✅ [2026-02-16]
+- **Double authentification (Token OU Session)**:
+  - Token URL (`?token=xxx`): Pour accès direct depuis email
+  - Session JWT (`Authorization: Bearer xxx`): Pour chauffeur connecté
+  - Le chauffeur assigné peut utiliser les deux méthodes
 - **Protection Backend**:
-  - Token validation stricte (driver_access_token)
   - Vérification chauffeur assigné (assigned_driver_id)
   - Anti-double-action via `started_at`/`ended_at` check
   - Requêtes atomiques MongoDB (prevent race conditions)
@@ -147,13 +150,13 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
   - `started_by_driver_id`: ID du chauffeur ayant démarré
   - `ended_by_driver_id`: ID du chauffeur ayant terminé
 - **Logging sécurité**:
+  - `[RIDE-AUTH]` pour mode d'authentification utilisé
   - `[RIDE-SECURITY]` pour tentatives invalides
-  - Timestamps et driver IDs dans tous les logs
 - **Protection Frontend**:
   - `isActionDisabled` state pour bloquer double-clics
   - Boutons désactivés pendant chargement
-  - États visuels: loading, success, disabled
-  - Gestion HTTP 409 avec message utilisateur
+  - Messages d'erreur détaillés (HTTP 409 → "Course déjà démarrée/terminée")
+  - Support dual auth (token URL ou session localStorage)
 
 ## Technical Implementation
 
