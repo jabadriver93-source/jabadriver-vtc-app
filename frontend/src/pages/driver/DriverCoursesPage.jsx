@@ -253,7 +253,18 @@ export default function DriverCoursesPage() {
   // Handle END ride directly from dashboard
   // UX: After successful END, stay in dashboard with status DRIVER_COMPLETED
   const handleEndRide = async (courseId, driverAccessToken) => {
-    if (actionLoading) return; // Prevent double-click
+    // Debounce: prevent double-click within 2 seconds
+    const now = Date.now();
+    if (lastActionRef.current.courseId === courseId && now - lastActionRef.current.timestamp < 2000) {
+      console.log(`[ACTION] Debounced duplicate END for ${courseId.substring(0,8)}`);
+      return;
+    }
+    lastActionRef.current = { courseId, timestamp: now };
+    
+    if (actionLoading) {
+      console.log(`[ACTION] Already loading, ignoring END for ${courseId.substring(0,8)}`);
+      return;
+    }
     
     const token = localStorage.getItem('driver_token');
     setActionLoading(courseId);
@@ -262,9 +273,11 @@ export default function DriverCoursesPage() {
     
     try {
       // Build URL with token if available, otherwise use session auth
+      // Add cache-buster for Safari
+      const cacheBuster = `_t=${Date.now()}`;
       const url = driverAccessToken 
-        ? `${API_URL}/api/driver/ride/${courseId}/end?token=${driverAccessToken}`
-        : `${API_URL}/api/driver/ride/${courseId}/end`;
+        ? `${API_URL}/api/driver/ride/${courseId}/end?token=${driverAccessToken}&${cacheBuster}`
+        : `${API_URL}/api/driver/ride/${courseId}/end?${cacheBuster}`;
       
       const res = await fetch(url, {
         method: 'POST',
@@ -293,7 +306,8 @@ export default function DriverCoursesPage() {
       } else if (res.status === 409) {
         // Course already modified - show current status from response
         const currentStatus = data?.current_status || data?.status;
-        console.log(`[ACTION] 409 Conflict - Current status: ${currentStatus}`);
+        const errorCode = data?.error || 'unknown';
+        console.log(`[ACTION] 409 Conflict | error=${errorCode} | current_status=${currentStatus}`);
         
         // Show appropriate message based on status
         if (currentStatus === 'DRIVER_COMPLETED') {
