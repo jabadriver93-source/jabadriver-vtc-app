@@ -85,7 +85,15 @@ export default function DriverRidePage() {
   };
 
   const handleStartRide = async () => {
+    // Prevent double-clicks
+    if (actionLoading || isActionDisabled) {
+      console.log('[SECURITY] Prevented double-click on start');
+      return;
+    }
+    
     setActionLoading(true);
+    setIsActionDisabled(true); // Immediately disable to prevent rapid clicks
+    
     try {
       const res = await fetch(`${API_URL}/api/driver/ride/${rideId}/start?token=${token}`, {
         method: 'POST'
@@ -94,21 +102,46 @@ export default function DriverRidePage() {
       const data = await res.json();
       
       if (!res.ok) {
-        toast.error(data.detail || 'Erreur lors du démarrage');
+        // Handle specific error codes
+        if (res.status === 409) {
+          // Conflict - already started/race condition
+          toast.error(data.detail || 'Cette action a déjà été effectuée');
+          setActionSuccess('already_done');
+        } else if (res.status === 403) {
+          toast.error('Accès refusé - token invalide');
+          setError('Token invalide');
+        } else {
+          toast.error(data.detail || 'Erreur lors du démarrage');
+          setIsActionDisabled(false); // Re-enable on non-conflict errors
+        }
         return;
       }
       
+      setActionSuccess('started');
       toast.success(data.message || 'Course démarrée !');
-      fetchRide(); // Refresh data
+      
+      // Small delay before refresh to show success state
+      setTimeout(() => {
+        fetchRide();
+      }, 500);
     } catch (err) {
       toast.error('Erreur de connexion');
+      setIsActionDisabled(false); // Re-enable on network error
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleEndRide = async () => {
+    // Prevent double-clicks
+    if (actionLoading || isActionDisabled) {
+      console.log('[SECURITY] Prevented double-click on end');
+      return;
+    }
+    
     setActionLoading(true);
+    setIsActionDisabled(true); // Immediately disable to prevent rapid clicks
+    
     try {
       const res = await fetch(`${API_URL}/api/driver/ride/${rideId}/end?token=${token}`, {
         method: 'POST'
@@ -117,14 +150,31 @@ export default function DriverRidePage() {
       const data = await res.json();
       
       if (!res.ok) {
-        toast.error(data.detail || 'Erreur lors de la finalisation');
+        // Handle specific error codes
+        if (res.status === 409) {
+          // Conflict - already ended/race condition
+          toast.error(data.detail || 'Cette action a déjà été effectuée');
+          setActionSuccess('already_done');
+        } else if (res.status === 403) {
+          toast.error('Accès refusé - token invalide');
+          setError('Token invalide');
+        } else {
+          toast.error(data.detail || 'Erreur lors de la finalisation');
+          setIsActionDisabled(false); // Re-enable on non-conflict errors
+        }
         return;
       }
       
+      setActionSuccess('ended');
       toast.success(data.message || 'Course terminée !');
-      fetchRide(); // Refresh data
+      
+      // Small delay before refresh to show success state
+      setTimeout(() => {
+        fetchRide();
+      }, 500);
     } catch (err) {
       toast.error('Erreur de connexion');
+      setIsActionDisabled(false); // Re-enable on network error
     } finally {
       setActionLoading(false);
     }
