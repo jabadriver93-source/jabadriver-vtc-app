@@ -199,6 +199,12 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 - Driver Ride Workflow: 100% backend (13/13), 100% frontend [2026-02-16]
 - Client Confirmation: 100% backend (11/11), 100% frontend [2026-02-16]
 - Navigation/Communication Buttons: 100% frontend (vérifié ASSIGNED + IN_PROGRESS) [2026-02-16]
+- Security/Anti-Double-Action: 100% backend + frontend [2026-02-16]
+  - ✅ Double-start rejected (HTTP 409)
+  - ✅ Double-end rejected (HTTP 409)
+  - ✅ Invalid token rejected (HTTP 403)
+  - ✅ Audit fields stored (started_by_driver_id, ended_by_driver_id)
+  - ✅ Security logs generated
 
 ---
 
