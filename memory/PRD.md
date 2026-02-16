@@ -84,6 +84,10 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
   - **Timeline** avec timestamps (Attribuée, Démarrée, Terminée, Confirmée)
   - Infos: date/heure, client (nom + tél clickable), adresses
   - Récapitulatif financier (gain net)
+  - **Boutons Communication**: Appeler (tel:), WhatsApp (wa.me/)
+  - **Boutons Navigation GPS**: Google Maps, Waze (destination dynamique selon statut)
+    - ASSIGNED: Navigation vers point de prise en charge (pickup)
+    - IN_PROGRESS: Navigation vers destination (dropoff)
   - Bouton principal: "Démarrer" (ASSIGNED) ou "Terminer" (IN_PROGRESS)
   - Boutons PDF: Bon de commande, Facture
 - **Emails**:
