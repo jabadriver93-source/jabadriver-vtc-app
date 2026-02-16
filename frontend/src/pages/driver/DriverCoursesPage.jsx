@@ -107,6 +107,39 @@ export default function DriverCoursesPage() {
     navigate('/driver/login');
   };
 
+  // Helper to safely read JSON response body ONCE (fixes iOS Safari "Body is disturbed" error)
+  const safeReadJson = async (res) => {
+    try {
+      const raw = await res.text(); // Read body ONCE
+      try {
+        return { ok: true, data: JSON.parse(raw || '{}'), raw };
+      } catch {
+        return { ok: false, data: null, raw };
+      }
+    } catch (err) {
+      console.error('[FETCH] Body read error:', err);
+      return { ok: false, data: null, raw: '' };
+    }
+  };
+
+  // Map HTTP status to user-friendly error message
+  const getErrorMessage = (status, data) => {
+    switch (status) {
+      case 409:
+        return data?.detail || 'Course déjà démarrée ou terminée';
+      case 401:
+        return 'Session expirée. Veuillez vous reconnecter.';
+      case 403:
+        return data?.detail || 'Vous n\'êtes pas assigné à cette course';
+      case 404:
+        return 'Course non trouvée';
+      case 400:
+        return data?.detail || 'Action impossible';
+      default:
+        return data?.detail || `Erreur serveur (${status})`;
+    }
+  };
+
   // State for action loading
   const [actionLoading, setActionLoading] = useState(null); // courseId being processed
 
@@ -129,22 +162,28 @@ export default function DriverCoursesPage() {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
         }
       });
       
-      const data = await res.json();
+      // Read body ONCE using helper
+      const { data } = await safeReadJson(res);
       console.log(`[ACTION] Start response: status=${res.status}`, data);
       
       if (res.status === 409) {
         // Course already modified - show current status and refresh
-        toast.info(data.detail || 'Course déjà démarrée');
-        console.log(`[ACTION] 409 - Current status: ${data.current_status}`);
+        toast.info(data?.detail || 'Course déjà démarrée');
+        console.log(`[ACTION] 409 - Current status: ${data?.current_status}`);
+      } else if (res.status === 401) {
+        toast.error('Session expirée. Veuillez vous reconnecter.');
+        handleLogout();
+        return;
       } else if (!res.ok) {
-        toast.error(data.detail || `Erreur ${res.status}`);
+        toast.error(getErrorMessage(res.status, data));
         return;
       } else {
-        toast.success(data.message || 'Course démarrée !');
+        toast.success(data?.message || 'Course démarrée !');
       }
       
       // Force refetch to update UI
@@ -153,7 +192,7 @@ export default function DriverCoursesPage() {
       
     } catch (err) {
       console.error('[ACTION] Start error:', err);
-      toast.error(`Erreur réseau: ${err.message}`);
+      toast.error(`Erreur réseau: ${err.message || 'Connexion impossible'}`);
     } finally {
       setActionLoading(null);
     }
@@ -178,22 +217,28 @@ export default function DriverCoursesPage() {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
         }
       });
       
-      const data = await res.json();
+      // Read body ONCE using helper
+      const { data } = await safeReadJson(res);
       console.log(`[ACTION] End response: status=${res.status}`, data);
       
       if (res.status === 409) {
         // Course already modified - show current status and refresh
-        toast.info(data.detail || 'Course déjà terminée');
-        console.log(`[ACTION] 409 - Current status: ${data.current_status}`);
+        toast.info(data?.detail || 'Course déjà terminée');
+        console.log(`[ACTION] 409 - Current status: ${data?.current_status}`);
+      } else if (res.status === 401) {
+        toast.error('Session expirée. Veuillez vous reconnecter.');
+        handleLogout();
+        return;
       } else if (!res.ok) {
-        toast.error(data.detail || `Erreur ${res.status}`);
+        toast.error(getErrorMessage(res.status, data));
         return;
       } else {
-        toast.success(data.message || 'Course terminée !');
+        toast.success(data?.message || 'Course terminée !');
       }
       
       // Force refetch to update UI
