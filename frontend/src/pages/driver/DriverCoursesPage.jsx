@@ -119,26 +119,22 @@ export default function DriverCoursesPage() {
     try {
       // Clone response to ensure body is readable (Safari fix)
       const clonedRes = res.clone();
-      let raw;
       
       try {
-        raw = await clonedRes.text();
-      } catch (cloneErr) {
-        // If clone fails, try original response
-        console.warn('[FETCH] Clone read failed, trying original:', cloneErr.message);
+        // Try json() directly first - more reliable
+        const data = await clonedRes.json();
+        return { ok: true, data, raw: JSON.stringify(data) };
+      } catch (jsonErr) {
+        // If json fails, try text on original
+        console.warn('[FETCH] JSON read failed, trying text:', jsonErr.message);
         try {
-          raw = await res.text();
-        } catch (origErr) {
-          console.error('[FETCH] Both body reads failed:', origErr.message);
+          const raw = await res.text();
+          const data = raw ? JSON.parse(raw) : {};
+          return { ok: true, data, raw };
+        } catch (textErr) {
+          console.error('[FETCH] All body reads failed:', textErr.message);
           return { ok: false, data: null, raw: '' };
         }
-      }
-      
-      try {
-        return { ok: true, data: JSON.parse(raw || '{}'), raw };
-      } catch {
-        console.warn('[FETCH] JSON parse failed, raw:', raw?.substring(0, 100));
-        return { ok: false, data: null, raw };
       }
     } catch (err) {
       console.error('[FETCH] Body read error:', err);
