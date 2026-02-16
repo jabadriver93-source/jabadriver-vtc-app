@@ -696,20 +696,37 @@ async def send_course_assigned_to_client(course: dict, driver: dict):
 async def send_course_assigned_to_driver(course: dict, driver: dict):
     """Send email to driver when course is assigned with direct ride link"""
     driver_email = driver.get('email')
-    if not driver_email or not SENDER_EMAIL:
-        logger.warning("[EMAIL] Skipping driver assignment notification - email not configured")
+    course_id = course.get('id', 'unknown')
+    
+    # Detailed logging for debugging email issues
+    logger.info(f"[EMAIL][ASSIGNED] Attempting to send assignment email | course={course_id[:8]} | driver_email={driver_email}")
+    
+    if not driver_email:
+        logger.warning(f"[EMAIL][ASSIGNED] SKIPPED - No driver email | course={course_id[:8]}")
         return
     
+    if not SENDER_EMAIL:
+        logger.warning(f"[EMAIL][ASSIGNED] SKIPPED - SENDER_EMAIL not configured | course={course_id[:8]}")
+        return
+    
+    # Check/set Resend API key
     if not resend.api_key:
         resend.api_key = os.environ.get('RESEND_API_KEY', '')
     
-    course_id_short = course.get('id', '')[:8].upper()
+    if not resend.api_key:
+        logger.error(f"[EMAIL][ASSIGNED] FAILED - RESEND_API_KEY not set | course={course_id[:8]} | driver={driver_email}")
+        return
+    
+    logger.info(f"[EMAIL][ASSIGNED] RESEND_API_KEY present: {bool(resend.api_key)} | sender={SENDER_EMAIL}")
+    
+    course_id_short = course_id[:8].upper()
     price_total = course.get('price_total', 0)
     commission_amount = course.get('commission_amount', 0)
     net_driver = price_total - commission_amount
     
     # Generate direct ride link
     ride_url = get_driver_ride_url(course)
+    logger.info(f"[EMAIL][ASSIGNED] Generated ride_url: {ride_url or '(none)'} | FRONTEND_URL={FRONTEND_URL}")
     
     ride_button = ""
     if ride_url:
@@ -720,6 +737,8 @@ async def send_course_assigned_to_driver(course: dict, driver: dict):
                 </a>
             </div>
         """
+    else:
+        logger.warning(f"[EMAIL][ASSIGNED] No ride_url generated - button will be missing | course={course_id[:8]}")
     
     html_content = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
