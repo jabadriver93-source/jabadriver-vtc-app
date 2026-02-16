@@ -2193,29 +2193,58 @@ async def driver_cancel_course(request: Request, course_id: str, reason: Optiona
 # ============================================
 
 @driver_router.get("/ride/{ride_id}")
-async def get_driver_ride(ride_id: str, token: str = Query(..., description="Driver access token")):
-    """Get ride details via driver access token (no login required)"""
+async def get_driver_ride(ride_id: str, token: Optional[str] = Query(None, description="Driver access token (optional if logged in)"), request: Request = None):
+    """Get ride details via driver access token OR session
+    
+    Authentication (one of):
+    - Token in URL: ?token=xxx (for direct email link access)
+    - Session JWT: Authorization header (for logged-in driver)
+    """
     if not SUBCONTRACTING_ENABLED:
         raise HTTPException(status_code=503, detail="Module sous-traitance désactivé")
     
-    # Find course by ID and validate token
+    # Find course by ID
     course = await db.courses.find_one({"id": ride_id}, {"_id": 0})
     if not course:
         raise HTTPException(status_code=404, detail="Course non trouvée")
     
-    # Validate driver access token
-    if not course.get("driver_access_token") or course.get("driver_access_token") != token:
-        raise HTTPException(status_code=403, detail="Token d'accès invalide")
+    assigned_driver_id = course.get("assigned_driver_id")
     
-    # Token expires when ride is DONE
-    if course.get("status") == CourseStatusEnum.DONE:
+    # DUAL AUTH: Token OR Session
+    authenticated = False
+    
+    if token:
+        # Mode 1: Token authentication (from email link)
+        if course.get("driver_access_token") and course.get("driver_access_token") == token:
+            authenticated = True
+            logger.info(f"[RIDE-AUTH] Ride {ride_id[:8]} accessed via token")
+        else:
+            raise HTTPException(status_code=403, detail="Token d'accès invalide")
+    else:
+        # Mode 2: Session authentication (logged-in driver)
+        authorization = request.headers.get("Authorization") if request else None
+        if authorization:
+            try:
+                driver = await get_driver_from_token(authorization)
+                if driver.get("id") == assigned_driver_id:
+                    authenticated = True
+                    logger.info(f"[RIDE-AUTH] Ride {ride_id[:8]} accessed via session by {driver.get('id')[:8]}")
+                else:
+                    raise HTTPException(status_code=403, detail="Vous n'êtes pas assigné à cette course")
+            except HTTPException:
+                raise HTTPException(status_code=401, detail="Authentification requise. Connectez-vous ou utilisez le lien email.")
+        else:
+            raise HTTPException(status_code=401, detail="Authentification requise. Connectez-vous ou utilisez le lien email.")
+    
+    # Token expires when ride is DONE (only for token auth)
+    if token and course.get("status") == CourseStatusEnum.DONE:
         raise HTTPException(status_code=403, detail="Cette course est terminée. Le lien n'est plus valide.")
     
     # Get driver info
     driver = None
-    if course.get("assigned_driver_id"):
+    if assigned_driver_id:
         driver = await db.drivers.find_one(
-            {"id": course["assigned_driver_id"]}, 
+            {"id": assigned_driver_id}, 
             {"_id": 0, "password_hash": 0}
         )
     
@@ -2252,6 +2281,7 @@ async def get_driver_ride(ride_id: str, token: str = Query(..., description="Dri
         "started_at": course.get("started_at"),
         "ended_at": course.get("ended_at"),
         "assigned_at": course.get("assigned_at"),
+        "driver_access_token": course.get("driver_access_token"),  # Include token for frontend
         "driver": {
             "id": driver.get("id") if driver else None,
             "name": driver.get("name") if driver else None,
