@@ -198,6 +198,29 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 - **Bon de Commande**: Émetteur = Chauffeur, pied de page Jabadriver
 - **Facture**: Émetteur = Chauffeur, suppléments détaillés, pied de page Jabadriver
 
+### 13. Bug Fix: "Course déjà en statut: unknown" ✅ [2026-02-16]
+- **Problème**: Sur iPhone/Safari, le message "Course déjà en statut: unknown" s'affichait même après un succès (200 OK)
+- **Cause**: Le frontend lisait `data?.current_status || 'unknown'` sans vérifier d'abord si la requête avait réussi
+- **Correction Frontend (DriverCoursesPage.jsx)**:
+  - Ordre de vérification: 401 (logout) → 409 (conflit) → !ok (autre erreur) → success
+  - Pour succès 200: Lire `data?.status` (ex: "IN_PROGRESS", "DRIVER_COMPLETED")
+  - Pour conflit 409: Lire `data?.current_status || data?.status`
+  - Log détaillé avec `[ACTION] ✅ Start SUCCESS` ou `[ACTION] 409 Conflict`
+- **Backend confirmé OK**: Retourne `{ success: true, status: "IN_PROGRESS", ... }` en 200
+
+### 14. Bug Investigation: Email d'assignation chauffeur ⏳ [2026-02-16]
+- **Problème signalé**: Le chauffeur ne reçoit pas l'email "VOIR LA COURSE" après attribution
+- **Investigation**:
+  - Configuration SENDER_EMAIL correctement passée au module subcontracting ✅
+  - Fonction `send_course_assigned_to_driver` fonctionnelle en test ✅
+  - Autres emails (ride_started, ride_ended) envoyés avec succès ✅
+  - Logs `[EMAIL-FLOW]` et `[EMAIL][ASSIGNED]` implémentés ✅
+- **Statut**: Module email fonctionnel en preview. Si bug persiste en prod, vérifier:
+  1. Logs production pour `[EMAIL][ASSIGNED]`
+  2. SENDER_EMAIL et RESEND_API_KEY en production
+  3. Rate limit Resend (2 req/sec)
+- **Note**: Le flux d'assignation (après paiement commission) n'a pas pu être testé de bout en bout car il nécessite un vrai paiement Stripe
+
 ## Non-Regression Confirmed
 - ✅ Paiement Stripe inchangé
 - ✅ Système de claim chauffeur inchangé
@@ -205,6 +228,7 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 - ✅ Layout mobile préservé
 - ✅ Environnements preview/production identiques
 - ✅ Numérotation factures préservée
+- ✅ Workflow START/END fonctionne sur Safari iOS (après fix cache-busting et safeReadJson)
 
 ## Test Credentials
 - **Chauffeur**: nouveau.chauffeur@test.com / test123
