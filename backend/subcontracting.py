@@ -2364,18 +2364,34 @@ async def start_ride(ride_id: str, token: Optional[str] = Query(None, descriptio
     if course.get("started_at"):
         existing_start = course.get("started_at")
         logger.warning(f"[RIDE-SECURITY] 🔄 Double-start attempt on ride {ride_id[:8]} - already started at {existing_start}")
-        raise HTTPException(status_code=409, detail="Cette course a déjà été démarrée")
+        return JSONResponse(
+            status_code=409,
+            content={
+                "detail": "Cette course a déjà été démarrée",
+                "current_status": course.get("status"),
+                "started_at": course.get("started_at")
+            }
+        )
     
     # Check current status - must be ASSIGNED
     current_status = course.get("status")
     if current_status != CourseStatusEnum.ASSIGNED:
         logger.warning(f"[RIDE-SECURITY] ⚠️ Start attempt on ride {ride_id[:8]} with invalid status: {current_status}")
         if current_status == CourseStatusEnum.IN_PROGRESS:
-            raise HTTPException(status_code=409, detail="La course est déjà en cours")
+            return JSONResponse(
+                status_code=409,
+                content={"detail": "La course est déjà en cours", "current_status": current_status}
+            )
         elif current_status == CourseStatusEnum.DRIVER_COMPLETED:
-            raise HTTPException(status_code=409, detail="La course est déjà terminée par le chauffeur")
+            return JSONResponse(
+                status_code=409,
+                content={"detail": "La course est déjà terminée par le chauffeur", "current_status": current_status}
+            )
         elif current_status == CourseStatusEnum.DONE:
-            raise HTTPException(status_code=409, detail="Cette course est définitivement clôturée")
+            return JSONResponse(
+                status_code=409,
+                content={"detail": "Cette course est définitivement clôturée", "current_status": current_status}
+            )
         else:
             raise HTTPException(status_code=400, detail=f"Impossible de démarrer: statut actuel = {current_status}")
     
