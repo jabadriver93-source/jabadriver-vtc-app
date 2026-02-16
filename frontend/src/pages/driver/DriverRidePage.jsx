@@ -585,32 +585,64 @@ export default function DriverRidePage() {
             {ride?.status === 'ASSIGNED' && (
               <Button
                 onClick={handleStartRide}
-                disabled={actionLoading}
-                className="w-full h-14 bg-amber-500 hover:bg-amber-600 text-black font-bold text-lg rounded-xl shadow-lg shadow-amber-500/20"
+                disabled={actionLoading || isActionDisabled}
+                className={`w-full h-14 font-bold text-lg rounded-xl shadow-lg transition-all duration-200 ${
+                  actionSuccess === 'started' 
+                    ? 'bg-green-500 text-white shadow-green-500/20' 
+                    : isActionDisabled 
+                      ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                      : 'bg-amber-500 hover:bg-amber-600 text-black shadow-amber-500/20'
+                }`}
                 data-testid="start-ride-btn"
               >
                 {actionLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    Démarrage en cours...
+                  </>
+                ) : actionSuccess === 'started' ? (
+                  <>
+                    <CheckCircle className="w-5 h-5 mr-2" />
+                    Course démarrée !
+                  </>
                 ) : (
-                  <Play className="w-5 h-5 mr-2" />
+                  <>
+                    <Play className="w-5 h-5 mr-2" />
+                    Démarrer la course
+                  </>
                 )}
-                Démarrer la course
               </Button>
             )}
             
             {ride?.status === 'IN_PROGRESS' && (
               <Button
                 onClick={handleEndRide}
-                disabled={actionLoading}
-                className="w-full h-14 bg-green-500 hover:bg-green-600 text-white font-bold text-lg rounded-xl shadow-lg shadow-green-500/20"
+                disabled={actionLoading || isActionDisabled}
+                className={`w-full h-14 font-bold text-lg rounded-xl shadow-lg transition-all duration-200 ${
+                  actionSuccess === 'ended' 
+                    ? 'bg-emerald-500 text-white shadow-emerald-500/20' 
+                    : isActionDisabled 
+                      ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                      : 'bg-green-500 hover:bg-green-600 text-white shadow-green-500/20'
+                }`}
                 data-testid="end-ride-btn"
               >
                 {actionLoading ? (
-                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                    Finalisation...
+                  </>
+                ) : actionSuccess === 'ended' ? (
+                  <>
+                    <CheckCircle className="w-5 h-5 mr-2" />
+                    Course terminée !
+                  </>
                 ) : (
-                  <CheckCircle className="w-5 h-5 mr-2" />
+                  <>
+                    <CheckCircle className="w-5 h-5 mr-2" />
+                    Terminer la course
+                  </>
                 )}
-                Terminer la course
               </Button>
             )}
           </div>
