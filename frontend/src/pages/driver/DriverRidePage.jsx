@@ -38,7 +38,8 @@ const STATUS_CONFIG = {
 export default function DriverRidePage() {
   const { rideId } = useParams();
   const [searchParams] = useSearchParams();
-  const token = searchParams.get('token');
+  const urlToken = searchParams.get('token'); // Token from URL (email link)
+  const sessionToken = localStorage.getItem('driver_token'); // Session token (logged-in driver)
   
   const [ride, setRide] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -46,6 +47,24 @@ export default function DriverRidePage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionSuccess, setActionSuccess] = useState(null); // Track successful actions
   const [isActionDisabled, setIsActionDisabled] = useState(false); // Prevent double-clicks
+
+  // Determine auth mode
+  const authMode = urlToken ? 'token' : (sessionToken ? 'session' : null);
+
+  // Build headers for API calls
+  const getAuthHeaders = () => {
+    const headers = { 'Content-Type': 'application/json' };
+    if (!urlToken && sessionToken) {
+      headers['Authorization'] = `Bearer ${sessionToken}`;
+    }
+    return headers;
+  };
+
+  // Build URL with token if available
+  const buildUrl = (endpoint) => {
+    const base = `${API_URL}/api/driver/ride/${rideId}${endpoint}`;
+    return urlToken ? `${base}?token=${urlToken}` : base;
+  };
 
   useEffect(() => {
     if (!token) {
