@@ -10,6 +10,7 @@ import ClaimPage from "@/pages/ClaimPage";
 import DriverLoginPage from "@/pages/driver/DriverLoginPage";
 import DriverCoursesPage from "@/pages/driver/DriverCoursesPage";
 import DriverProfilePage from "@/pages/driver/DriverProfilePage";
+import DriverRidePage from "@/pages/driver/DriverRidePage";
 import AdminSubcontractingPage from "@/pages/admin/AdminSubcontractingPage";
 import AdminCommissionsPage from "@/pages/admin/AdminCommissionsPage";
 import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
@@ -39,6 +40,7 @@ function App() {
           <Route path="/driver/login" element={<DriverLoginPage />} />
           <Route path="/driver/courses" element={<DriverCoursesPage />} />
           <Route path="/driver/profile" element={<DriverProfilePage />} />
+          <Route path="/driver/ride/:rideId" element={<DriverRidePage />} />
           
           {/* Claim route (subcontracting) */}
           <Route path="/claim/:token" element={<ClaimPage />} />
