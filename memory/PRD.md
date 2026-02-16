@@ -248,6 +248,11 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
   - ✅ Invalid token rejected (HTTP 403)
   - ✅ Audit fields stored (started_by_driver_id, ended_by_driver_id)
   - ✅ Security logs generated
+- **Bug Fix "unknown status": 100% (iteration_6.json)** [2026-02-16]
+  - ✅ START button: ASSIGNED → IN_PROGRESS, toast "Course démarrée !"
+  - ✅ END button: IN_PROGRESS → DRIVER_COMPLETED, toast "Course terminée !"
+  - ✅ 409 handling: current_status lu correctement, plus de "unknown"
+  - ✅ Status badge updates dynamiquement après action
 
 ---
 
