@@ -221,10 +221,7 @@ export default function DriverRidePage() {
       const url = buildUrl('/end');
       console.log('[END] Calling:', url, '| Auth mode:', authMode);
       
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: getAuthHeaders()
-      });
+      const res = await fetch(url, getFetchOptions('POST'));
       
       // Read body ONCE using helper
       const { data } = await safeReadJson(res);
