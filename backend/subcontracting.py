@@ -3262,23 +3262,39 @@ async def finalize_attribution(course_id: str, driver_id: str, payment_session_i
     
     logger.info(f"[SUBCONTRACTING] ✅ Course {course_id[:8]} ASSIGNED to driver {driver_id[:8]}")
     
-    # Send email notification to admin
+    # Send email notifications
     try:
         driver = await db.drivers.find_one({"id": driver_id}, {"_id": 0, "password_hash": 0})
         updated_course = await db.courses.find_one({"id": course_id}, {"_id": 0})
+        
+        logger.info(f"[EMAIL-FLOW] Assignment complete, preparing emails | course={course_id[:8]} | driver_found={bool(driver)} | course_found={bool(updated_course)}")
+        
+        if driver:
+            logger.info(f"[EMAIL-FLOW] Driver details | id={driver.get('id', 'N/A')[:8]} | email={driver.get('email', 'NOT_SET')} | name={driver.get('name', 'N/A')}")
         
         # Get payment intent ID from commission_payments
         payment = await db.commission_payments.find_one({"session_id": payment_session_id}, {"_id": 0})
         payment_intent_id = payment.get("provider_payment_id") if payment else None
         
         if driver and updated_course:
+            # 1. Send to admin
+            logger.info(f"[EMAIL-FLOW] Sending admin notification...")
             await send_course_assigned_notification(updated_course, driver, payment_intent_id)
-            # Also send email to client
+            
+            # 2. Send to client
+            logger.info(f"[EMAIL-FLOW] Sending client notification...")
             await send_course_assigned_to_client(updated_course, driver)
-            # Send email to driver with direct ride link
+            
+            # 3. Send to driver with direct ride link
+            logger.info(f"[EMAIL-FLOW] Sending driver notification with ride link...")
             await send_course_assigned_to_driver(updated_course, driver)
+            
+            logger.info(f"[EMAIL-FLOW] ✅ All assignment emails sent for course {course_id[:8]}")
+        else:
+            logger.warning(f"[EMAIL-FLOW] ⚠️ Cannot send emails - driver={bool(driver)} course={bool(updated_course)}")
     except Exception as e:
-        logger.error(f"[SUBCONTRACTING] Failed to send assignment notification: {str(e)}")
+        logger.error(f"[EMAIL-FLOW] ❌ Failed to send assignment notifications: {str(e)}")
+        logger.exception("[EMAIL-FLOW] Full stack trace:")
         # Don't fail attribution if email fails
     
     return True
