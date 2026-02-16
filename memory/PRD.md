@@ -116,7 +116,7 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 
 ### Backend (FastAPI)
 - **Modèle Driver**: Champs obligatoires (company_name, address, siret, vat_mention, driver_code)
-- **Modèle Course**: Nouveaux champs (invoice_status, invoice_number, supplements, is_test, driver_access_token, started_at, ended_at)
+- **Modèle Course**: Nouveaux champs (invoice_status, invoice_number, supplements, is_test, driver_access_token, started_at, ended_at, client_confirmation_token, confirmed_at)
 - **Statuts Course**: OPEN, RESERVED, ASSIGNED, IN_PROGRESS, DRIVER_COMPLETED, DONE, CANCELLED, CANCELLED_LATE_*
 - **Routes**:
   - `PATCH /api/driver/courses/{id}/supplements` - Ajout suppléments
@@ -128,11 +128,14 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
   - `GET /api/driver/ride/{ride_id}?token` - Détails course (accès direct token)
   - `POST /api/driver/ride/{ride_id}/start?token` - Démarrer course
   - `POST /api/driver/ride/{ride_id}/end?token` - Terminer course
+  - `GET /api/driver/confirm-ride/{ride_id}?token` - Détails pour confirmation client
+  - `POST /api/driver/confirm-ride/{ride_id}?token` - Confirmer la course
 
 ### Frontend (React)
 - **DriverLoginPage**: Formulaire inscription avec champ "Mention TVA *"
 - **DriverCoursesPage**: Gestion suppléments, émission facture, badges statut
-- **DriverRidePage**: Page mobile-first accès direct par token, boutons Start/End
+- **DriverRidePage**: Page mobile-first accès direct par token, timeline, boutons Start/End
+- **ConfirmRidePage**: Page confirmation client mobile-first avec timeline et bouton confirmer
 - **ClientPortalPage**: Modification directe, affichage blocage si facture émise
 - **AdminSubcontractingPage**: Bouton toggle test, badge TEST, statuts IN_PROGRESS/DRIVER_COMPLETED
 - **AdminCommissionsPage**: Badge COURSE TEST, montant barré pour courses test
