@@ -2039,14 +2039,27 @@ async def update_driver_profile(request: Request, data: DriverProfileUpdate):
 # DRIVER COURSES ROUTES
 # ============================================
 @driver_router.get("/courses")
-async def get_driver_courses(request: Request):
-    """Get courses assigned to current driver"""
+async def get_driver_courses(request: Request, response: Response):
+    """Get courses assigned to current driver
+    
+    Returns all fields needed for status display:
+    - id, status, started_at, ended_at, confirmed_at, driver_access_token
+    """
     driver = await get_driver_from_token(request.headers.get("Authorization"))
+    
+    # Disable caching for iOS Safari
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
     
     courses = await db.courses.find(
         {"assigned_driver_id": driver["id"]},
         {"_id": 0}
     ).sort("created_at", -1).to_list(100)
+    
+    # Log for debugging
+    if courses:
+        logger.info(f"[DRIVER-COURSES] Returning {len(courses)} courses for driver {driver['id'][:8]} | First: {courses[0].get('id', 'N/A')[:8]} status={courses[0].get('status')}")
     
     return courses
 
