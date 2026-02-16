@@ -2506,6 +2506,9 @@ async def finalize_attribution(course_id: str, driver_id: str, payment_session_i
             logger.error(f"[SUBCONTRACTING] Course {course_id[:8]} already assigned to different driver - REFUND NEEDED")
             return False
     
+    # Generate driver access token for direct ride access
+    driver_access_token = secrets.token_urlsafe(32)
+    
     # Finalize attribution
     commission_amount = round(course["price_total"] * COMMISSION_RATE, 2)
     
@@ -2519,7 +2522,8 @@ async def finalize_attribution(course_id: str, driver_id: str, payment_session_i
             "commission_paid": True,
             "commission_paid_at": datetime.now(timezone.utc).isoformat(),
             "reserved_by_driver_id": None,
-            "reserved_until": None
+            "reserved_until": None,
+            "driver_access_token": driver_access_token
         }}
     )
     
@@ -2538,6 +2542,8 @@ async def finalize_attribution(course_id: str, driver_id: str, payment_session_i
             await send_course_assigned_notification(updated_course, driver, payment_intent_id)
             # Also send email to client
             await send_course_assigned_to_client(updated_course, driver)
+            # Send email to driver with direct ride link
+            await send_course_assigned_to_driver(updated_course, driver)
     except Exception as e:
         logger.error(f"[SUBCONTRACTING] Failed to send assignment notification: {str(e)}")
         # Don't fail attribution if email fails
