@@ -2380,40 +2380,73 @@ async def start_ride(ride_id: str, token: Optional[str] = Query(None, descriptio
         logger.warning(f"[RIDE-SECURITY] 🚫 Driver {authenticated_driver_id[:8]} tried to start ride {ride_id[:8]} assigned to {assigned_driver_id[:8]}")
         raise HTTPException(status_code=403, detail="Vous n'êtes pas assigné à cette course")
     
-    # ANTI-DOUBLE-ACTION: Check if already started via started_at field
+    # Log full context for debugging production issues
+    current_status = course.get("status")
+    logger.info(f"[RIDE-START] 📍 Request | ride_id={ride_id[:8]} | current_status={current_status} | assigned_driver={assigned_driver_id[:8]} | auth_driver={authenticated_driver_id[:8]} | auth_method={auth_method} | started_at={course.get('started_at') or 'None'}")
+    
+    # IDEMPOTENT START: If already IN_PROGRESS by same driver, return 200 OK (not 409)
+    # This prevents Safari double-fetch issues and improves UX
+    if current_status == CourseStatusEnum.IN_PROGRESS:
+        existing_start = course.get("started_at")
+        logger.info(f"[RIDE-START] ✅ IDEMPOTENT - Course {ride_id[:8]} already IN_PROGRESS since {existing_start} - returning 200 OK")
+        return {
+            "success": True,
+            "message": "Course déjà en cours",
+            "status": CourseStatusEnum.IN_PROGRESS,
+            "started_at": existing_start,
+            "idempotent": True  # Flag to indicate this was already started
+        }
+    
+    # Check if already started via started_at field (belt-and-suspenders check)
     if course.get("started_at"):
         existing_start = course.get("started_at")
-        logger.warning(f"[RIDE-SECURITY] 🔄 Double-start attempt on ride {ride_id[:8]} - already started at {existing_start}")
-        return JSONResponse(
-            status_code=409,
-            content={
-                "detail": "Cette course a déjà été démarrée",
-                "current_status": course.get("status"),
-                "started_at": course.get("started_at")
+        logger.warning(f"[RIDE-START] 🔄 Course has started_at but status={current_status} | ride={ride_id[:8]} | started_at={existing_start}")
+        # Return idempotent response if status is compatible
+        if current_status in [CourseStatusEnum.IN_PROGRESS, CourseStatusEnum.DRIVER_COMPLETED, CourseStatusEnum.DONE]:
+            return {
+                "success": True,
+                "message": "Course déjà démarrée",
+                "status": current_status,
+                "started_at": existing_start,
+                "idempotent": True
             }
-        )
     
-    # Check current status - must be ASSIGNED
-    current_status = course.get("status")
+    # Check current status - must be ASSIGNED for a fresh start
     if current_status != CourseStatusEnum.ASSIGNED:
-        logger.warning(f"[RIDE-SECURITY] ⚠️ Start attempt on ride {ride_id[:8]} with invalid status: {current_status}")
-        if current_status == CourseStatusEnum.IN_PROGRESS:
+        logger.warning(f"[RIDE-START] ⚠️ Invalid status for start | ride={ride_id[:8]} | current_status={current_status} | expected=ASSIGNED")
+        if current_status == CourseStatusEnum.DRIVER_COMPLETED:
             return JSONResponse(
                 status_code=409,
-                content={"detail": "La course est déjà en cours", "current_status": current_status}
-            )
-        elif current_status == CourseStatusEnum.DRIVER_COMPLETED:
-            return JSONResponse(
-                status_code=409,
-                content={"detail": "La course est déjà terminée par le chauffeur", "current_status": current_status}
+                content={
+                    "error": "already_completed",
+                    "detail": "La course est déjà terminée par le chauffeur",
+                    "current_status": current_status,
+                    "expected_status": "ASSIGNED",
+                    "ride_id": ride_id[:8]
+                }
             )
         elif current_status == CourseStatusEnum.DONE:
             return JSONResponse(
                 status_code=409,
-                content={"detail": "Cette course est définitivement clôturée", "current_status": current_status}
+                content={
+                    "error": "already_done",
+                    "detail": "Cette course est définitivement clôturée",
+                    "current_status": current_status,
+                    "expected_status": "ASSIGNED",
+                    "ride_id": ride_id[:8]
+                }
             )
         else:
-            raise HTTPException(status_code=400, detail=f"Impossible de démarrer: statut actuel = {current_status}")
+            return JSONResponse(
+                status_code=409,
+                content={
+                    "error": "invalid_status",
+                    "detail": f"Impossible de démarrer: statut actuel = {current_status}",
+                    "current_status": current_status,
+                    "expected_status": "ASSIGNED",
+                    "ride_id": ride_id[:8]
+                }
+            )
     
     # Update status to IN_PROGRESS with audit fields
     started_at = datetime.now(timezone.utc).isoformat()
