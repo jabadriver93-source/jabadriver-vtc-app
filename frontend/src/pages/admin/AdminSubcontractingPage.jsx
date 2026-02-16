@@ -398,7 +398,7 @@ export default function AdminSubcontractingPage() {
                         )}
                       </div>
                       <span className={`px-2 py-1 rounded text-xs border ${getStatusColor(course.status)}`}>
-                        {course.status}
+                        {getStatusLabel(course.status)}
                       </span>
                     </div>
                     
