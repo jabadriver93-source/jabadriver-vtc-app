@@ -2584,8 +2584,17 @@ async def end_ride(ride_id: str, token: Optional[str] = Query(None, description=
     
     # Verify update was successful (race condition protection)
     if update_result.modified_count == 0:
-        logger.error(f"[RIDE-SECURITY] ❌ Race condition detected on ride {ride_id[:8]} - atomic update failed on end")
-        raise HTTPException(status_code=409, detail="La course a déjà été modifiée. Actualisez la page.")
+        # Refetch to get current status
+        refreshed_course = await db.courses.find_one({"id": ride_id}, {"_id": 0, "status": 1, "ended_at": 1})
+        logger.error(f"[RIDE-SECURITY] ❌ Race condition detected on ride {ride_id[:8]} - atomic update failed on end | current_status={refreshed_course.get('status') if refreshed_course else 'unknown'}")
+        return JSONResponse(
+            status_code=409,
+            content={
+                "detail": "La course a déjà été modifiée. Actualisez la page.",
+                "current_status": refreshed_course.get("status") if refreshed_course else "unknown",
+                "ended_at": refreshed_course.get("ended_at") if refreshed_course else None
+            }
+        )
     
     logger.info(f"[RIDE] ✅ Course {ride_id[:8]} ENDED by driver {authenticated_driver_id[:8]} via {auth_method} at {ended_at} (DRIVER_COMPLETED)")
     
