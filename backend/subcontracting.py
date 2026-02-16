@@ -2349,7 +2349,6 @@ async def start_ride(ride_id: str, token: Optional[str] = Query(None, descriptio
     # ANTI-DOUBLE-ACTION: Check if already started via started_at field
     if course.get("started_at"):
         existing_start = course.get("started_at")
-        started_by = course.get("started_by_driver_id", "unknown")
         logger.warning(f"[RIDE-SECURITY] 🔄 Double-start attempt on ride {ride_id[:8]} - already started at {existing_start}")
         raise HTTPException(status_code=409, detail="Cette course a déjà été démarrée")
     
