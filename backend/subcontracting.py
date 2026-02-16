@@ -2182,6 +2182,214 @@ async def driver_cancel_course(request: Request, course_id: str, reason: Optiona
     }
 
 # ============================================
+# DRIVER DIRECT RIDE ACCESS (TOKEN-BASED)
+# ============================================
+
+@driver_router.get("/ride/{ride_id}")
+async def get_driver_ride(ride_id: str, token: str = Query(..., description="Driver access token")):
+    """Get ride details via driver access token (no login required)"""
+    if not SUBCONTRACTING_ENABLED:
+        raise HTTPException(status_code=503, detail="Module sous-traitance désactivé")
+    
+    # Find course by ID and validate token
+    course = await db.courses.find_one({"id": ride_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course non trouvée")
+    
+    # Validate driver access token
+    if not course.get("driver_access_token") or course.get("driver_access_token") != token:
+        raise HTTPException(status_code=403, detail="Token d'accès invalide")
+    
+    # Token expires when ride is DONE
+    if course.get("status") == CourseStatusEnum.DONE:
+        raise HTTPException(status_code=403, detail="Cette course est terminée. Le lien n'est plus valide.")
+    
+    # Get driver info
+    driver = None
+    if course.get("assigned_driver_id"):
+        driver = await db.drivers.find_one(
+            {"id": course["assigned_driver_id"]}, 
+            {"_id": 0, "password_hash": 0}
+        )
+    
+    # Calculate price with supplements
+    price_base = course.get("price_total", 0)
+    supplement_total = (
+        course.get("supplement_peage", 0) +
+        course.get("supplement_parking", 0) +
+        course.get("supplement_attente_amount", 0)
+    )
+    price_with_supplements = course.get("price_with_supplements") or (price_base + supplement_total)
+    
+    return {
+        "id": course.get("id"),
+        "status": course.get("status"),
+        "client_name": course.get("client_name"),
+        "client_phone": course.get("client_phone"),
+        "pickup_address": course.get("pickup_address"),
+        "dropoff_address": course.get("dropoff_address"),
+        "date": course.get("date"),
+        "time": course.get("time"),
+        "distance_km": course.get("distance_km"),
+        "duration_min": course.get("duration_min"),
+        "price_total": price_base,
+        "price_with_supplements": price_with_supplements,
+        "supplement_peage": course.get("supplement_peage", 0),
+        "supplement_parking": course.get("supplement_parking", 0),
+        "supplement_attente_minutes": course.get("supplement_attente_minutes", 0),
+        "supplement_attente_amount": course.get("supplement_attente_amount", 0),
+        "commission_amount": course.get("commission_amount", 0),
+        "notes": course.get("notes"),
+        "invoice_status": course.get("invoice_status"),
+        "invoice_number": course.get("invoice_number"),
+        "started_at": course.get("started_at"),
+        "ended_at": course.get("ended_at"),
+        "assigned_at": course.get("assigned_at"),
+        "driver": {
+            "id": driver.get("id") if driver else None,
+            "name": driver.get("name") if driver else None,
+            "company_name": driver.get("company_name") if driver else None,
+            "phone": driver.get("phone") if driver else None
+        } if driver else None
+    }
+
+@driver_router.post("/ride/{ride_id}/start")
+async def start_ride(ride_id: str, token: str = Query(..., description="Driver access token")):
+    """Start a ride - changes status to IN_PROGRESS"""
+    if not SUBCONTRACTING_ENABLED:
+        raise HTTPException(status_code=503, detail="Module sous-traitance désactivé")
+    
+    # Find course and validate token
+    course = await db.courses.find_one({"id": ride_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course non trouvée")
+    
+    # Validate token
+    if not course.get("driver_access_token") or course.get("driver_access_token") != token:
+        raise HTTPException(status_code=403, detail="Token d'accès invalide")
+    
+    # Check current status - must be ASSIGNED
+    if course.get("status") != CourseStatusEnum.ASSIGNED:
+        if course.get("status") == CourseStatusEnum.IN_PROGRESS:
+            raise HTTPException(status_code=400, detail="La course est déjà en cours")
+        elif course.get("status") == CourseStatusEnum.DRIVER_COMPLETED:
+            raise HTTPException(status_code=400, detail="La course est déjà terminée")
+        elif course.get("status") == CourseStatusEnum.DONE:
+            raise HTTPException(status_code=400, detail="Cette course est définitivement terminée")
+        else:
+            raise HTTPException(status_code=400, detail=f"Impossible de démarrer une course avec le statut: {course.get('status')}")
+    
+    # Update status to IN_PROGRESS
+    started_at = datetime.now(timezone.utc).isoformat()
+    await db.courses.update_one(
+        {"id": ride_id},
+        {"$set": {
+            "status": CourseStatusEnum.IN_PROGRESS,
+            "started_at": started_at
+        }}
+    )
+    
+    logger.info(f"[RIDE] 🚗 Course {ride_id[:8]} STARTED by driver")
+    
+    # Get driver for emails
+    driver = None
+    if course.get("assigned_driver_id"):
+        driver = await db.drivers.find_one(
+            {"id": course["assigned_driver_id"]},
+            {"_id": 0, "password_hash": 0}
+        )
+    
+    # Get updated course
+    updated_course = await db.courses.find_one({"id": ride_id}, {"_id": 0})
+    
+    # Send notifications
+    if driver and updated_course:
+        try:
+            await send_ride_started_to_client(updated_course, driver)
+            await send_ride_started_to_admin(updated_course, driver)
+        except Exception as e:
+            logger.error(f"[RIDE] Failed to send ride started notifications: {e}")
+    
+    return {
+        "success": True,
+        "message": "Course démarrée !",
+        "status": CourseStatusEnum.IN_PROGRESS,
+        "started_at": started_at
+    }
+
+@driver_router.post("/ride/{ride_id}/end")
+async def end_ride(ride_id: str, token: str = Query(..., description="Driver access token")):
+    """End a ride - changes status to DRIVER_COMPLETED"""
+    if not SUBCONTRACTING_ENABLED:
+        raise HTTPException(status_code=503, detail="Module sous-traitance désactivé")
+    
+    # Find course and validate token
+    course = await db.courses.find_one({"id": ride_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course non trouvée")
+    
+    # Validate token
+    if not course.get("driver_access_token") or course.get("driver_access_token") != token:
+        raise HTTPException(status_code=403, detail="Token d'accès invalide")
+    
+    # Check current status - must be IN_PROGRESS
+    if course.get("status") != CourseStatusEnum.IN_PROGRESS:
+        if course.get("status") == CourseStatusEnum.ASSIGNED:
+            raise HTTPException(status_code=400, detail="Vous devez d'abord démarrer la course")
+        elif course.get("status") == CourseStatusEnum.DRIVER_COMPLETED:
+            raise HTTPException(status_code=400, detail="La course est déjà terminée côté chauffeur")
+        elif course.get("status") == CourseStatusEnum.DONE:
+            raise HTTPException(status_code=400, detail="Cette course est définitivement terminée")
+        else:
+            raise HTTPException(status_code=400, detail=f"Impossible de terminer une course avec le statut: {course.get('status')}")
+    
+    # Update status to DRIVER_COMPLETED
+    ended_at = datetime.now(timezone.utc).isoformat()
+    await db.courses.update_one(
+        {"id": ride_id},
+        {"$set": {
+            "status": CourseStatusEnum.DRIVER_COMPLETED,
+            "ended_at": ended_at
+        }}
+    )
+    
+    logger.info(f"[RIDE] ✅ Course {ride_id[:8]} ENDED by driver (DRIVER_COMPLETED)")
+    
+    # Get driver for emails
+    driver = None
+    if course.get("assigned_driver_id"):
+        driver = await db.drivers.find_one(
+            {"id": course["assigned_driver_id"]},
+            {"_id": 0, "password_hash": 0}
+        )
+    
+    # Get client portal token if linked to a reservation
+    client_portal_token = None
+    reservation = await db.reservations.find_one(
+        {"subcontracting_course_id": ride_id},
+        {"client_portal_token": 1}
+    )
+    if reservation:
+        client_portal_token = reservation.get("client_portal_token")
+    
+    # Get updated course
+    updated_course = await db.courses.find_one({"id": ride_id}, {"_id": 0})
+    
+    # Send email to client with confirmation and portal link
+    if driver and updated_course:
+        try:
+            await send_ride_ended_to_client(updated_course, driver, client_portal_token)
+        except Exception as e:
+            logger.error(f"[RIDE] Failed to send ride ended notification: {e}")
+    
+    return {
+        "success": True,
+        "message": "Course terminée ! Le client a été notifié.",
+        "status": CourseStatusEnum.DRIVER_COMPLETED,
+        "ended_at": ended_at
+    }
+
+# ============================================
 # CLAIM ROUTES (PUBLIC WITH AUTH)
 # ============================================
 
