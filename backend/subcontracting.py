@@ -2261,11 +2261,14 @@ async def get_driver_ride(ride_id: str, token: str = Query(..., description="Dri
     }
 
 @driver_router.post("/ride/{ride_id}/start")
-async def start_ride(ride_id: str, token: str = Query(..., description="Driver access token"), request: Request = None):
+async def start_ride(ride_id: str, token: Optional[str] = Query(None, description="Driver access token (optional if logged in)"), request: Request = None):
     """Start a ride - changes status to IN_PROGRESS
     
+    Authentication (one of):
+    - Token in URL: ?token=xxx (for direct email link access)
+    - Session JWT: Authorization header (for logged-in driver)
+    
     Security:
-    - Token must match driver_access_token
     - Only assigned driver can start
     - Prevents double-start via started_at check
     - Logs driver ID and timestamp for audit
@@ -2273,42 +2276,69 @@ async def start_ride(ride_id: str, token: str = Query(..., description="Driver a
     if not SUBCONTRACTING_ENABLED:
         raise HTTPException(status_code=503, detail="Module sous-traitance désactivé")
     
-    # Find course and validate token
+    # Find course
     course = await db.courses.find_one({"id": ride_id}, {"_id": 0})
     if not course:
         logger.warning(f"[RIDE-SECURITY] ⚠️ Start attempt on non-existent ride: {ride_id[:8]}")
         raise HTTPException(status_code=404, detail="Course non trouvée")
     
-    # Validate token - SECURITY CHECK 1
-    if not course.get("driver_access_token") or course.get("driver_access_token") != token:
-        logger.warning(f"[RIDE-SECURITY] 🚫 Invalid token for ride {ride_id[:8]} - token mismatch")
-        raise HTTPException(status_code=403, detail="Token d'accès invalide")
-    
-    # Get assigned driver ID for verification
     assigned_driver_id = course.get("assigned_driver_id")
     if not assigned_driver_id:
         logger.error(f"[RIDE-SECURITY] ❌ Ride {ride_id[:8]} has no assigned driver")
         raise HTTPException(status_code=400, detail="Aucun chauffeur assigné à cette course")
     
+    # DUAL AUTH: Token OR Session
+    authenticated_driver_id = None
+    auth_method = None
+    
+    if token:
+        # Mode 1: Token authentication (from email link)
+        if course.get("driver_access_token") and course.get("driver_access_token") == token:
+            authenticated_driver_id = assigned_driver_id
+            auth_method = "token"
+            logger.info(f"[RIDE-AUTH] Driver authenticated via token for ride {ride_id[:8]}")
+        else:
+            logger.warning(f"[RIDE-SECURITY] 🚫 Invalid token for ride {ride_id[:8]}")
+            raise HTTPException(status_code=403, detail="Token d'accès invalide")
+    else:
+        # Mode 2: Session authentication (logged-in driver)
+        authorization = request.headers.get("Authorization") if request else None
+        if authorization:
+            try:
+                driver = await get_driver_from_token(authorization)
+                authenticated_driver_id = driver.get("id")
+                auth_method = "session"
+                logger.info(f"[RIDE-AUTH] Driver {authenticated_driver_id[:8]} authenticated via session for ride {ride_id[:8]}")
+            except HTTPException as e:
+                logger.warning(f"[RIDE-SECURITY] 🚫 Session auth failed for ride {ride_id[:8]}: {e.detail}")
+                raise HTTPException(status_code=401, detail="Authentification requise. Connectez-vous ou utilisez le lien email.")
+        else:
+            raise HTTPException(status_code=401, detail="Authentification requise. Connectez-vous ou utilisez le lien email.")
+    
+    # Verify the authenticated driver is the assigned driver
+    if authenticated_driver_id != assigned_driver_id:
+        logger.warning(f"[RIDE-SECURITY] 🚫 Driver {authenticated_driver_id[:8]} tried to start ride {ride_id[:8]} assigned to {assigned_driver_id[:8]}")
+        raise HTTPException(status_code=403, detail="Vous n'êtes pas assigné à cette course")
+    
     # ANTI-DOUBLE-ACTION: Check if already started via started_at field
     if course.get("started_at"):
         existing_start = course.get("started_at")
         started_by = course.get("started_by_driver_id", "unknown")
-        logger.warning(f"[RIDE-SECURITY] 🔄 Double-start attempt on ride {ride_id[:8]} - already started at {existing_start} by {started_by[:8] if started_by != 'unknown' else 'unknown'}")
+        logger.warning(f"[RIDE-SECURITY] 🔄 Double-start attempt on ride {ride_id[:8]} - already started at {existing_start}")
         raise HTTPException(status_code=409, detail="Cette course a déjà été démarrée")
     
-    # Check current status - must be ASSIGNED - SECURITY CHECK 2
+    # Check current status - must be ASSIGNED
     current_status = course.get("status")
     if current_status != CourseStatusEnum.ASSIGNED:
         logger.warning(f"[RIDE-SECURITY] ⚠️ Start attempt on ride {ride_id[:8]} with invalid status: {current_status}")
         if current_status == CourseStatusEnum.IN_PROGRESS:
             raise HTTPException(status_code=409, detail="La course est déjà en cours")
         elif current_status == CourseStatusEnum.DRIVER_COMPLETED:
-            raise HTTPException(status_code=409, detail="La course est déjà terminée")
+            raise HTTPException(status_code=409, detail="La course est déjà terminée par le chauffeur")
         elif current_status == CourseStatusEnum.DONE:
-            raise HTTPException(status_code=409, detail="Cette course est définitivement terminée")
+            raise HTTPException(status_code=409, detail="Cette course est définitivement clôturée")
         else:
-            raise HTTPException(status_code=400, detail=f"Impossible de démarrer une course avec le statut: {current_status}")
+            raise HTTPException(status_code=400, detail=f"Impossible de démarrer: statut actuel = {current_status}")
     
     # Update status to IN_PROGRESS with audit fields
     started_at = datetime.now(timezone.utc).isoformat()
@@ -2328,9 +2358,9 @@ async def start_ride(ride_id: str, token: str = Query(..., description="Driver a
     # Verify update was successful (race condition protection)
     if update_result.modified_count == 0:
         logger.error(f"[RIDE-SECURITY] ❌ Race condition detected on ride {ride_id[:8]} - atomic update failed")
-        raise HTTPException(status_code=409, detail="Action impossible - la course a peut-être déjà été modifiée")
+        raise HTTPException(status_code=409, detail="La course a déjà été modifiée. Actualisez la page.")
     
-    logger.info(f"[RIDE] 🚗 Course {ride_id[:8]} STARTED by driver {assigned_driver_id[:8]} at {started_at}")
+    logger.info(f"[RIDE] 🚗 Course {ride_id[:8]} STARTED by driver {assigned_driver_id[:8]} via {auth_method} at {started_at}")
     
     # Get driver for emails
     driver = await db.drivers.find_one(
