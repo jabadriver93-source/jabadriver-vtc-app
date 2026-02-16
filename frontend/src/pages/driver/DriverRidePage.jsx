@@ -258,22 +258,36 @@ export default function DriverRidePage() {
           {/* Client Info Card */}
           <Card className="bg-gray-900 border-gray-800">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-sky-500/20 rounded-xl flex items-center justify-center">
-                    <User className="w-6 h-6 text-sky-400" />
-                  </div>
-                  <div>
-                    <p className="text-gray-400 text-sm">Client</p>
-                    <p className="text-white font-semibold">{ride?.client_name}</p>
-                  </div>
+              <div className="flex items-center gap-4 mb-4">
+                <div className="w-12 h-12 bg-sky-500/20 rounded-xl flex items-center justify-center">
+                  <User className="w-6 h-6 text-sky-400" />
                 </div>
+                <div>
+                  <p className="text-gray-400 text-sm">Client</p>
+                  <p className="text-white font-semibold">{ride?.client_name}</p>
+                  <p className="text-gray-400 text-xs">{ride?.client_phone}</p>
+                </div>
+              </div>
+              
+              {/* Communication Buttons */}
+              <div className="grid grid-cols-2 gap-3">
                 <a 
                   href={`tel:${ride?.client_phone}`}
-                  className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center hover:bg-green-500/30 transition-colors"
+                  className="flex items-center justify-center gap-2 h-12 bg-green-500/20 rounded-xl hover:bg-green-500/30 transition-colors active:scale-95"
                   data-testid="call-client-btn"
                 >
                   <Phone className="w-5 h-5 text-green-400" />
+                  <span className="text-green-400 font-medium text-sm">Appeler</span>
+                </a>
+                <a 
+                  href={`https://wa.me/${ride?.client_phone?.replace(/[^0-9]/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 h-12 bg-emerald-500/20 rounded-xl hover:bg-emerald-500/30 transition-colors active:scale-95"
+                  data-testid="whatsapp-client-btn"
+                >
+                  <MessageCircle className="w-5 h-5 text-emerald-400" />
+                  <span className="text-emerald-400 font-medium text-sm">WhatsApp</span>
                 </a>
               </div>
             </CardContent>
