@@ -2211,12 +2211,9 @@ async def get_driver_ride(ride_id: str, token: Optional[str] = Query(None, descr
     assigned_driver_id = course.get("assigned_driver_id")
     
     # DUAL AUTH: Token OR Session
-    authenticated = False
-    
     if token:
         # Mode 1: Token authentication (from email link)
         if course.get("driver_access_token") and course.get("driver_access_token") == token:
-            authenticated = True
             logger.info(f"[RIDE-AUTH] Ride {ride_id[:8]} accessed via token")
         else:
             raise HTTPException(status_code=403, detail="Token d'accès invalide")
@@ -2227,7 +2224,6 @@ async def get_driver_ride(ride_id: str, token: Optional[str] = Query(None, descr
             try:
                 driver = await get_driver_from_token(authorization)
                 if driver.get("id") == assigned_driver_id:
-                    authenticated = True
                     logger.info(f"[RIDE-AUTH] Ride {ride_id[:8]} accessed via session by {driver.get('id')[:8]}")
                 else:
                     raise HTTPException(status_code=403, detail="Vous n'êtes pas assigné à cette course")
