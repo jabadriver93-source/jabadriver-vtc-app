@@ -35,13 +35,18 @@ export default function ConfirmRidePage() {
       const res = await fetch(`${API_URL}/api/driver/confirm-ride/${rideId}?token=${token}`);
       
       if (!res.ok) {
-        const data = await res.json();
+        // Handle error responses
         if (res.status === 403) {
           setError('Ce lien de confirmation n\'est plus valide');
         } else if (res.status === 404) {
           setError('Course non trouvée');
         } else {
-          setError(data.detail || 'Erreur lors du chargement');
+          try {
+            const data = await res.json();
+            setError(data.detail || 'Erreur lors du chargement');
+          } catch {
+            setError('Erreur lors du chargement');
+          }
         }
         return;
       }
@@ -53,6 +58,7 @@ export default function ConfirmRidePage() {
         setConfirmed(true);
       }
     } catch (err) {
+      console.error('fetchRide error:', err);
       setError('Erreur de connexion');
     } finally {
       setLoading(false);
