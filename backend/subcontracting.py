@@ -2261,50 +2261,82 @@ async def get_driver_ride(ride_id: str, token: str = Query(..., description="Dri
     }
 
 @driver_router.post("/ride/{ride_id}/start")
-async def start_ride(ride_id: str, token: str = Query(..., description="Driver access token")):
-    """Start a ride - changes status to IN_PROGRESS"""
+async def start_ride(ride_id: str, token: str = Query(..., description="Driver access token"), request: Request = None):
+    """Start a ride - changes status to IN_PROGRESS
+    
+    Security:
+    - Token must match driver_access_token
+    - Only assigned driver can start
+    - Prevents double-start via started_at check
+    - Logs driver ID and timestamp for audit
+    """
     if not SUBCONTRACTING_ENABLED:
         raise HTTPException(status_code=503, detail="Module sous-traitance désactivé")
     
     # Find course and validate token
     course = await db.courses.find_one({"id": ride_id}, {"_id": 0})
     if not course:
+        logger.warning(f"[RIDE-SECURITY] ⚠️ Start attempt on non-existent ride: {ride_id[:8]}")
         raise HTTPException(status_code=404, detail="Course non trouvée")
     
-    # Validate token
+    # Validate token - SECURITY CHECK 1
     if not course.get("driver_access_token") or course.get("driver_access_token") != token:
+        logger.warning(f"[RIDE-SECURITY] 🚫 Invalid token for ride {ride_id[:8]} - token mismatch")
         raise HTTPException(status_code=403, detail="Token d'accès invalide")
     
-    # Check current status - must be ASSIGNED
-    if course.get("status") != CourseStatusEnum.ASSIGNED:
-        if course.get("status") == CourseStatusEnum.IN_PROGRESS:
-            raise HTTPException(status_code=400, detail="La course est déjà en cours")
-        elif course.get("status") == CourseStatusEnum.DRIVER_COMPLETED:
-            raise HTTPException(status_code=400, detail="La course est déjà terminée")
-        elif course.get("status") == CourseStatusEnum.DONE:
-            raise HTTPException(status_code=400, detail="Cette course est définitivement terminée")
-        else:
-            raise HTTPException(status_code=400, detail=f"Impossible de démarrer une course avec le statut: {course.get('status')}")
+    # Get assigned driver ID for verification
+    assigned_driver_id = course.get("assigned_driver_id")
+    if not assigned_driver_id:
+        logger.error(f"[RIDE-SECURITY] ❌ Ride {ride_id[:8]} has no assigned driver")
+        raise HTTPException(status_code=400, detail="Aucun chauffeur assigné à cette course")
     
-    # Update status to IN_PROGRESS
+    # ANTI-DOUBLE-ACTION: Check if already started via started_at field
+    if course.get("started_at"):
+        existing_start = course.get("started_at")
+        started_by = course.get("started_by_driver_id", "unknown")
+        logger.warning(f"[RIDE-SECURITY] 🔄 Double-start attempt on ride {ride_id[:8]} - already started at {existing_start} by {started_by[:8] if started_by != 'unknown' else 'unknown'}")
+        raise HTTPException(status_code=409, detail="Cette course a déjà été démarrée")
+    
+    # Check current status - must be ASSIGNED - SECURITY CHECK 2
+    current_status = course.get("status")
+    if current_status != CourseStatusEnum.ASSIGNED:
+        logger.warning(f"[RIDE-SECURITY] ⚠️ Start attempt on ride {ride_id[:8]} with invalid status: {current_status}")
+        if current_status == CourseStatusEnum.IN_PROGRESS:
+            raise HTTPException(status_code=409, detail="La course est déjà en cours")
+        elif current_status == CourseStatusEnum.DRIVER_COMPLETED:
+            raise HTTPException(status_code=409, detail="La course est déjà terminée")
+        elif current_status == CourseStatusEnum.DONE:
+            raise HTTPException(status_code=409, detail="Cette course est définitivement terminée")
+        else:
+            raise HTTPException(status_code=400, detail=f"Impossible de démarrer une course avec le statut: {current_status}")
+    
+    # Update status to IN_PROGRESS with audit fields
     started_at = datetime.now(timezone.utc).isoformat()
-    await db.courses.update_one(
-        {"id": ride_id},
+    update_result = await db.courses.update_one(
+        {
+            "id": ride_id,
+            "status": CourseStatusEnum.ASSIGNED,  # Atomic check - prevent race condition
+            "started_at": {"$exists": False}  # Double-check no started_at
+        },
         {"$set": {
             "status": CourseStatusEnum.IN_PROGRESS,
-            "started_at": started_at
+            "started_at": started_at,
+            "started_by_driver_id": assigned_driver_id
         }}
     )
     
-    logger.info(f"[RIDE] 🚗 Course {ride_id[:8]} STARTED by driver")
+    # Verify update was successful (race condition protection)
+    if update_result.modified_count == 0:
+        logger.error(f"[RIDE-SECURITY] ❌ Race condition detected on ride {ride_id[:8]} - atomic update failed")
+        raise HTTPException(status_code=409, detail="Action impossible - la course a peut-être déjà été modifiée")
+    
+    logger.info(f"[RIDE] 🚗 Course {ride_id[:8]} STARTED by driver {assigned_driver_id[:8]} at {started_at}")
     
     # Get driver for emails
-    driver = None
-    if course.get("assigned_driver_id"):
-        driver = await db.drivers.find_one(
-            {"id": course["assigned_driver_id"]},
-            {"_id": 0, "password_hash": 0}
-        )
+    driver = await db.drivers.find_one(
+        {"id": assigned_driver_id},
+        {"_id": 0, "password_hash": 0}
+    )
     
     # Get updated course
     updated_course = await db.courses.find_one({"id": ride_id}, {"_id": 0})
@@ -2321,7 +2353,8 @@ async def start_ride(ride_id: str, token: str = Query(..., description="Driver a
         "success": True,
         "message": "Course démarrée !",
         "status": CourseStatusEnum.IN_PROGRESS,
-        "started_at": started_at
+        "started_at": started_at,
+        "started_by_driver_id": assigned_driver_id
     }
 
 @driver_router.post("/ride/{ride_id}/end")
