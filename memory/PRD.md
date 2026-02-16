@@ -258,6 +258,9 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 
 ## Prioritized Backlog
 
+### P0 - Bugs Production (CRITIQUES)
+- ⏳ **Email assignation chauffeur**: Investiguer les logs production `[EMAIL][ASSIGNED]`. Module fonctionnel en preview.
+
 ### P1 - Dashboard Statistiques Admin
 - Tableau de bord avec statistiques (courses, revenus, chauffeurs)
 - Graphiques d'évolution
