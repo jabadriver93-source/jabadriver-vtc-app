@@ -107,6 +107,107 @@ export default function DriverCoursesPage() {
     navigate('/driver/login');
   };
 
+  // State for action loading
+  const [actionLoading, setActionLoading] = useState(null); // courseId being processed
+
+  // Handle START ride directly from dashboard
+  const handleStartRide = async (courseId, driverAccessToken) => {
+    if (actionLoading) return; // Prevent double-click
+    
+    const token = localStorage.getItem('driver_token');
+    setActionLoading(courseId);
+    
+    console.log(`[ACTION] Starting ride ${courseId.substring(0,8)}`);
+    
+    try {
+      // Build URL with token if available, otherwise use session auth
+      const url = driverAccessToken 
+        ? `${API_URL}/api/driver/ride/${courseId}/start?token=${driverAccessToken}`
+        : `${API_URL}/api/driver/ride/${courseId}/start`;
+      
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const data = await res.json();
+      console.log(`[ACTION] Start response: status=${res.status}`, data);
+      
+      if (res.status === 409) {
+        // Course already modified - show current status and refresh
+        toast.info(data.detail || 'Course déjà démarrée');
+        console.log(`[ACTION] 409 - Current status: ${data.current_status}`);
+      } else if (!res.ok) {
+        toast.error(data.detail || `Erreur ${res.status}`);
+        return;
+      } else {
+        toast.success(data.message || 'Course démarrée !');
+      }
+      
+      // Force refetch to update UI
+      console.log('[ACTION] Refetching courses after start...');
+      await fetchCourses(token, 'after-start');
+      
+    } catch (err) {
+      console.error('[ACTION] Start error:', err);
+      toast.error(`Erreur réseau: ${err.message}`);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Handle END ride directly from dashboard
+  const handleEndRide = async (courseId, driverAccessToken) => {
+    if (actionLoading) return; // Prevent double-click
+    
+    const token = localStorage.getItem('driver_token');
+    setActionLoading(courseId);
+    
+    console.log(`[ACTION] Ending ride ${courseId.substring(0,8)}`);
+    
+    try {
+      // Build URL with token if available, otherwise use session auth
+      const url = driverAccessToken 
+        ? `${API_URL}/api/driver/ride/${courseId}/end?token=${driverAccessToken}`
+        : `${API_URL}/api/driver/ride/${courseId}/end`;
+      
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const data = await res.json();
+      console.log(`[ACTION] End response: status=${res.status}`, data);
+      
+      if (res.status === 409) {
+        // Course already modified - show current status and refresh
+        toast.info(data.detail || 'Course déjà terminée');
+        console.log(`[ACTION] 409 - Current status: ${data.current_status}`);
+      } else if (!res.ok) {
+        toast.error(data.detail || `Erreur ${res.status}`);
+        return;
+      } else {
+        toast.success(data.message || 'Course terminée !');
+      }
+      
+      // Force refetch to update UI
+      console.log('[ACTION] Refetching courses after end...');
+      await fetchCourses(token, 'after-end');
+      
+    } catch (err) {
+      console.error('[ACTION] End error:', err);
+      toast.error(`Erreur réseau: ${err.message}`);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const downloadPDF = async (courseId, type) => {
     const token = localStorage.getItem('driver_token');
     try {
