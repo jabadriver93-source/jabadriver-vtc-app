@@ -208,18 +208,29 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
   - Log détaillé avec `[ACTION] ✅ Start SUCCESS` ou `[ACTION] 409 Conflict`
 - **Backend confirmé OK**: Retourne `{ success: true, status: "IN_PROGRESS", ... }` en 200
 
-### 14. Bug Investigation: Email d'assignation chauffeur ⏳ [2026-02-16]
-- **Problème signalé**: Le chauffeur ne reçoit pas l'email "VOIR LA COURSE" après attribution
-- **Investigation**:
-  - Configuration SENDER_EMAIL correctement passée au module subcontracting ✅
-  - Fonction `send_course_assigned_to_driver` fonctionnelle en test ✅
-  - Autres emails (ride_started, ride_ended) envoyés avec succès ✅
-  - Logs `[EMAIL-FLOW]` et `[EMAIL][ASSIGNED]` implémentés ✅
-- **Statut**: Module email fonctionnel en preview. Si bug persiste en prod, vérifier:
-  1. Logs production pour `[EMAIL][ASSIGNED]`
-  2. SENDER_EMAIL et RESEND_API_KEY en production
-  3. Rate limit Resend (2 req/sec)
-- **Note**: Le flux d'assignation (après paiement commission) n'a pas pu être testé de bout en bout car il nécessite un vrai paiement Stripe
+### 14. START Idempotent + Safari Reliability ✅ [2026-02-16]
+- **Problème PROD**: Le chauffeur clique "Démarrer", API renvoie 409, course reste "Attribuée"
+- **Cause probable**: Double-fetch Safari, race condition, ou course déjà IN_PROGRESS
+- **Corrections Backend (`/api/driver/ride/{id}/start`)**:
+  - **START idempotent**: Si course déjà `IN_PROGRESS`, retourne **200 OK** avec `{ idempotent: true, status: "IN_PROGRESS" }` au lieu de 409
+  - **Logs enrichis**: `[RIDE-START]` avec ride_id, current_status, auth_driver, auth_method, started_at
+  - **Race condition résolue**: Si atomic update échoue mais course est IN_PROGRESS → retourne 200 OK
+  - **Réponse 409 enrichie**: `{ error, current_status, expected_status, ride_id }`
+- **Corrections Frontend (DriverCoursesPage.jsx)**:
+  - **Debounce 2s**: `lastActionRef` empêche double-clic rapide
+  - **Cache-buster**: `?_t=${Date.now()}` sur tous les appels
+  - **Gestion idempotent**: Toast `info` si `idempotent: true`, sinon `success`
+
+### 15. Diagnostic Email + Logs Améliorés ✅ [2026-02-16]
+- **Nouveaux endpoints admin**:
+  - `GET /api/admin/subcontracting/email-diagnostic` - Vérifie config SENDER_EMAIL, RESEND_API_KEY, FRONTEND_URL
+  - `POST /api/admin/subcontracting/test-email-driver/{course_id}` - Envoie email test au chauffeur assigné
+- **Logs [EMAIL-FLOW] enrichis** dans `finalize_attribution()`:
+  - Log driver_found, course_found, driver_email, driver_access_token
+  - Log SENDER_EMAIL, FRONTEND_URL, RESEND_API_KEY_present
+  - Log `[1/3]`, `[2/3]`, `[3/3]` pour chaque email envoyé
+- **Logs [EMAIL][ASSIGNED]** pour tracer le flux complet:
+  - Attempting → RESEND_API_KEY present → ride_url → Sending → SUCCESS/FAILED avec resend_id
 
 ## Non-Regression Confirmed
 - ✅ Paiement Stripe inchangé
