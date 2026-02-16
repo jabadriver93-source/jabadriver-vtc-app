@@ -161,11 +161,28 @@ export default function DriverRidePage() {
     setIsActionDisabled(true); // Immediately disable to prevent rapid clicks
     
     try {
-      const res = await fetch(`${API_URL}/api/driver/ride/${rideId}/end?token=${token}`, {
-        method: 'POST'
+      const url = `${API_URL}/api/driver/ride/${rideId}/end?token=${token}`;
+      console.log('[END] Calling:', url);
+      
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
       });
       
-      const data = await res.json();
+      console.log('[END] Response status:', res.status);
+      
+      let data;
+      try {
+        data = await res.json();
+        console.log('[END] Response data:', data);
+      } catch (parseErr) {
+        console.error('[END] Failed to parse response:', parseErr);
+        toast.error(`Erreur serveur (${res.status})`);
+        setIsActionDisabled(false);
+        return;
+      }
       
       if (!res.ok) {
         // Handle specific error codes
@@ -174,10 +191,10 @@ export default function DriverRidePage() {
           toast.error(data.detail || 'Cette action a déjà été effectuée');
           setActionSuccess('already_done');
         } else if (res.status === 403) {
-          toast.error('Accès refusé - token invalide');
+          toast.error(data.detail || 'Accès refusé - token invalide');
           setError('Token invalide');
         } else {
-          toast.error(data.detail || 'Erreur lors de la finalisation');
+          toast.error(data.detail || `Erreur ${res.status}`);
           setIsActionDisabled(false); // Re-enable on non-conflict errors
         }
         return;
@@ -191,7 +208,8 @@ export default function DriverRidePage() {
         fetchRide();
       }, 500);
     } catch (err) {
-      toast.error('Erreur de connexion');
+      console.error('[END] Network error:', err);
+      toast.error(`Erreur réseau: ${err.message || 'Connexion impossible'}`);
       setIsActionDisabled(false); // Re-enable on network error
     } finally {
       setActionLoading(false);
