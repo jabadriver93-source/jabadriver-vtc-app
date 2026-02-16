@@ -148,7 +148,7 @@ export default function DriverCoursesPage() {
   const [actionLoading, setActionLoading] = useState(null); // courseId being processed
   
   // Track last action to prevent rapid double-clicks (Safari double-fetch issue)
-  const lastActionRef = React.useRef({ courseId: null, timestamp: 0 });
+  const lastActionRef = useRef({ courseId: null, timestamp: 0 });
 
   // Handle START ride directly from dashboard
   // UX: After successful START, stay in dashboard with updated status (no redirect)
