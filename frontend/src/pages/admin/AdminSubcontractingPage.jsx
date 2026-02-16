@@ -458,7 +458,7 @@ export default function AdminSubcontractingPage() {
                         {course.is_test ? 'Mode Test' : 'Test'}
                       </Button>
                       
-                      {course.status !== 'CANCELLED' && course.status !== 'DONE' && (
+                      {course.status !== 'CANCELLED' && course.status !== 'DONE' && course.status !== 'DRIVER_COMPLETED' && (
                         <>
                           <Button
                             size="sm"
@@ -493,7 +493,8 @@ export default function AdminSubcontractingPage() {
                         </Button>
                       )}
                       
-                      {course.status === 'ASSIGNED' && (
+                      {/* Mark as DONE - available for ASSIGNED, IN_PROGRESS, DRIVER_COMPLETED */}
+                      {(course.status === 'ASSIGNED' || course.status === 'IN_PROGRESS' || course.status === 'DRIVER_COMPLETED') && (
                         <>
                           <Button
                             size="sm"
@@ -502,7 +503,7 @@ export default function AdminSubcontractingPage() {
                             onClick={() => markDone(course.id)}
                           >
                             <CheckCircle className="w-4 h-4 mr-1" />
-                            Terminée
+                            {course.status === 'DRIVER_COMPLETED' ? 'Confirmer' : 'Terminée'}
                           </Button>
                           <Button
                             size="sm"
@@ -516,7 +517,8 @@ export default function AdminSubcontractingPage() {
                         </>
                       )}
                       
-                      {course.status !== 'CANCELLED' && course.status !== 'DONE' && (
+                      {/* Cancel - only for OPEN, RESERVED, ASSIGNED (not IN_PROGRESS or later) */}
+                      {(course.status === 'OPEN' || course.status === 'RESERVED' || course.status === 'ASSIGNED') && (
                         <Button
                           size="sm"
                           variant="outline"
