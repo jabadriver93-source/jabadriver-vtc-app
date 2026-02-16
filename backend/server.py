@@ -2055,12 +2055,14 @@ from subcontracting import (
 )
 
 # Initialize subcontracting module with database, stripe key, and email config
+_frontend_url = os.environ.get('FRONTEND_URL', '')
+logger.info(f"[INIT] FRONTEND_URL configured: {_frontend_url or '(empty)'}")
 init_subcontracting(
     database=db, 
     stripe_key=STRIPE_API_KEY,
     admin_email=DRIVER_EMAIL,  # Admin receives driver notifications (same as DRIVER_EMAIL)
     sender_email=SENDER_EMAIL,
-    frontend_url=os.environ.get('FRONTEND_URL', '')
+    frontend_url=_frontend_url
 )
 
 # Include subcontracting routers
