@@ -178,6 +178,16 @@ export default function DriverRidePage() {
     return timeStr;
   };
 
+  const formatTimestamp = (isoStr) => {
+    if (!isoStr) return null;
+    try {
+      const dt = new Date(isoStr);
+      return dt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return null;
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
