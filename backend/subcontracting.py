@@ -1703,10 +1703,10 @@ async def send_ride_started_to_admin(course: dict, driver: dict):
         logger.error(f"[EMAIL] ❌ Failed to send ride started to admin | Error: {str(e)}")
 
 # ============================================
-# EMAIL - RIDE ENDED (to client with token link)
+# EMAIL - RIDE ENDED (to client with confirmation link)
 # ============================================
-async def send_ride_ended_to_client(course: dict, driver: dict, client_portal_token: str = None):
-    """Email to client when driver ends the ride"""
+async def send_ride_ended_to_client(course: dict, driver: dict):
+    """Email to client when driver ends the ride - includes confirmation button"""
     client_email = course.get('client_email')
     if not client_email or not SENDER_EMAIL:
         logger.warning("[EMAIL] Skipping ride ended to client - email not configured")
@@ -1719,17 +1719,21 @@ async def send_ride_ended_to_client(course: dict, driver: dict, client_portal_to
     driver_name = driver.get('company_name') or driver.get('name', 'Votre chauffeur')
     price_total = course.get('price_with_supplements') or course.get('price_total', 0)
     
-    # Client portal link
-    portal_link = ""
-    if client_portal_token and FRONTEND_URL:
-        portal_link = f"{FRONTEND_URL}/my-booking/{client_portal_token}"
+    # Client confirmation link
+    confirmation_token = course.get('client_confirmation_token')
+    confirmation_link = ""
+    if confirmation_token and FRONTEND_URL:
+        confirmation_link = f"{FRONTEND_URL}/confirm-ride/{course.get('id')}?token={confirmation_token}"
     
-    portal_button = ""
-    if portal_link:
-        portal_button = f"""
-            <div style="text-align: center; margin: 25px 0;">
-                <a href="{portal_link}" style="display: inline-block; background-color: #22c55e; color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 16px;">
-                    ✅ Voir ma réservation
+    confirmation_button = ""
+    if confirmation_link:
+        confirmation_button = f"""
+            <div style="text-align: center; margin: 30px 0;">
+                <p style="color: #475569; font-size: 14px; margin-bottom: 15px;">
+                    Merci de confirmer que votre course s'est bien déroulée :
+                </p>
+                <a href="{confirmation_link}" style="display: inline-block; background-color: #22c55e; color: white; padding: 18px 50px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 18px;">
+                    ✅ CONFIRMER MA COURSE
                 </a>
             </div>
         """
@@ -1776,7 +1780,7 @@ async def send_ride_ended_to_client(course: dict, driver: dict, client_portal_to
                 </table>
             </div>
             
-            {portal_button}
+            {confirmation_button}
             
             <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 8px;">
                 <p style="margin: 0; color: #64748b; font-size: 12px;">
@@ -1792,7 +1796,7 @@ async def send_ride_ended_to_client(course: dict, driver: dict, client_portal_to
         params = {
             "from": SENDER_EMAIL,
             "to": [client_email],
-            "subject": f"✅ Votre course est terminée – #{course_id_short}",
+            "subject": f"✅ Votre course est terminée – Merci de confirmer #{course_id_short}",
             "html": html_content
         }
         logger.info(f"[EMAIL] Sending ride ended to client | Course: {course_id_short}")
