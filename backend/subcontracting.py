@@ -2507,7 +2507,14 @@ async def end_ride(ride_id: str, token: Optional[str] = Query(None, description=
     if course.get("ended_at"):
         existing_end = course.get("ended_at")
         logger.warning(f"[RIDE-SECURITY] 🔄 Double-end attempt on ride {ride_id[:8]} - already ended at {existing_end}")
-        raise HTTPException(status_code=409, detail="Cette course a déjà été terminée")
+        return JSONResponse(
+            status_code=409,
+            content={
+                "detail": "Cette course a déjà été terminée",
+                "current_status": course.get("status"),
+                "ended_at": course.get("ended_at")
+            }
+        )
     
     # Check current status - must be IN_PROGRESS
     current_status = course.get("status")
@@ -2516,9 +2523,15 @@ async def end_ride(ride_id: str, token: Optional[str] = Query(None, description=
         if current_status == CourseStatusEnum.ASSIGNED:
             raise HTTPException(status_code=400, detail="Vous devez d'abord démarrer la course")
         elif current_status == CourseStatusEnum.DRIVER_COMPLETED:
-            raise HTTPException(status_code=409, detail="La course est déjà terminée par le chauffeur")
+            return JSONResponse(
+                status_code=409,
+                content={"detail": "La course est déjà terminée par le chauffeur", "current_status": current_status}
+            )
         elif current_status == CourseStatusEnum.DONE:
-            raise HTTPException(status_code=409, detail="Cette course est définitivement clôturée")
+            return JSONResponse(
+                status_code=409,
+                content={"detail": "Cette course est définitivement clôturée", "current_status": current_status}
+            )
         else:
             raise HTTPException(status_code=400, detail=f"Impossible de terminer: statut actuel = {current_status}")
     
