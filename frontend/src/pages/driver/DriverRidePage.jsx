@@ -167,39 +167,29 @@ export default function DriverRidePage() {
       // Read body ONCE using helper
       const { data } = await safeReadJson(res);
       console.log('[START] Response:', res.status, data);
-        console.log('[START] Response data:', data);
-      } catch (parseErr) {
-        console.error('[START] Failed to parse response:', parseErr);
-        toast.error(`Erreur serveur (${res.status})`);
-        setIsActionDisabled(false);
-        return;
-      }
       
       if (!res.ok) {
         // Handle specific error codes with clear messages
         if (res.status === 409) {
-          toast.error(data.detail || 'Course déjà démarrée');
+          toast.error(data?.detail || 'Course déjà démarrée');
           setActionSuccess('already_done');
           // Refresh to show current state
           setTimeout(() => fetchRide(), 1000);
         } else if (res.status === 403) {
-          toast.error(data.detail || 'Accès refusé');
-          setError(data.detail || 'Accès refusé');
+          toast.error(data?.detail || 'Accès refusé');
+          setError(data?.detail || 'Accès refusé');
         } else if (res.status === 401) {
-          toast.error(data.detail || 'Session expirée. Reconnectez-vous.');
-          setError(data.detail || 'Session expirée');
-        } else if (res.status === 400) {
-          toast.error(data.detail || 'Action impossible');
-          setIsActionDisabled(false);
+          toast.error('Session expirée. Reconnectez-vous.');
+          setError('Session expirée');
         } else {
-          toast.error(data.detail || `Erreur ${res.status}`);
+          toast.error(getErrorMessage(res.status, data));
           setIsActionDisabled(false);
         }
         return;
       }
       
       setActionSuccess('started');
-      toast.success(data.message || 'Course démarrée !');
+      toast.success(data?.message || 'Course démarrée !');
       
       // Small delay before refresh to show success state
       setTimeout(() => {
