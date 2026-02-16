@@ -180,9 +180,13 @@ export default function DriverCoursesPage() {
       const { data } = await safeReadJson(res);
       console.log(`[ACTION] Start response: status=${res.status}`, data);
       
-      if (res.status === 409) {
+      if (res.status === 401) {
+        toast.error('Session expirée. Veuillez vous reconnecter.');
+        handleLogout();
+        return;
+      } else if (res.status === 409) {
         // Course already modified - show current status from response
-        const currentStatus = data?.current_status;
+        const currentStatus = data?.current_status || data?.status;
         const detail = data?.detail || 'Course déjà modifiée';
         
         console.log(`[ACTION] 409 Conflict - Detail: ${detail} | Current status: ${currentStatus || 'not_provided'}`);
@@ -197,14 +201,13 @@ export default function DriverCoursesPage() {
         } else {
           toast.info(detail);
         }
-      } else if (res.status === 401) {
-        toast.error('Session expirée. Veuillez vous reconnecter.');
-        handleLogout();
-        return;
       } else if (!res.ok) {
         toast.error(getErrorMessage(res.status, data));
         return;
       } else {
+        // SUCCESS: Backend returns { success: true, status: "IN_PROGRESS", message: "..." }
+        const newStatus = data?.status || 'IN_PROGRESS';
+        console.log(`[ACTION] ✅ Start SUCCESS - New status: ${newStatus}`);
         toast.success(data?.message || 'Course démarrée !');
       }
       
@@ -251,19 +254,30 @@ export default function DriverCoursesPage() {
       const { data } = await safeReadJson(res);
       console.log(`[ACTION] End response: status=${res.status}`, data);
       
-      if (res.status === 409) {
-        // Course already modified - show current status from response
-        const currentStatus = data?.current_status || 'unknown';
-        console.log(`[ACTION] 409 Conflict - Current status: ${currentStatus}`);
-        toast.info(data?.detail || `Course déjà en statut: ${currentStatus}`);
-      } else if (res.status === 401) {
+      if (res.status === 401) {
         toast.error('Session expirée. Veuillez vous reconnecter.');
         handleLogout();
         return;
+      } else if (res.status === 409) {
+        // Course already modified - show current status from response
+        const currentStatus = data?.current_status || data?.status;
+        console.log(`[ACTION] 409 Conflict - Current status: ${currentStatus}`);
+        
+        // Show appropriate message based on status
+        if (currentStatus === 'DRIVER_COMPLETED') {
+          toast.info('Course déjà terminée - actualisation...');
+        } else if (currentStatus === 'DONE') {
+          toast.info('Course déjà clôturée par le client');
+        } else {
+          toast.info(data?.detail || 'La course a déjà été modifiée');
+        }
       } else if (!res.ok) {
         toast.error(getErrorMessage(res.status, data));
         return;
       } else {
+        // SUCCESS: Backend returns { success: true, status: "DRIVER_COMPLETED", message: "..." }
+        const newStatus = data?.status || 'DRIVER_COMPLETED';
+        console.log(`[ACTION] ✅ End SUCCESS - New status: ${newStatus}`);
         toast.success(data?.message || 'Course terminée !');
       }
       
