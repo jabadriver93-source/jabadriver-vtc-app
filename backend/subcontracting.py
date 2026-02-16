@@ -1413,6 +1413,267 @@ async def send_driver_registration_confirmation(driver: dict):
         logger.error(f"[EMAIL] ❌ Failed to send driver registration confirmation | Error: {str(e)}")
         logger.exception("Full exception trace:")
 
+# ============================================
+# EMAIL - RIDE STARTED (to client + admin)
+# ============================================
+async def send_ride_started_to_client(course: dict, driver: dict):
+    """Email to client when driver starts the ride"""
+    client_email = course.get('client_email')
+    if not client_email or not SENDER_EMAIL:
+        logger.warning("[EMAIL] Skipping ride started to client - email not configured")
+        return
+    
+    if not resend.api_key:
+        resend.api_key = os.environ.get('RESEND_API_KEY', '')
+    
+    course_id_short = course.get('id', '')[:8].upper()
+    driver_name = driver.get('company_name') or driver.get('name', 'Votre chauffeur')
+    driver_phone = driver.get('phone', '')
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #3b82f6; color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0;">🚗 VOTRE CHAUFFEUR EST EN ROUTE</h1>
+        </div>
+        <div style="padding: 30px; background: #F8FAFC;">
+            
+            <p style="color: #475569; font-size: 16px; line-height: 1.6;">
+                Bonjour <strong>{course.get('client_name', '')}</strong>,
+            </p>
+            
+            <div style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0; font-weight: bold; color: #1e40af;">🚗 Votre course a démarré !</p>
+                <p style="margin: 5px 0 0 0; font-size: 14px; color: #1e40af;">Votre chauffeur est maintenant en route vers votre destination.</p>
+            </div>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <h3 style="margin-top: 0; color: #1e3a5f;">👤 Votre chauffeur</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b; width: 40%;">Chauffeur :</td>
+                        <td style="padding: 8px 0; font-weight: bold;">{driver_name}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Téléphone :</td>
+                        <td style="padding: 8px 0;"><a href="tel:{driver_phone}" style="color: #3b82f6; font-weight: bold;">{driver_phone}</a></td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <h3 style="margin-top: 0; color: #1e3a5f;">📍 Détails du trajet</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b; width: 40%;">Réservation :</td>
+                        <td style="padding: 8px 0; font-family: monospace; font-weight: bold;">#{course_id_short}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Départ :</td>
+                        <td style="padding: 8px 0;">{course.get('pickup_address', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Arrivée :</td>
+                        <td style="padding: 8px 0;">{course.get('dropoff_address', 'N/A')}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 8px;">
+                <p style="margin: 0; color: #64748b; font-size: 12px;">
+                    <strong>JABADRIVER</strong><br/>
+                    Votre service VTC de confiance
+                </p>
+            </div>
+        </div>
+    </div>
+    """
+    
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [client_email],
+            "subject": f"🚗 Votre chauffeur est en route – Course #{course_id_short}",
+            "html": html_content
+        }
+        logger.info(f"[EMAIL] Sending ride started to client | Course: {course_id_short}")
+        response = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"[EMAIL] ✅ Ride started to client sent | Resend ID: {response.get('id', 'N/A')}")
+    except Exception as e:
+        logger.error(f"[EMAIL] ❌ Failed to send ride started to client | Error: {str(e)}")
+
+async def send_ride_started_to_admin(course: dict, driver: dict):
+    """Email to admin when driver starts the ride"""
+    if not ADMIN_EMAIL or not SENDER_EMAIL:
+        return
+    
+    if not resend.api_key:
+        resend.api_key = os.environ.get('RESEND_API_KEY', '')
+    
+    course_id_short = course.get('id', '')[:8].upper()
+    started_at = course.get('started_at', '')
+    try:
+        dt = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
+        started_str = dt.strftime("%d/%m/%Y à %H:%M")
+    except:
+        started_str = started_at
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #3b82f6; color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0;">🚗 COURSE DÉMARRÉE</h1>
+        </div>
+        <div style="padding: 30px; background: #F8FAFC;">
+            
+            <div style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0; font-weight: bold; color: #1e40af;">Course #{course_id_short} en cours</p>
+                <p style="margin: 5px 0 0 0; font-size: 14px; color: #1e40af;">Le chauffeur a démarré la course.</p>
+            </div>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b; width: 40%;">Chauffeur :</td>
+                        <td style="padding: 8px 0; font-weight: bold;">{driver.get('name', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Client :</td>
+                        <td style="padding: 8px 0;">{course.get('client_name', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Démarré à :</td>
+                        <td style="padding: 8px 0;">{started_str}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Trajet :</td>
+                        <td style="padding: 8px 0;">{extract_city_department(course.get('pickup_address', ''))} → {extract_city_department(course.get('dropoff_address', ''))}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    """
+    
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [ADMIN_EMAIL],
+            "subject": f"🚗 Course #{course_id_short} démarrée – {driver.get('name', 'N/A')}",
+            "html": html_content
+        }
+        logger.info(f"[EMAIL] Sending ride started to admin | Course: {course_id_short}")
+        response = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"[EMAIL] ✅ Ride started to admin sent | Resend ID: {response.get('id', 'N/A')}")
+    except Exception as e:
+        logger.error(f"[EMAIL] ❌ Failed to send ride started to admin | Error: {str(e)}")
+
+# ============================================
+# EMAIL - RIDE ENDED (to client with token link)
+# ============================================
+async def send_ride_ended_to_client(course: dict, driver: dict, client_portal_token: str = None):
+    """Email to client when driver ends the ride"""
+    client_email = course.get('client_email')
+    if not client_email or not SENDER_EMAIL:
+        logger.warning("[EMAIL] Skipping ride ended to client - email not configured")
+        return
+    
+    if not resend.api_key:
+        resend.api_key = os.environ.get('RESEND_API_KEY', '')
+    
+    course_id_short = course.get('id', '')[:8].upper()
+    driver_name = driver.get('company_name') or driver.get('name', 'Votre chauffeur')
+    price_total = course.get('price_with_supplements') or course.get('price_total', 0)
+    
+    # Client portal link
+    portal_link = ""
+    if client_portal_token and FRONTEND_URL:
+        portal_link = f"{FRONTEND_URL}/my-booking/{client_portal_token}"
+    
+    portal_button = ""
+    if portal_link:
+        portal_button = f"""
+            <div style="text-align: center; margin: 25px 0;">
+                <a href="{portal_link}" style="display: inline-block; background-color: #22c55e; color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 16px;">
+                    ✅ Voir ma réservation
+                </a>
+            </div>
+        """
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #22c55e; color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0;">✅ COURSE TERMINÉE</h1>
+        </div>
+        <div style="padding: 30px; background: #F8FAFC;">
+            
+            <p style="color: #475569; font-size: 16px; line-height: 1.6;">
+                Bonjour <strong>{course.get('client_name', '')}</strong>,
+            </p>
+            
+            <div style="background: #dcfce7; border-left: 4px solid #22c55e; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 0; font-weight: bold; color: #166534;">🎉 Votre course est terminée !</p>
+                <p style="margin: 5px 0 0 0; font-size: 14px; color: #166534;">Merci d'avoir choisi JABADRIVER pour votre trajet.</p>
+            </div>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <h3 style="margin-top: 0; color: #1e3a5f;">📋 Récapitulatif</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b; width: 40%;">Réservation :</td>
+                        <td style="padding: 8px 0; font-family: monospace; font-weight: bold;">#{course_id_short}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Chauffeur :</td>
+                        <td style="padding: 8px 0; font-weight: bold;">{driver_name}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Départ :</td>
+                        <td style="padding: 8px 0;">{course.get('pickup_address', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Arrivée :</td>
+                        <td style="padding: 8px 0;">{course.get('dropoff_address', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Montant :</td>
+                        <td style="padding: 8px 0; font-weight: bold; font-size: 18px; color: #22c55e;">{int(price_total)}€</td>
+                    </tr>
+                </table>
+            </div>
+            
+            {portal_button}
+            
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 8px;">
+                <p style="margin: 0; color: #64748b; font-size: 12px;">
+                    <strong>JABADRIVER</strong><br/>
+                    Merci pour votre confiance !
+                </p>
+            </div>
+        </div>
+    </div>
+    """
+    
+    try:
+        params = {
+            "from": SENDER_EMAIL,
+            "to": [client_email],
+            "subject": f"✅ Votre course est terminée – #{course_id_short}",
+            "html": html_content
+        }
+        logger.info(f"[EMAIL] Sending ride ended to client | Course: {course_id_short}")
+        response = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info(f"[EMAIL] ✅ Ride ended to client sent | Resend ID: {response.get('id', 'N/A')}")
+    except Exception as e:
+        logger.error(f"[EMAIL] ❌ Failed to send ride ended to client | Error: {str(e)}")
+
+# ============================================
+# HELPER - Generate driver ride URL with token
+# ============================================
+def get_driver_ride_url(course: dict) -> str:
+    """Generate the direct driver ride URL with token"""
+    if not FRONTEND_URL or not course.get('driver_access_token'):
+        return ""
+    return f"{FRONTEND_URL}/driver/ride/{course.get('id')}?token={course.get('driver_access_token')}"
+
 def simple_hash(password: str) -> str:
     """Simple hash for demo - use bcrypt in production"""
     import hashlib
