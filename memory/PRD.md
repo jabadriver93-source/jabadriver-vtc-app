@@ -91,15 +91,19 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
   - Bouton principal: "Démarrer" (ASSIGNED) ou "Terminer" (IN_PROGRESS)
   - Boutons PDF: Bon de commande, Facture
 - **Dashboard Chauffeur (DriverCoursesPage)** - Source de vérité unique:
-  - Boutons d'action directe (sans navigation):
+  - Actions START/END directes depuis le dashboard (sans navigation vers DriverRidePage)
+  - Boutons d'action selon statut:
     - ASSIGNED → "Démarrer la course" (appel API direct)
     - IN_PROGRESS → "Terminer la course" (appel API direct)
     - DRIVER_COMPLETED → "Attente confirmation" (désactivé)
     - DONE → Pas de bouton d'action
-  - Refetch automatique après chaque action (avec cache-buster `?_t=timestamp`)
-  - Headers `Cache-Control: no-store` sur API pour iOS Safari
-  - Logs console pour debug: `[COURSES]`, `[ACTION]`, `[BUTTON]`
-  - En cas de 409, affiche le statut actuel et refetch
+  - **Safari iOS fix**: `safeReadJson()` pour lire le body une seule fois
+  - **Cache-busting**: `?_t=${Date.now()}` + headers `Cache-Control: no-store`
+  - **Fetch options**: `cache: 'no-store'` pour Safari
+  - Logs console: `[COURSES]`, `[ACTION]`, avec statut et current_status en 409
+- **Logs Email [EMAIL-FLOW]**:
+  - Log détaillé à chaque étape de l'envoi d'email assignation
+  - `driver_email`, `FRONTEND_URL`, `RESEND_API_KEY_present`, `resend_id` ou erreur
 - **Emails**:
   - Attribution: Email au chauffeur avec bouton "VOIR LA COURSE" (lien avec token)
   - Start: Email au client + admin (course démarrée)
