@@ -4,7 +4,7 @@
 # Ce module est isolé du code principal pour éviter les régressions
 # Il gère : courses, chauffeurs, claim tokens, paiements commission
 
-from fastapi import APIRouter, HTTPException, Request, Depends
+from fastapi import APIRouter, HTTPException, Request, Depends, Query
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 from typing import Optional, List
