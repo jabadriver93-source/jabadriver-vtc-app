@@ -123,9 +123,7 @@ export default function DriverRidePage() {
       const url = buildUrl('');
       console.log('[FETCH] Loading ride:', url, '| Auth mode:', authMode);
       
-      const res = await fetch(url, {
-        headers: getAuthHeaders()
-      });
+      const res = await fetch(url, getFetchOptions('GET'));
       
       // Read body ONCE using helper
       const { data } = await safeReadJson(res);
@@ -167,10 +165,7 @@ export default function DriverRidePage() {
       const url = buildUrl('/start');
       console.log('[START] Calling:', url, '| Auth mode:', authMode);
       
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: getAuthHeaders()
-      });
+      const res = await fetch(url, getFetchOptions('POST'));
       
       // Read body ONCE using helper
       const { data } = await safeReadJson(res);
