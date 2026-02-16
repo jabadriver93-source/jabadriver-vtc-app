@@ -34,8 +34,10 @@ db = client[os.environ['DB_NAME']]
 
 # Resend setup
 resend.api_key = os.environ.get('RESEND_API_KEY', '')
-SENDER_EMAIL_NEW = os.environ.get('SENDER_EMAIL_NEW', 'JabaDriver <noreply@jabadriver.fr>')
-SENDER_EMAIL = SENDER_EMAIL_NEW  # Utilise SENDER_EMAIL_NEW comme source
+# Priority: SENDER_EMAIL_NEW > SENDER_EMAIL > default
+SENDER_EMAIL_NEW = os.environ.get('SENDER_EMAIL_NEW', '')
+SENDER_EMAIL_LEGACY = os.environ.get('SENDER_EMAIL', '')
+SENDER_EMAIL = SENDER_EMAIL_NEW or SENDER_EMAIL_LEGACY or 'JabaDriver <noreply@jabadriver.fr>'
 DRIVER_EMAIL = os.environ.get('DRIVER_EMAIL', '')
 ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin123')
 
