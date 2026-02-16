@@ -3344,6 +3344,16 @@ async def finalize_attribution(course_id: str, driver_id: str, payment_session_i
         
         if driver:
             logger.info(f"[EMAIL-FLOW] Driver details | id={driver.get('id', 'N/A')[:8]} | email={driver.get('email', 'NOT_SET')} | name={driver.get('name', 'N/A')}")
+        else:
+            logger.error(f"[EMAIL-FLOW] ❌ Driver NOT FOUND in DB | driver_id={driver_id[:8]} | course={course_id[:8]}")
+        
+        if updated_course:
+            logger.info(f"[EMAIL-FLOW] Course details | status={updated_course.get('status')} | driver_access_token={updated_course.get('driver_access_token', 'NONE')[:10] if updated_course.get('driver_access_token') else 'NONE'}...")
+        else:
+            logger.error(f"[EMAIL-FLOW] ❌ Course NOT FOUND after update | course_id={course_id[:8]}")
+        
+        # Log config status
+        logger.info(f"[EMAIL-FLOW] Config | SENDER_EMAIL={SENDER_EMAIL or 'NOT_SET'} | FRONTEND_URL={FRONTEND_URL or 'NOT_SET'} | RESEND_API_KEY_present={bool(resend.api_key or os.environ.get('RESEND_API_KEY'))}")
         
         # Get payment intent ID from commission_payments
         payment = await db.commission_payments.find_one({"session_id": payment_session_id}, {"_id": 0})
@@ -3351,20 +3361,20 @@ async def finalize_attribution(course_id: str, driver_id: str, payment_session_i
         
         if driver and updated_course:
             # 1. Send to admin
-            logger.info(f"[EMAIL-FLOW] Sending admin notification...")
+            logger.info(f"[EMAIL-FLOW] [1/3] Sending admin notification...")
             await send_course_assigned_notification(updated_course, driver, payment_intent_id)
             
             # 2. Send to client
-            logger.info(f"[EMAIL-FLOW] Sending client notification...")
+            logger.info(f"[EMAIL-FLOW] [2/3] Sending client notification...")
             await send_course_assigned_to_client(updated_course, driver)
             
             # 3. Send to driver with direct ride link
-            logger.info(f"[EMAIL-FLOW] Sending driver notification with ride link...")
+            logger.info(f"[EMAIL-FLOW] [3/3] Sending driver notification to {driver.get('email', 'NO_EMAIL')}...")
             await send_course_assigned_to_driver(updated_course, driver)
             
-            logger.info(f"[EMAIL-FLOW] ✅ All assignment emails sent for course {course_id[:8]}")
+            logger.info(f"[EMAIL-FLOW] ✅ All 3 assignment emails sent for course {course_id[:8]}")
         else:
-            logger.warning(f"[EMAIL-FLOW] ⚠️ Cannot send emails - driver={bool(driver)} course={bool(updated_course)}")
+            logger.error(f"[EMAIL-FLOW] ❌ SKIPPED all emails - driver={bool(driver)} course={bool(updated_course)} | course_id={course_id[:8]}")
     except Exception as e:
         logger.error(f"[EMAIL-FLOW] ❌ Failed to send assignment notifications: {str(e)}")
         logger.exception("[EMAIL-FLOW] Full stack trace:")
