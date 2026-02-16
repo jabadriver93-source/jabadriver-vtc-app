@@ -128,6 +128,25 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 - **UX Mobile**: Boutons larges (h-12/h-14), feedback tactile (active:scale-95)
 - **Aucune régression** sur le workflow existant (Start/End/Confirm)
 
+### 12. Sécurité et Anti-Double-Action - Driver Ride Workflow ✅ [2026-02-16]
+- **Protection Backend**:
+  - Token validation stricte (driver_access_token)
+  - Vérification chauffeur assigné (assigned_driver_id)
+  - Anti-double-action via `started_at`/`ended_at` check
+  - Requêtes atomiques MongoDB (prevent race conditions)
+  - HTTP 409 Conflict pour actions dupliquées
+- **Champs d'audit ajoutés**:
+  - `started_by_driver_id`: ID du chauffeur ayant démarré
+  - `ended_by_driver_id`: ID du chauffeur ayant terminé
+- **Logging sécurité**:
+  - `[RIDE-SECURITY]` pour tentatives invalides
+  - Timestamps et driver IDs dans tous les logs
+- **Protection Frontend**:
+  - `isActionDisabled` state pour bloquer double-clics
+  - Boutons désactivés pendant chargement
+  - États visuels: loading, success, disabled
+  - Gestion HTTP 409 avec message utilisateur
+
 ## Technical Implementation
 
 ### Backend (FastAPI)
