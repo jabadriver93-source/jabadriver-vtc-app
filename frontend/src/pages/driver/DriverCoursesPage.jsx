@@ -182,9 +182,21 @@ export default function DriverCoursesPage() {
       
       if (res.status === 409) {
         // Course already modified - show current status from response
-        const currentStatus = data?.current_status || 'unknown';
-        console.log(`[ACTION] 409 Conflict - Current status: ${currentStatus}`);
-        toast.info(data?.detail || `Course déjà en statut: ${currentStatus}`);
+        const currentStatus = data?.current_status;
+        const detail = data?.detail || 'Course déjà modifiée';
+        
+        console.log(`[ACTION] 409 Conflict - Detail: ${detail} | Current status: ${currentStatus || 'not_provided'}`);
+        
+        // Show appropriate message based on status
+        if (currentStatus === 'IN_PROGRESS') {
+          toast.info('Course déjà en cours - actualisation...');
+        } else if (currentStatus === 'DRIVER_COMPLETED') {
+          toast.info('Course déjà terminée par le chauffeur');
+        } else if (currentStatus === 'DONE') {
+          toast.info('Course déjà clôturée');
+        } else {
+          toast.info(detail);
+        }
       } else if (res.status === 401) {
         toast.error('Session expirée. Veuillez vous reconnecter.');
         handleLogout();
