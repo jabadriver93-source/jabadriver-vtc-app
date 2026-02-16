@@ -244,17 +244,6 @@ export default function DriverRidePage() {
         }
         return;
       }
-          toast.error(data.detail || 'Cette action a déjà été effectuée');
-          setActionSuccess('already_done');
-        } else if (res.status === 403) {
-          toast.error(data.detail || 'Accès refusé - token invalide');
-          setError('Token invalide');
-        } else {
-          toast.error(data.detail || `Erreur ${res.status}`);
-          setIsActionDisabled(false); // Re-enable on non-conflict errors
-        }
-        return;
-      }
       
       setActionSuccess('ended');
       toast.success(data.message || 'Course terminée !');
