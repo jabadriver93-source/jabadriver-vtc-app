@@ -207,8 +207,9 @@ export default function DriverCoursesPage() {
         // Course already modified - show current status from response
         const currentStatus = data?.current_status || data?.status;
         const detail = data?.detail || 'Course déjà modifiée';
+        const errorCode = data?.error || 'unknown';
         
-        console.log(`[ACTION] 409 Conflict - Detail: ${detail} | Current status: ${currentStatus || 'not_provided'}`);
+        console.log(`[ACTION] 409 Conflict | error=${errorCode} | detail=${detail} | current_status=${currentStatus || 'not_provided'} | ride_id=${data?.ride_id || 'N/A'}`);
         
         // Show appropriate message based on status
         if (currentStatus === 'IN_PROGRESS') {
@@ -224,10 +225,17 @@ export default function DriverCoursesPage() {
         toast.error(getErrorMessage(res.status, data));
         return;
       } else {
-        // SUCCESS: Backend returns { success: true, status: "IN_PROGRESS", message: "..." }
+        // SUCCESS: Backend returns { success: true, status: "IN_PROGRESS", message: "...", idempotent?: true }
         const newStatus = data?.status || 'IN_PROGRESS';
-        console.log(`[ACTION] ✅ Start SUCCESS - New status: ${newStatus}`);
-        toast.success(data?.message || 'Course démarrée !');
+        const isIdempotent = data?.idempotent === true;
+        console.log(`[ACTION] ✅ Start SUCCESS - New status: ${newStatus} | idempotent: ${isIdempotent}`);
+        
+        // Show appropriate toast based on whether this was a new start or idempotent
+        if (isIdempotent) {
+          toast.info(data?.message || 'Course déjà en cours');
+        } else {
+          toast.success(data?.message || 'Course démarrée !');
+        }
       }
       
       // Force refetch to update UI (critical: must update badge to IN_PROGRESS)
