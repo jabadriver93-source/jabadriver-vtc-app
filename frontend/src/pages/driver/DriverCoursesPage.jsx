@@ -410,21 +410,41 @@ export default function DriverCoursesPage() {
 
   // Check if course can use ride workflow
   const canUseRideWorkflow = (course) => {
-    return ['ASSIGNED', 'IN_PROGRESS', 'DRIVER_COMPLETED'].includes(course.status) 
-      && course.driver_access_token;
+    // Allow workflow for active statuses - works with session auth or token
+    return ['ASSIGNED', 'IN_PROGRESS', 'DRIVER_COMPLETED'].includes(course.status);
   };
 
   // Get ride workflow button config based on status
   const getRideWorkflowConfig = (status) => {
     switch(status) {
       case 'ASSIGNED': 
-        return { label: 'Démarrer la course', icon: Play, className: 'bg-amber-500 hover:bg-amber-600 text-black' };
+        return { 
+          label: 'Démarrer la course', 
+          icon: Play, 
+          className: 'bg-amber-500 hover:bg-amber-600 text-black',
+          action: 'start'
+        };
       case 'IN_PROGRESS': 
-        return { label: 'Terminer la course', icon: CheckCircle, className: 'bg-green-500 hover:bg-green-600 text-white' };
+        return { 
+          label: 'Terminer la course', 
+          icon: CheckCircle, 
+          className: 'bg-green-500 hover:bg-green-600 text-white',
+          action: 'end'
+        };
       case 'DRIVER_COMPLETED': 
-        return { label: 'Voir le statut', icon: Navigation, className: 'bg-gray-600 hover:bg-gray-700 text-white' };
+        return { 
+          label: 'Attente confirmation', 
+          icon: Clock, 
+          className: 'bg-gray-600 text-white cursor-default',
+          action: 'none'
+        };
       default: 
-        return { label: 'Ouvrir workflow', icon: Navigation, className: 'bg-slate-600 hover:bg-slate-700 text-white' };
+        return { 
+          label: 'Voir', 
+          icon: Navigation, 
+          className: 'bg-slate-600 hover:bg-slate-700 text-white',
+          action: 'view'
+        };
     }
   };
 
