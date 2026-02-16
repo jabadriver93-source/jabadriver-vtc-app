@@ -3393,11 +3393,20 @@ async def admin_email_diagnostic():
     """Diagnostic endpoint for email configuration - helps debug production email issues"""
     import resend as resend_module
     
+    # Read env vars directly for comparison
+    sender_email_new_env = os.environ.get('SENDER_EMAIL_NEW', '')
+    sender_email_legacy_env = os.environ.get('SENDER_EMAIL', '')
+    
+    # The actual sender being used (from module global)
+    sender_in_use = SENDER_EMAIL
+    
     # Check config
     config = {
-        "SENDER_EMAIL": SENDER_EMAIL or "NOT_SET",
-        "FRONTEND_URL": FRONTEND_URL or "NOT_SET",
-        "ADMIN_EMAIL": ADMIN_EMAIL or "NOT_SET",
+        "SENDER_EMAIL_NEW_env": sender_email_new_env or "(not set in env)",
+        "SENDER_EMAIL_legacy_env": sender_email_legacy_env or "(not set in env)",
+        "sender_in_use": sender_in_use or "(not set)",
+        "FRONTEND_URL": FRONTEND_URL or "(not set)",
+        "ADMIN_EMAIL": ADMIN_EMAIL or "(not set)",
         "RESEND_API_KEY_present": bool(resend_module.api_key or os.environ.get('RESEND_API_KEY')),
         "RESEND_API_KEY_length": len(resend_module.api_key or os.environ.get('RESEND_API_KEY', '')) if (resend_module.api_key or os.environ.get('RESEND_API_KEY')) else 0,
         "RESEND_API_KEY_prefix": (resend_module.api_key or os.environ.get('RESEND_API_KEY', ''))[:8] + "..." if (resend_module.api_key or os.environ.get('RESEND_API_KEY')) else "N/A"
@@ -3408,6 +3417,7 @@ async def admin_email_diagnostic():
     return {
         "status": "ok",
         "config": config,
+        "warning": "⚠️ Si sender_in_use = onboarding@resend.dev, les emails ne seront pas délivrés !" if "onboarding" in str(sender_in_use) else None,
         "message": "Use POST /api/admin/subcontracting/test-email-driver/{course_id} to test driver email"
     }
 
