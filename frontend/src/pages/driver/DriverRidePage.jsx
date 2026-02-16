@@ -380,6 +380,61 @@ export default function DriverRidePage() {
             </CardContent>
           </Card>
 
+          {/* Navigation Buttons Card */}
+          <Card className="bg-gray-900 border-gray-800">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Navigation className="w-4 h-4 text-amber-400" />
+                <p className="text-gray-400 text-xs uppercase tracking-wider">
+                  {ride?.status === 'IN_PROGRESS' ? 'Naviguer vers destination' : 'Naviguer vers client'}
+                </p>
+              </div>
+              
+              {/* Navigation destination hint */}
+              <p className="text-gray-500 text-xs mb-3 truncate">
+                {ride?.status === 'IN_PROGRESS' ? ride?.dropoff_address : ride?.pickup_address}
+              </p>
+              
+              <div className="grid grid-cols-2 gap-3">
+                {/* Google Maps Button */}
+                <a 
+                  href={
+                    ride?.status === 'IN_PROGRESS' && ride?.dropoff_lat && ride?.dropoff_lng
+                      ? `https://www.google.com/maps/dir/?api=1&destination=${ride.dropoff_lat},${ride.dropoff_lng}`
+                      : ride?.pickup_lat && ride?.pickup_lng
+                        ? `https://www.google.com/maps/dir/?api=1&destination=${ride.pickup_lat},${ride.pickup_lng}`
+                        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ride?.status === 'IN_PROGRESS' ? ride?.dropoff_address : ride?.pickup_address)}`
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 h-14 bg-blue-500/20 rounded-xl hover:bg-blue-500/30 transition-colors active:scale-95 border border-blue-500/30"
+                  data-testid="nav-google-maps-btn"
+                >
+                  <ExternalLink className="w-5 h-5 text-blue-400" />
+                  <span className="text-blue-400 font-semibold text-sm">Google Maps</span>
+                </a>
+                
+                {/* Waze Button */}
+                <a 
+                  href={
+                    ride?.status === 'IN_PROGRESS' && ride?.dropoff_lat && ride?.dropoff_lng
+                      ? `https://waze.com/ul?ll=${ride.dropoff_lat},${ride.dropoff_lng}&navigate=yes`
+                      : ride?.pickup_lat && ride?.pickup_lng
+                        ? `https://waze.com/ul?ll=${ride.pickup_lat},${ride.pickup_lng}&navigate=yes`
+                        : `https://waze.com/ul?q=${encodeURIComponent(ride?.status === 'IN_PROGRESS' ? ride?.dropoff_address : ride?.pickup_address)}&navigate=yes`
+                  }
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 h-14 bg-cyan-500/20 rounded-xl hover:bg-cyan-500/30 transition-colors active:scale-95 border border-cyan-500/30"
+                  data-testid="nav-waze-btn"
+                >
+                  <Navigation className="w-5 h-5 text-cyan-400" />
+                  <span className="text-cyan-400 font-semibold text-sm">Waze</span>
+                </a>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Price Summary Card */}
           <Card className="bg-gray-900 border-gray-800">
             <CardContent className="p-4">
