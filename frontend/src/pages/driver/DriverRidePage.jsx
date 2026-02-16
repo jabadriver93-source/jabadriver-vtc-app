@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { 
   MapPin, Clock, Phone, User, Euro, FileText, 
-  Loader2, Play, CheckCircle, AlertTriangle, Car, Navigation
+  Loader2, Play, CheckCircle, AlertTriangle, Car, Navigation,
+  MessageCircle, ExternalLink
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
