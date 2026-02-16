@@ -114,27 +114,22 @@ export default function DriverCoursesPage() {
   };
 
   // Helper to safely read JSON response body ONCE (fixes iOS Safari "Body is disturbed" error)
-  // Uses clone() to ensure body can be read even if browser pre-consumed it
+  // Safari/iOS bug: sometimes response body is consumed by browser before we can read it
   const safeReadJson = async (res) => {
     try {
-      // Clone response to ensure body is readable (Safari fix)
-      const clonedRes = res.clone();
+      // Check if body is already used (Safari bug)
+      if (res.bodyUsed) {
+        console.warn('[FETCH] Body already used by browser - using fallback');
+        return { ok: false, data: null, raw: '' };
+      }
       
+      // Try to read json directly
       try {
-        // Try json() directly first - more reliable
-        const data = await clonedRes.json();
+        const data = await res.json();
         return { ok: true, data, raw: JSON.stringify(data) };
       } catch (jsonErr) {
-        // If json fails, try text on original
-        console.warn('[FETCH] JSON read failed, trying text:', jsonErr.message);
-        try {
-          const raw = await res.text();
-          const data = raw ? JSON.parse(raw) : {};
-          return { ok: true, data, raw };
-        } catch (textErr) {
-          console.error('[FETCH] All body reads failed:', textErr.message);
-          return { ok: false, data: null, raw: '' };
-        }
+        console.warn('[FETCH] JSON parse failed:', jsonErr.message);
+        return { ok: false, data: null, raw: '' };
       }
     } catch (err) {
       console.error('[FETCH] Body read error:', err);
