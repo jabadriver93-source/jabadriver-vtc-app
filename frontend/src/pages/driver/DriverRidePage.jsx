@@ -37,6 +37,7 @@ const STATUS_CONFIG = {
 
 export default function DriverRidePage() {
   const { rideId } = useParams();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const urlToken = searchParams.get('token'); // Token from URL (email link)
   const sessionToken = localStorage.getItem('driver_token'); // Session token (logged-in driver)
@@ -51,9 +52,43 @@ export default function DriverRidePage() {
   // Determine auth mode
   const authMode = urlToken ? 'token' : (sessionToken ? 'session' : null);
 
+  // Helper to safely read JSON response body ONCE (fixes iOS Safari "Body is disturbed" error)
+  const safeReadJson = async (res) => {
+    try {
+      const raw = await res.text(); // Read body ONCE
+      try {
+        return { ok: true, data: JSON.parse(raw || '{}'), raw };
+      } catch {
+        return { ok: false, data: null, raw };
+      }
+    } catch (err) {
+      console.error('[FETCH] Body read error:', err);
+      return { ok: false, data: null, raw: '' };
+    }
+  };
+
+  // Map HTTP status to user-friendly error message
+  const getErrorMessage = (status, data) => {
+    switch (status) {
+      case 409:
+        return data?.detail || 'Course déjà démarrée ou terminée';
+      case 401:
+        return 'Session expirée. Veuillez vous reconnecter.';
+      case 403:
+        return data?.detail || 'Accès refusé';
+      case 404:
+        return 'Course non trouvée';
+      default:
+        return data?.detail || `Erreur serveur (${status})`;
+    }
+  };
+
   // Build headers for API calls
   const getAuthHeaders = () => {
-    const headers = { 'Content-Type': 'application/json' };
+    const headers = { 
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache'
+    };
     if (!urlToken && sessionToken) {
       headers['Authorization'] = `Bearer ${sessionToken}`;
     }
