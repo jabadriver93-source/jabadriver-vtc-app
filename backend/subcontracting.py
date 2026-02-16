@@ -2388,11 +2388,14 @@ async def start_ride(ride_id: str, token: Optional[str] = Query(None, descriptio
     }
 
 @driver_router.post("/ride/{ride_id}/end")
-async def end_ride(ride_id: str, token: str = Query(..., description="Driver access token"), request: Request = None):
+async def end_ride(ride_id: str, token: Optional[str] = Query(None, description="Driver access token (optional if logged in)"), request: Request = None):
     """End a ride - changes status to DRIVER_COMPLETED
     
+    Authentication (one of):
+    - Token in URL: ?token=xxx (for direct email link access)
+    - Session JWT: Authorization header (for logged-in driver)
+    
     Security:
-    - Token must match driver_access_token
     - Only assigned driver can end
     - Prevents double-end via ended_at check
     - Logs driver ID and timestamp for audit
@@ -2401,48 +2404,68 @@ async def end_ride(ride_id: str, token: str = Query(..., description="Driver acc
     if not SUBCONTRACTING_ENABLED:
         raise HTTPException(status_code=503, detail="Module sous-traitance désactivé")
     
-    # Find course and validate token
+    # Find course
     course = await db.courses.find_one({"id": ride_id}, {"_id": 0})
     if not course:
         logger.warning(f"[RIDE-SECURITY] ⚠️ End attempt on non-existent ride: {ride_id[:8]}")
         raise HTTPException(status_code=404, detail="Course non trouvée")
     
-    # Validate token - SECURITY CHECK 1
-    if not course.get("driver_access_token") or course.get("driver_access_token") != token:
-        logger.warning(f"[RIDE-SECURITY] 🚫 Invalid token for ride {ride_id[:8]} - token mismatch on end")
-        raise HTTPException(status_code=403, detail="Token d'accès invalide")
-    
-    # Get assigned driver ID for verification
     assigned_driver_id = course.get("assigned_driver_id")
     if not assigned_driver_id:
         logger.error(f"[RIDE-SECURITY] ❌ Ride {ride_id[:8]} has no assigned driver")
         raise HTTPException(status_code=400, detail="Aucun chauffeur assigné à cette course")
     
-    # Verify the driver who started is the same as the one ending
-    started_by = course.get("started_by_driver_id")
-    if started_by and started_by != assigned_driver_id:
-        logger.warning(f"[RIDE-SECURITY] 🚫 Driver mismatch on ride {ride_id[:8]} - started by {started_by[:8]}, end attempt by {assigned_driver_id[:8]}")
-        raise HTTPException(status_code=403, detail="Seul le chauffeur ayant démarré peut terminer la course")
+    # DUAL AUTH: Token OR Session
+    authenticated_driver_id = None
+    auth_method = None
+    
+    if token:
+        # Mode 1: Token authentication (from email link)
+        if course.get("driver_access_token") and course.get("driver_access_token") == token:
+            authenticated_driver_id = assigned_driver_id
+            auth_method = "token"
+            logger.info(f"[RIDE-AUTH] Driver authenticated via token for end ride {ride_id[:8]}")
+        else:
+            logger.warning(f"[RIDE-SECURITY] 🚫 Invalid token for ride {ride_id[:8]} on end")
+            raise HTTPException(status_code=403, detail="Token d'accès invalide")
+    else:
+        # Mode 2: Session authentication (logged-in driver)
+        authorization = request.headers.get("Authorization") if request else None
+        if authorization:
+            try:
+                driver = await get_driver_from_token(authorization)
+                authenticated_driver_id = driver.get("id")
+                auth_method = "session"
+                logger.info(f"[RIDE-AUTH] Driver {authenticated_driver_id[:8]} authenticated via session for end ride {ride_id[:8]}")
+            except HTTPException as e:
+                logger.warning(f"[RIDE-SECURITY] 🚫 Session auth failed for ride {ride_id[:8]}: {e.detail}")
+                raise HTTPException(status_code=401, detail="Authentification requise. Connectez-vous ou utilisez le lien email.")
+        else:
+            raise HTTPException(status_code=401, detail="Authentification requise. Connectez-vous ou utilisez le lien email.")
+    
+    # Verify the authenticated driver is the assigned driver
+    if authenticated_driver_id != assigned_driver_id:
+        logger.warning(f"[RIDE-SECURITY] 🚫 Driver {authenticated_driver_id[:8]} tried to end ride {ride_id[:8]} assigned to {assigned_driver_id[:8]}")
+        raise HTTPException(status_code=403, detail="Vous n'êtes pas assigné à cette course")
     
     # ANTI-DOUBLE-ACTION: Check if already ended via ended_at field
     if course.get("ended_at"):
         existing_end = course.get("ended_at")
-        ended_by = course.get("ended_by_driver_id", "unknown")
-        logger.warning(f"[RIDE-SECURITY] 🔄 Double-end attempt on ride {ride_id[:8]} - already ended at {existing_end} by {ended_by[:8] if ended_by != 'unknown' else 'unknown'}")
+        logger.warning(f"[RIDE-SECURITY] 🔄 Double-end attempt on ride {ride_id[:8]} - already ended at {existing_end}")
         raise HTTPException(status_code=409, detail="Cette course a déjà été terminée")
     
-    # Check current status - must be IN_PROGRESS - SECURITY CHECK 2
+    # Check current status - must be IN_PROGRESS
     current_status = course.get("status")
     if current_status != CourseStatusEnum.IN_PROGRESS:
         logger.warning(f"[RIDE-SECURITY] ⚠️ End attempt on ride {ride_id[:8]} with invalid status: {current_status}")
         if current_status == CourseStatusEnum.ASSIGNED:
             raise HTTPException(status_code=400, detail="Vous devez d'abord démarrer la course")
         elif current_status == CourseStatusEnum.DRIVER_COMPLETED:
-            raise HTTPException(status_code=409, detail="La course est déjà terminée côté chauffeur")
+            raise HTTPException(status_code=409, detail="La course est déjà terminée par le chauffeur")
         elif current_status == CourseStatusEnum.DONE:
-            raise HTTPException(status_code=409, detail="Cette course est définitivement terminée")
+            raise HTTPException(status_code=409, detail="Cette course est définitivement clôturée")
         else:
-            raise HTTPException(status_code=400, detail=f"Impossible de terminer une course avec le statut: {current_status}")
+            raise HTTPException(status_code=400, detail=f"Impossible de terminer: statut actuel = {current_status}")
     
     # Generate client confirmation token
     client_confirmation_token = secrets.token_urlsafe(32)
@@ -2458,7 +2481,7 @@ async def end_ride(ride_id: str, token: str = Query(..., description="Driver acc
         {"$set": {
             "status": CourseStatusEnum.DRIVER_COMPLETED,
             "ended_at": ended_at,
-            "ended_by_driver_id": assigned_driver_id,
+            "ended_by_driver_id": authenticated_driver_id,
             "client_confirmation_token": client_confirmation_token
         }}
     )
@@ -2466,13 +2489,13 @@ async def end_ride(ride_id: str, token: str = Query(..., description="Driver acc
     # Verify update was successful (race condition protection)
     if update_result.modified_count == 0:
         logger.error(f"[RIDE-SECURITY] ❌ Race condition detected on ride {ride_id[:8]} - atomic update failed on end")
-        raise HTTPException(status_code=409, detail="Action impossible - la course a peut-être déjà été modifiée")
+        raise HTTPException(status_code=409, detail="La course a déjà été modifiée. Actualisez la page.")
     
-    logger.info(f"[RIDE] ✅ Course {ride_id[:8]} ENDED by driver {assigned_driver_id[:8]} at {ended_at} (DRIVER_COMPLETED)")
+    logger.info(f"[RIDE] ✅ Course {ride_id[:8]} ENDED by driver {authenticated_driver_id[:8]} via {auth_method} at {ended_at} (DRIVER_COMPLETED)")
     
     # Get driver for emails
     driver = await db.drivers.find_one(
-        {"id": assigned_driver_id},
+        {"id": authenticated_driver_id},
         {"_id": 0, "password_hash": 0}
     )
     
@@ -2491,7 +2514,7 @@ async def end_ride(ride_id: str, token: str = Query(..., description="Driver acc
         "message": "Course terminée ! Le client a été notifié.",
         "status": CourseStatusEnum.DRIVER_COMPLETED,
         "ended_at": ended_at,
-        "ended_by_driver_id": assigned_driver_id
+        "ended_by_driver_id": authenticated_driver_id
     }
 
 # ============================================
