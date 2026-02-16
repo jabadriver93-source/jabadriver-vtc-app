@@ -162,6 +162,11 @@ class Course(BaseModel):
     modification_history: List[dict] = Field(default_factory=list)  # History of changes
     # Test flag - courses marked as test are excluded from revenue/commission stats
     is_test: bool = False
+    # Driver direct access token - valid until ride is DONE
+    driver_access_token: Optional[str] = None
+    # Ride lifecycle timestamps
+    started_at: Optional[str] = None  # When driver started the ride
+    ended_at: Optional[str] = None  # When driver ended the ride
 
 # ============================================
 # MODELS - CLAIM TOKENS
