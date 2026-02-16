@@ -249,9 +249,24 @@ export default function AdminSubcontractingPage() {
       case 'OPEN': return 'bg-sky-500/20 text-sky-400 border-sky-500/30';
       case 'RESERVED': return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
       case 'ASSIGNED': return 'bg-green-500/20 text-green-400 border-green-500/30';
+      case 'IN_PROGRESS': return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+      case 'DRIVER_COMPLETED': return 'bg-teal-500/20 text-teal-400 border-teal-500/30';
       case 'DONE': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
       case 'CANCELLED': return 'bg-red-500/20 text-red-400 border-red-500/30';
       default: return 'bg-slate-500/20 text-slate-400';
+    }
+  };
+
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case 'OPEN': return 'Ouverte';
+      case 'RESERVED': return 'Réservée';
+      case 'ASSIGNED': return 'Attribuée';
+      case 'IN_PROGRESS': return 'En cours';
+      case 'DRIVER_COMPLETED': return 'Terminée chauffeur';
+      case 'DONE': return 'Terminée';
+      case 'CANCELLED': return 'Annulée';
+      default: return status;
     }
   };
 
