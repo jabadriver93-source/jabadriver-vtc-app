@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   Plus, Copy, RefreshCw, XCircle, CheckCircle, Users, 
-  FileText, MapPin, Clock, Euro, ArrowLeft, Trash2, UserCheck, UserX, RotateCcw, AlertTriangle, FlaskConical
+  FileText, MapPin, Clock, Euro, ArrowLeft, Trash2, UserCheck, UserX, RotateCcw, AlertTriangle, FlaskConical, Mail, Loader2
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
