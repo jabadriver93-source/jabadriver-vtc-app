@@ -11,7 +11,7 @@ import time
 # Use public URL for testing
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://ride-visual-sync.preview.emergentagent.com"
+    BASE_URL = "https://driver-claim-auth.preview.emergentagent.com"
 
 class TestIsTestFilter:
     """Tests for is_test course filter feature"""

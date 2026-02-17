@@ -13,7 +13,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://ride-visual-sync.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://driver-claim-auth.preview.emergentagent.com').rstrip('/')
 
 # Test course data
 TEST_COURSE_ID = "318325c9-7f05-43f6-b8f5-aa2583609e25"
