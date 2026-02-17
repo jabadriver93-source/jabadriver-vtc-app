@@ -436,6 +436,20 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 - ✅ Cache-Control Safari
 - ✅ Tests 100% (iteration_13.json)
 
+### Finalisation Workflow Course ✅ [2026-12-17]
+- ✅ Bouton client "Je suis présent" fonctionne avec toast de succès
+- ✅ Bouton chauffeur "Localiser client" visible après confirmation présence
+- ✅ Injection automatique des frais d'attente dans la facture au START
+- ✅ Message "Client confirmé" au lieu de "En attente de confirmation"
+- ✅ Tests 100% (iteration_14.json)
+
+**Nouveaux Endpoints:**
+- `POST /api/client-portal/{token}/client-present` : Client signale sa présence
+
+**Nouveaux Champs Retournés par `/api/driver/ride/{id}`:**
+- `confirmed_at`: Timestamp de confirmation client
+- `client_present`, `client_present_time`, `client_lat`, `client_lng`
+
 ### P1 - Dashboard Statistiques Admin
 - Tableau de bord avec statistiques (courses, revenus, chauffeurs)
 - Graphiques d'évolution
