@@ -534,6 +534,30 @@ export default function ClientPortalPage() {
 
   const canModify = reservation.can_modify !== false && reservation.invoice_status !== 'ISSUED';
 
+  // Get the real course status (use current_status from ride, fallback to reservation status)
+  const realStatus = reservation.current_status || reservation.status;
+  const displayStatus = reservation.display_status || reservation.status;
+  
+  // Helper to get status badge style
+  const getStatusBadge = () => {
+    const statusStyles = {
+      'ASSIGNED': { bg: 'bg-blue-500/20', text: 'text-blue-400', label: 'En attente chauffeur' },
+      'DRIVER_ARRIVED': { bg: 'bg-orange-500/20', text: 'text-orange-400', label: 'Chauffeur arrivé' },
+      'IN_PROGRESS': { bg: 'bg-purple-500/20', text: 'text-purple-400', label: 'En cours' },
+      'DRIVER_COMPLETED': { bg: 'bg-green-500/20', text: 'text-green-400', label: 'Terminée' },
+      'DONE': { bg: 'bg-green-500/20', text: 'text-green-400', label: 'Terminée' },
+      'NO_SHOW': { bg: 'bg-red-500/20', text: 'text-red-400', label: 'Client absent' },
+      'CANCELLED': { bg: 'bg-red-500/20', text: 'text-red-400', label: 'Annulée' },
+      'CANCELLED_LATE_DRIVER': { bg: 'bg-red-500/20', text: 'text-red-400', label: 'Annulée' },
+      'CANCELLED_LATE_CLIENT': { bg: 'bg-red-500/20', text: 'text-red-400', label: 'Annulée' },
+      'confirmed': { bg: 'bg-green-500/20', text: 'text-green-400', label: 'Confirmée' },
+      'cancelled': { bg: 'bg-red-500/20', text: 'text-red-400', label: 'Annulée' },
+    };
+    return statusStyles[realStatus] || { bg: 'bg-sky-500/20', text: 'text-sky-400', label: displayStatus || 'En attente' };
+  };
+  
+  const statusBadge = getStatusBadge();
+
   return (
     <div className="min-h-screen bg-gray-950 py-8 px-4">
       <div className="max-w-2xl mx-auto">
@@ -551,13 +575,9 @@ export default function ClientPortalPage() {
                 <CheckCircle className="w-5 h-5 text-green-500" />
                 Réservation #{reservation.id?.slice(0, 8).toUpperCase()}
               </CardTitle>
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                reservation.status === 'confirmed' ? 'bg-green-500/20 text-green-400' :
-                reservation.status === 'cancelled' ? 'bg-red-500/20 text-red-400' :
-                'bg-sky-500/20 text-sky-400'
-              }`}>
-                {reservation.status === 'confirmed' ? 'Confirmée' : 
-                 reservation.status === 'cancelled' ? 'Annulée' : 'En cours'}
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusBadge.bg} ${statusBadge.text}`}
+                    data-testid="status-badge">
+                {statusBadge.label}
               </span>
             </div>
           </CardHeader>
@@ -572,13 +592,18 @@ export default function ClientPortalPage() {
                   <div>
                     <p className="text-green-400 text-sm font-medium">Chauffeur attribué</p>
                     <p className="text-white font-semibold">{reservation.assigned_driver_name}</p>
+                    {reservation.assigned_driver_phone && (
+                      <a href={`tel:${reservation.assigned_driver_phone}`} className="text-sky-400 text-sm hover:underline">
+                        {reservation.assigned_driver_phone}
+                      </a>
+                    )}
                   </div>
                 </div>
               </div>
             )}
 
-            {/* Driver Arrived Alert with Waiting Counter */}
-            {reservation.status === 'DRIVER_ARRIVED' && (
+            {/* Driver Arrived Alert with Waiting Counter - USE realStatus */}
+            {realStatus === 'DRIVER_ARRIVED' && (
               <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
