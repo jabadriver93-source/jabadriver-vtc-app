@@ -19,6 +19,7 @@ from io import BytesIO
 import asyncio
 import resend
 import re
+import math  # For Haversine GPS distance calculation
 
 # PDF generation
 from reportlab.lib.pagesizes import A4
