@@ -14,7 +14,7 @@ import os
 import logging
 import uuid
 import secrets
-import io
+from io import BytesIO
 import asyncio
 import resend
 import re
