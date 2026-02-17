@@ -812,9 +812,12 @@ export default function DriverRidePage() {
         </div>
       )}
 
-      {/* Fixed Bottom Action Button */}
+      {/* Fixed Bottom Action Button - positioned above Emergent banner */}
       {(ride?.status === 'ASSIGNED' || ride?.status === 'IN_PROGRESS') && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-gray-950 via-gray-950 to-transparent pt-8">
+        <div 
+          className="fixed left-0 right-0 p-4 bg-gradient-to-t from-gray-950 via-gray-950 to-transparent pt-8 z-50"
+          style={{ bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}
+        >
           <div className="max-w-lg mx-auto">
             {ride?.status === 'ASSIGNED' && (
               <Button
@@ -883,9 +886,12 @@ export default function DriverRidePage() {
         </div>
       )}
 
-      {/* Completed State Message */}
+      {/* Completed State Message - positioned above Emergent banner */}
       {(ride?.status === 'DRIVER_COMPLETED' || ride?.status === 'DONE') && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-gray-950 via-gray-950 to-transparent pt-8">
+        <div 
+          className="fixed left-0 right-0 p-4 bg-gradient-to-t from-gray-950 via-gray-950 to-transparent pt-8 z-50"
+          style={{ bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}
+        >
           <div className="max-w-lg mx-auto">
             <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center">
               <CheckCircle className="w-8 h-8 text-green-400 mx-auto mb-2" />
