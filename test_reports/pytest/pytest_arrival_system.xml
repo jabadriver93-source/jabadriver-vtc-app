@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="8" failures="0" skipped="0" tests="16" time="2.244" timestamp="2026-02-17T19:01:02.905493+00:00" hostname="agent-env-c1c5e044-5671-4ba8-994c-c38ea366995a"><testcase classname="tests.test_driver_arrival_system.TestDriverArrivalSystem" name="test_arrive_requires_gps" time="0.634"><error message="failed on setup with &quot;KeyError: 'token'&quot;">tests/test_driver_arrival_system.py:56: in admin_session
+    session.headers.update({"Authorization": f"Bearer {data['token']}"})
+                                                       ^^^^^^^^^^^^^
+E   KeyError: 'token'</error></testcase><testcase classname="tests.test_driver_arrival_system.TestDriverArrivalSystem" name="test_arrive_with_gps" time="0.000"><error message="failed on setup with &quot;KeyError: 'token'&quot;">tests/test_driver_arrival_system.py:56: in admin_session
+    session.headers.update({"Authorization": f"Bearer {data['token']}"})
+                                                       ^^^^^^^^^^^^^
+E   KeyError: 'token'</error></testcase><testcase classname="tests.test_driver_arrival_system.TestDriverArrivalSystem" name="test_waiting_info_before_arrival" time="0.207" /><testcase classname="tests.test_driver_arrival_system.TestDriverArrivalSystem" name="test_waiting_info_endpoint_exists" time="0.000"><error message="failed on setup with &quot;KeyError: 'token'&quot;">tests/test_driver_arrival_system.py:56: in admin_session
+    session.headers.update({"Authorization": f"Bearer {data['token']}"})
+                                                       ^^^^^^^^^^^^^
+E   KeyError: 'token'</error></testcase><testcase classname="tests.test_driver_arrival_system.TestDriverArrivalSystem" name="test_client_present_requires_driver_arrived" time="0.000"><error message="failed on setup with &quot;KeyError: 'token'&quot;">tests/test_driver_arrival_system.py:56: in admin_session
+    session.headers.update({"Authorization": f"Bearer {data['token']}"})
+                                                       ^^^^^^^^^^^^^
+E   KeyError: 'token'</error></testcase><testcase classname="tests.test_driver_arrival_system.TestDriverArrivalSystem" name="test_no_show_requires_driver_arrived" time="0.000"><error message="failed on setup with &quot;KeyError: 'token'&quot;">tests/test_driver_arrival_system.py:56: in admin_session
+    session.headers.update({"Authorization": f"Bearer {data['token']}"})
+                                                       ^^^^^^^^^^^^^
+E   KeyError: 'token'</error></testcase><testcase classname="tests.test_driver_arrival_system.TestDriverArrivalSystem" name="test_no_show_requires_20_min_wait" time="0.000"><error message="failed on setup with &quot;KeyError: 'token'&quot;">tests/test_driver_arrival_system.py:56: in admin_session
+    session.headers.update({"Authorization": f"Bearer {data['token']}"})
+                                                       ^^^^^^^^^^^^^
+E   KeyError: 'token'</error></testcase><testcase classname="tests.test_driver_arrival_system.TestDriverArrivalSystem" name="test_start_from_driver_arrived" time="0.000"><error message="failed on setup with &quot;KeyError: 'token'&quot;">tests/test_driver_arrival_system.py:56: in admin_session
+    session.headers.update({"Authorization": f"Bearer {data['token']}"})
+                                                       ^^^^^^^^^^^^^
+E   KeyError: 'token'</error></testcase><testcase classname="tests.test_driver_arrival_system.TestDriverArrivalSystem" name="test_arrive_idempotent" time="0.000"><error message="failed on setup with &quot;KeyError: 'token'&quot;">tests/test_driver_arrival_system.py:56: in admin_session
+    session.headers.update({"Authorization": f"Bearer {data['token']}"})
+                                                       ^^^^^^^^^^^^^
+E   KeyError: 'token'</error></testcase><testcase classname="tests.test_driver_arrival_system.TestWaitingTimePricing" name="test_waiting_info_structure" time="0.224" /><testcase classname="tests.test_driver_arrival_system.TestWaitingTimePricing" name="test_pricing_constants" time="0.000" /><testcase classname="tests.test_driver_arrival_system.TestDriverArrivalAuth" name="test_arrive_requires_auth" time="0.278" /><testcase classname="tests.test_driver_arrival_system.TestDriverArrivalAuth" name="test_no_show_requires_auth" time="0.123" /><testcase classname="tests.test_driver_arrival_system.TestDriverArrivalAuth" name="test_waiting_info_public" time="0.156" /><testcase classname="tests.test_driver_arrival_system.TestDriverRideEndpoints" name="test_ride_endpoint_returns_arrival_fields" time="0.426" /><testcase classname="tests.test_driver_arrival_system.TestDriverRideEndpoints" name="test_start_endpoint_accepts_assigned_and_arrived" time="0.077" /></testsuite></testsuites>
