@@ -249,6 +249,11 @@ class CourseCreate(BaseModel):
     distance_km: Optional[float] = None
     price_total: float
     notes: Optional[str] = None
+    # GPS coordinates for pickup/dropoff (from Google Maps)
+    pickup_lat: Optional[float] = None
+    pickup_lng: Optional[float] = None
+    dropoff_lat: Optional[float] = None
+    dropoff_lng: Optional[float] = None
 
 class CourseStatusEnum:
     OPEN = "OPEN"
