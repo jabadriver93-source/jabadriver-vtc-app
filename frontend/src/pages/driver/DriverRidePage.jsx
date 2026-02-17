@@ -873,11 +873,17 @@ export default function DriverRidePage() {
             <div className="mt-4 bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center">
               <CheckCircle className="w-8 h-8 text-green-400 mx-auto mb-2" />
               <p className="text-green-400 font-semibold">
-                {ride?.status === 'DRIVER_COMPLETED' ? 'Course terminée' : 'Course clôturée'}
+                {ride?.status === 'DRIVER_COMPLETED' 
+                  ? (ride?.confirmed_at ? '✅ Client confirmé' : 'Course terminée')
+                  : 'Course clôturée'
+                }
               </p>
               <p className="text-gray-400 text-sm mt-1">
                 {ride?.status === 'DRIVER_COMPLETED' 
-                  ? 'En attente de confirmation client' 
+                  ? (ride?.confirmed_at 
+                      ? `Confirmé à ${new Date(ride.confirmed_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}` 
+                      : 'En attente de confirmation client'
+                    )
                   : 'Merci pour cette course !'
                 }
               </p>
