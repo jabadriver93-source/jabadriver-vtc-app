@@ -430,7 +430,7 @@ export default function DriverRidePage() {
   const netDriver = (ride?.price_with_supplements || ride?.price_total || 0) - (ride?.commission_amount || 0);
 
   return (
-    <div className="min-h-screen bg-gray-950 pb-32" style={{ paddingBottom: '140px' }}>
+    <div className="min-h-screen bg-gray-950" style={{ paddingBottom: '180px' }}>
       {/* Logo Header */}
       <div className="bg-gray-950 px-4 pt-6 pb-2">
         <div className="max-w-lg mx-auto text-center">
