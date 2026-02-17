@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,61 @@ import {
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
+const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+
+// Google Maps loading state (singleton pattern)
+let googleMapsLoaded = false;
+let googleMapsLoading = false;
+let mapsReadyCallbacks = [];
+
+const notifyMapsReady = () => {
+  googleMapsLoaded = true;
+  googleMapsLoading = false;
+  mapsReadyCallbacks.forEach(cb => cb());
+  mapsReadyCallbacks = [];
+};
+
+const loadGoogleMapsScript = () => {
+  return new Promise((resolve) => {
+    if (googleMapsLoaded && window.google?.maps?.places) {
+      resolve();
+      return;
+    }
+
+    if (googleMapsLoading) {
+      mapsReadyCallbacks.push(resolve);
+      return;
+    }
+
+    if (window.google?.maps?.places) {
+      googleMapsLoaded = true;
+      resolve();
+      return;
+    }
+
+    googleMapsLoading = true;
+    mapsReadyCallbacks.push(resolve);
+
+    const callbackName = `gmapsCallback_admin_${Date.now()}`;
+    
+    window[callbackName] = () => {
+      notifyMapsReady();
+      delete window[callbackName];
+    };
+
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&language=fr&region=FR&callback=${callbackName}`;
+    script.async = true;
+    script.defer = true;
+    script.onerror = () => {
+      googleMapsLoading = false;
+      console.error("Failed to load Google Maps script");
+      delete window[callbackName];
+    };
+    
+    document.head.appendChild(script);
+  });
+};
 
 export default function AdminSubcontractingPage() {
   const navigate = useNavigate();
