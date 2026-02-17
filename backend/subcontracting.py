@@ -3362,43 +3362,58 @@ async def verify_payment(session_id: str):
 
 async def finalize_attribution(course_id: str, driver_id: str, payment_session_id: str):
     """Finalize course attribution after successful payment"""
+    logger.info(f"[EMAIL-FLOW][AUTO-ASSIGN] Starting finalize_attribution | course={course_id[:8]} | driver={driver_id[:8]} | session={payment_session_id[:20] if payment_session_id else 'none'}...")
+    
     course = await db.courses.find_one({"id": course_id}, {"_id": 0})
     if not course:
-        logger.error(f"[SUBCONTRACTING] Course {course_id} not found for attribution")
+        logger.error(f"[EMAIL-FLOW][AUTO-ASSIGN] ❌ Course {course_id} not found for attribution")
         return False
     
-    # Check if course is still reserved by this driver
-    if course["status"] == CourseStatusEnum.ASSIGNED:
-        if course.get("assigned_driver_id") == driver_id:
-            logger.info(f"[SUBCONTRACTING] Course {course_id[:8]} already assigned to driver {driver_id[:8]}")
-            return True
-        else:
-            # Course assigned to someone else - should refund
-            logger.error(f"[SUBCONTRACTING] Course {course_id[:8]} already assigned to different driver - REFUND NEEDED")
-            return False
+    # Check if course is already assigned
+    already_assigned = course["status"] == CourseStatusEnum.ASSIGNED and course.get("assigned_driver_id") == driver_id
     
-    # Generate driver access token for direct ride access
-    driver_access_token = secrets.token_urlsafe(32)
+    if already_assigned:
+        logger.info(f"[EMAIL-FLOW][AUTO-ASSIGN] Course {course_id[:8]} already assigned to driver {driver_id[:8]} - will still try to send email if not sent before")
+        # Check if driver_access_token exists - if yes, email was likely sent
+        if course.get("driver_access_token"):
+            logger.info(f"[EMAIL-FLOW][AUTO-ASSIGN] driver_access_token exists - assuming email was already sent")
+            # Still verify and potentially resend if needed
+    elif course["status"] == CourseStatusEnum.ASSIGNED:
+        # Course assigned to someone else - should refund
+        logger.error(f"[EMAIL-FLOW][AUTO-ASSIGN] ❌ Course {course_id[:8]} already assigned to DIFFERENT driver - REFUND NEEDED")
+        return False
     
-    # Finalize attribution
-    commission_amount = round(course["price_total"] * COMMISSION_RATE, 2)
+    # Generate driver access token for direct ride access (if not exists)
+    driver_access_token = course.get("driver_access_token") or secrets.token_urlsafe(32)
     
-    await db.courses.update_one(
-        {"id": course_id},
-        {"$set": {
-            "status": CourseStatusEnum.ASSIGNED,
-            "assigned_driver_id": driver_id,
-            "assigned_at": datetime.now(timezone.utc).isoformat(),
-            "commission_amount": commission_amount,
-            "commission_paid": True,
-            "commission_paid_at": datetime.now(timezone.utc).isoformat(),
-            "reserved_by_driver_id": None,
-            "reserved_until": None,
-            "driver_access_token": driver_access_token
-        }}
-    )
-    
-    logger.info(f"[SUBCONTRACTING] ✅ Course {course_id[:8]} ASSIGNED to driver {driver_id[:8]}")
+    if not already_assigned:
+        # Finalize attribution - update DB
+        commission_amount = round(course["price_total"] * COMMISSION_RATE, 2)
+        
+        await db.courses.update_one(
+            {"id": course_id},
+            {"$set": {
+                "status": CourseStatusEnum.ASSIGNED,
+                "assigned_driver_id": driver_id,
+                "assigned_at": datetime.now(timezone.utc).isoformat(),
+                "commission_amount": commission_amount,
+                "commission_paid": True,
+                "commission_paid_at": datetime.now(timezone.utc).isoformat(),
+                "reserved_by_driver_id": None,
+                "reserved_until": None,
+                "driver_access_token": driver_access_token
+            }}
+        )
+        
+        logger.info(f"[EMAIL-FLOW][AUTO-ASSIGN] ✅ Course {course_id[:8]} ASSIGNED to driver {driver_id[:8]}")
+    else:
+        # Ensure driver_access_token is set even if already assigned
+        if not course.get("driver_access_token"):
+            await db.courses.update_one(
+                {"id": course_id},
+                {"$set": {"driver_access_token": driver_access_token}}
+            )
+            logger.info(f"[EMAIL-FLOW][AUTO-ASSIGN] Added driver_access_token to already-assigned course {course_id[:8]}")
     
     # Send email notifications
     try:
