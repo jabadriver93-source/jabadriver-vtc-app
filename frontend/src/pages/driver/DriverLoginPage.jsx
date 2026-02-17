@@ -63,7 +63,11 @@ export default function DriverLoginPage() {
       localStorage.setItem('driver_token', data.token);
       localStorage.setItem('driver_info', JSON.stringify(data.driver));
       toast.success('Connexion réussie');
-      navigate('/driver/courses');
+      
+      // Redirect to original destination or default dashboard
+      const destination = redirectUrl || '/driver/courses';
+      console.log('[AUTH] Login success, redirecting to:', destination);
+      navigate(destination);
     } catch (err) {
       toast.error(err.message);
     } finally {
