@@ -712,6 +712,40 @@ export default function DriverRidePage() {
             </Card>
           )}
 
+          {/* Supplements Button - Using unified rules */}
+          {(() => {
+            const actions = getDriverActions(ride);
+            logDriverActions(ride?.id, actions, authMode || 'token');
+            
+            if (actions.canAddSupplements) {
+              return (
+                <Button
+                  variant="outline"
+                  className="w-full border-amber-600/50 text-amber-400 hover:bg-amber-900/30 h-12"
+                  onClick={() => {
+                    setSupplements({
+                      peage: ride?.supplement_peage?.toString() || '',
+                      parking: ride?.supplement_parking?.toString() || '',
+                      attente_minutes: ride?.supplement_attente_minutes?.toString() || ''
+                    });
+                    setShowSupplementsModal(true);
+                  }}
+                  data-testid="supplements-btn"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Ajouter des suppléments
+                </Button>
+              );
+            } else if (actions.isLocked) {
+              return (
+                <div className="text-center p-3 bg-gray-800/50 rounded-lg border border-gray-700">
+                  <p className="text-gray-500 text-sm">Suppléments verrouillés : {actions.lockReason}</p>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
           {/* Document Buttons */}
           <div className="grid grid-cols-2 gap-3">
             <Button
@@ -730,11 +764,91 @@ export default function DriverRidePage() {
               data-testid="download-invoice-btn"
             >
               <FileText className="w-4 h-4 mr-2" />
-              Facture
+              {ride?.invoice_status === 'ISSUED' ? 'Facture finale' : 'Aperçu facture'}
             </Button>
           </div>
         </div>
       </div>
+
+      {/* Supplements Modal */}
+      {showSupplementsModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+          <Card className="bg-gray-900 border-gray-700 w-full max-w-md">
+            <CardContent className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-white">Ajouter des suppléments</h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setShowSupplementsModal(false)}
+                  className="text-gray-400 hover:text-white"
+                >
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <Label className="text-gray-300">Péage (€)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    value={supplements.peage}
+                    onChange={(e) => setSupplements(prev => ({ ...prev, peage: e.target.value }))}
+                    className="bg-gray-800 border-gray-700 text-white mt-1"
+                  />
+                </div>
+                
+                <div>
+                  <Label className="text-gray-300">Parking (€)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    value={supplements.parking}
+                    onChange={(e) => setSupplements(prev => ({ ...prev, parking: e.target.value }))}
+                    className="bg-gray-800 border-gray-700 text-white mt-1"
+                  />
+                </div>
+                
+                <div>
+                  <Label className="text-gray-300">Temps d'attente (minutes)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={supplements.attente_minutes}
+                    onChange={(e) => setSupplements(prev => ({ ...prev, attente_minutes: e.target.value }))}
+                    className="bg-gray-800 border-gray-700 text-white mt-1"
+                  />
+                  <p className="text-gray-500 text-xs mt-1">Tarif: 0.50€/min après 15min gratuites</p>
+                </div>
+              </div>
+              
+              <div className="flex gap-3 mt-6">
+                <Button
+                  variant="outline"
+                  className="flex-1 border-gray-600 text-gray-300"
+                  onClick={() => setShowSupplementsModal(false)}
+                >
+                  Annuler
+                </Button>
+                <Button
+                  className="flex-1 bg-amber-500 hover:bg-amber-600 text-black font-semibold"
+                  onClick={saveSupplements}
+                  disabled={savingSupplements}
+                >
+                  {savingSupplements ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  Enregistrer
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Fixed Bottom Action Button */}
       {(ride?.status === 'ASSIGNED' || ride?.status === 'IN_PROGRESS') && (
