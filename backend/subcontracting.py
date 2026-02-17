@@ -2667,11 +2667,12 @@ async def end_ride(ride_id: str, token: Optional[str] = Query(None, description=
     
     # Update status to DRIVER_COMPLETED with audit fields
     ended_at = datetime.now(timezone.utc).isoformat()
+    logger.info(f"[RIDE-END] 🔄 Attempting atomic update | ride={ride_id[:8]} | new_status=DRIVER_COMPLETED | ended_at={ended_at}")
+    
     update_result = await db.courses.update_one(
         {
             "id": ride_id,
             "status": CourseStatusEnum.IN_PROGRESS,  # Atomic check - prevent race condition
-            "ended_at": {"$exists": False}  # Double-check no ended_at
         },
         {"$set": {
             "status": CourseStatusEnum.DRIVER_COMPLETED,
@@ -2683,19 +2684,39 @@ async def end_ride(ride_id: str, token: Optional[str] = Query(None, description=
     
     # Verify update was successful (race condition protection)
     if update_result.modified_count == 0:
-        # Refetch to get current status
+        # Refetch to get current status - maybe it was already updated
         refreshed_course = await db.courses.find_one({"id": ride_id}, {"_id": 0, "status": 1, "ended_at": 1})
-        logger.error(f"[RIDE-SECURITY] ❌ Race condition detected on ride {ride_id[:8]} - atomic update failed on end | current_status={refreshed_course.get('status') if refreshed_course else 'unknown'}")
+        refreshed_status = refreshed_course.get("status") if refreshed_course else "unknown"
+        refreshed_ended_at = refreshed_course.get("ended_at") if refreshed_course else None
+        
+        logger.warning(f"[RIDE-END] ⚠️ Atomic update returned 0 modified | ride={ride_id[:8]} | refreshed_status={refreshed_status} | refreshed_ended_at={refreshed_ended_at}")
+        
+        # IDEMPOTENT: If status is now DRIVER_COMPLETED or DONE, return success (another request won the race)
+        if refreshed_status in [CourseStatusEnum.DRIVER_COMPLETED, CourseStatusEnum.DONE]:
+            logger.info(f"[RIDE-END] ✅ RACE RESOLVED - Course {ride_id[:8]} is {refreshed_status} (concurrent update) - returning 200 OK")
+            return {
+                "success": True,
+                "message": "Course terminée",
+                "status": refreshed_status,
+                "ended_at": refreshed_ended_at,
+                "idempotent": True,
+                "race_resolved": True
+            }
+        
+        # Otherwise, return error with detailed info
         return JSONResponse(
             status_code=409,
             content={
-                "detail": "La course a déjà été modifiée. Actualisez la page.",
-                "current_status": refreshed_course.get("status") if refreshed_course else "unknown",
-                "ended_at": refreshed_course.get("ended_at") if refreshed_course else None
+                "error": "race_condition",
+                "detail": "La course a été modifiée par une autre requête. Actualisez la page.",
+                "current_status": refreshed_status,
+                "expected_status": "IN_PROGRESS",
+                "ended_at": refreshed_ended_at,
+                "ride_id": ride_id[:8]
             }
         )
     
-    logger.info(f"[RIDE] ✅ Course {ride_id[:8]} ENDED by driver {authenticated_driver_id[:8]} via {auth_method} at {ended_at} (DRIVER_COMPLETED)")
+    logger.info(f"[RIDE-END] ✅ SUCCESS | ride={ride_id[:8]} | driver={authenticated_driver_id[:8]} | auth={auth_method} | ended_at={ended_at}")
     
     # Get driver for emails
     driver = await db.drivers.find_one(
