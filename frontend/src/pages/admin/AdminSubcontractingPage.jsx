@@ -32,8 +32,14 @@ export default function AdminSubcontractingPage() {
     time: '',
     distance_km: '',
     price_total: '',
-    notes: ''
+    notes: '',
+    // GPS coordinates (from calculate-route)
+    pickup_lat: null,
+    pickup_lng: null,
+    dropoff_lat: null,
+    dropoff_lng: null
   });
+  const [calculatingRoute, setCalculatingRoute] = useState(false);
 
   // Download platform commission invoice (Jabadriver → Driver)
   const downloadCommissionInvoice = async (courseId) => {
