@@ -481,13 +481,13 @@ def generate_pdf_from_html(html: str) -> BytesIO:
 # Platform logo path (different from driver documents logo)
 PLATFORM_LOGO_PATH = Path(__file__).parent / "assets" / "logo_jabadriver_chauffeur.png"
 
-# Platform company info (Jabadriver)
+# Platform company info (Jabadriver) - FIXED VALUES
 PLATFORM_INFO = {
     "name": "JABADRIVER",
-    "legal_name": "JABADRIVER SAS",
+    "legal_name": "JABADRIVER",
     "description": "Service de mise en relation VTC",
-    "siret": "XXX XXX XXX XXXXX",  # À configurer
-    "address": "Île-de-France, France",
+    "siret": "941 473 217 00011",
+    "address": "49 boulevard Marc Chagall, 93600 Aulnay-sous-Bois",
     "email": "contact@jabadriver.fr",
     "vat_mention": "TVA non applicable — art. 293B du CGI"
 }
