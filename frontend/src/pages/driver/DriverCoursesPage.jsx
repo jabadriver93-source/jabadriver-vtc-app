@@ -321,10 +321,17 @@ export default function DriverCoursesPage() {
         toast.error(getErrorMessage(res.status, data));
         return;
       } else {
-        // SUCCESS: Backend returns { success: true, status: "DRIVER_COMPLETED", message: "..." }
+        // SUCCESS: Backend returns { success: true, status: "DRIVER_COMPLETED", message: "...", idempotent?: true }
         const newStatus = data?.status || 'DRIVER_COMPLETED';
-        console.log(`[ACTION] ✅ End SUCCESS - New status: ${newStatus}`);
-        toast.success(data?.message || 'Course terminée !');
+        const isIdempotent = data?.idempotent === true;
+        console.log(`[ACTION] ✅ End SUCCESS - New status: ${newStatus} | idempotent: ${isIdempotent}`);
+        
+        // Show appropriate toast based on whether this was a new end or idempotent
+        if (isIdempotent) {
+          toast.info(data?.message || 'Course déjà terminée');
+        } else {
+          toast.success(data?.message || 'Course terminée !');
+        }
       }
       
       // Force refetch to update UI
