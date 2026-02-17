@@ -1915,6 +1915,140 @@ async def send_ride_ended_to_client(course: dict, driver: dict):
     except Exception as e:
         logger.error(f"[EMAIL] ❌ Failed to send ride ended to client | Error: {str(e)}")
 
+
+async def send_ride_ended_to_admin(course: dict, driver: dict):
+    """
+    Email to admin when driver ends the ride.
+    
+    Uses send_email_with_retry() for automatic 429 rate limit handling.
+    IDEMPOTENT: Controlled by end_admin_notification_sent flag in course document.
+    
+    Logs: [EMAIL-FLOW][ADMIN][RIDE-ENDED]
+    """
+    if not ADMIN_EMAIL or not SENDER_EMAIL:
+        logger.warning("[EMAIL-FLOW][ADMIN][RIDE-ENDED] Skipping - ADMIN_EMAIL or SENDER_EMAIL not configured")
+        return {"success": False, "error": "Email not configured"}
+    
+    if not resend.api_key:
+        resend.api_key = os.environ.get('RESEND_API_KEY', '')
+    
+    course_id = course.get('id', 'N/A')
+    course_id_short = course_id[:8].upper() if course_id != 'N/A' else 'N/A'
+    driver_name = driver.get('company_name') or driver.get('name', 'Chauffeur') if driver else 'Chauffeur'
+    price_total = course.get('price_with_supplements') or course.get('price_total', 0)
+    commission_amount = round(price_total * COMMISSION_RATE, 2)
+    
+    # Extract city for privacy
+    pickup_city = extract_city_department(course.get('pickup_address', ''))
+    dropoff_city = extract_city_department(course.get('dropoff_address', ''))
+    
+    # Admin link
+    admin_url = f"{FRONTEND_URL}/admin/subcontracting" if FRONTEND_URL else "#"
+    
+    # Format ended_at
+    ended_at = course.get('ended_at', '')
+    try:
+        dt = datetime.fromisoformat(ended_at.replace('Z', '+00:00'))
+        ended_at_str = dt.strftime("%d/%m/%Y à %H:%M")
+    except:
+        ended_at_str = ended_at or "N/A"
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #22c55e; color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0;">✅ COURSE TERMINÉE</h1>
+            <p style="margin: 10px 0 0 0; opacity: 0.9;">Le chauffeur a clôturé sa course</p>
+        </div>
+        <div style="padding: 30px; background: #F8FAFC;">
+            
+            <div style="background: #dcfce7; border-left: 4px solid #22c55e; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0; font-weight: bold; color: #166534;">🎉 Course terminée par le chauffeur</p>
+                <p style="margin: 5px 0 0 0; font-size: 14px; color: #166534;">Le client a été notifié pour confirmation.</p>
+            </div>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <h3 style="margin-top: 0; color: #1e3a5f;">📋 Détails de la course</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b; width: 40%;">ID Réservation :</td>
+                        <td style="padding: 8px 0; font-weight: bold; font-family: monospace;">#{course_id_short}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Client :</td>
+                        <td style="padding: 8px 0; font-weight: bold;">{course.get('client_name', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Date/Heure :</td>
+                        <td style="padding: 8px 0;">{course.get('date', 'N/A')} à {course.get('time', 'N/A')}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Trajet :</td>
+                        <td style="padding: 8px 0;">{pickup_city} → {dropoff_city}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Montant TTC :</td>
+                        <td style="padding: 8px 0; font-weight: bold; font-size: 16px;">{int(price_total)}€</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <h3 style="margin-top: 0; color: #1e3a5f;">🚗 Chauffeur</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b; width: 40%;">Nom :</td>
+                        <td style="padding: 8px 0; font-weight: bold;">{driver_name}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Email :</td>
+                        <td style="padding: 8px 0;">{driver.get('email', 'N/A') if driver else 'N/A'}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Terminé à :</td>
+                        <td style="padding: 8px 0;">{ended_at_str}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b;">Commission (10%) :</td>
+                        <td style="padding: 8px 0; font-weight: bold; color: #22c55e;">{commission_amount:.2f}€</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{admin_url}" style="display: inline-block; background-color: #3b82f6; color: white; padding: 15px 35px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 16px;">
+                    📊 Voir sur le Dashboard Admin
+                </a>
+            </div>
+            
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 8px;">
+                <p style="margin: 0; color: #64748b; font-size: 12px;">
+                    <strong>JABADRIVER</strong> - Notification automatique Admin
+                </p>
+            </div>
+        </div>
+    </div>
+    """
+    
+    params = {
+        "from": SENDER_EMAIL,
+        "to": [ADMIN_EMAIL],
+        "subject": f"✅ Course terminée — #{course_id_short}",
+        "html": html_content
+    }
+    
+    logger.info(f"[EMAIL-FLOW][ADMIN][RIDE-ENDED] Sending notification | Course: {course_id_short} | Driver: {driver_name} | Admin: {ADMIN_EMAIL}")
+    
+    # Use retry helper for rate limit handling
+    result = await send_email_with_retry(params, "[EMAIL-FLOW][ADMIN][RIDE-ENDED]")
+    
+    if result.get("success"):
+        logger.info(f"[EMAIL-FLOW][ADMIN][RIDE-ENDED] ✅ Sent | Course: {course_id_short} | Resend ID: {result.get('resend_id')} | Attempts: {result.get('attempts')}")
+    else:
+        logger.error(f"[EMAIL-FLOW][ADMIN][RIDE-ENDED] ❌ Failed | Course: {course_id_short} | Error: {result.get('error')}")
+    
+    return result
+
+
 # ============================================
 # HELPER - Generate driver ride URL with token
 # ============================================
