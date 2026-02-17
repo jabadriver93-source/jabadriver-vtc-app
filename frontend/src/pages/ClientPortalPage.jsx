@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { 
   Calendar, Clock, MapPin, Users, Euro, 
   MessageSquare, Edit, X, Loader2, CheckCircle, 
-  AlertTriangle, Lock, User, Phone
+  AlertTriangle, Lock, User, Phone, Navigation, Car
 } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
