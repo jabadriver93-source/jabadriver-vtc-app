@@ -607,6 +607,16 @@ export default function DriverCoursesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
+        {/* Logo */}
+        <div className="text-center mb-6">
+          <img 
+            src="/jabadriver_logo.png" 
+            alt="JABADRIVER" 
+            className="mx-auto"
+            style={{ maxWidth: '180px', height: 'auto' }}
+          />
+        </div>
+        
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
