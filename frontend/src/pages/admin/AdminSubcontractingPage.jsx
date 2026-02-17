@@ -186,7 +186,12 @@ export default function AdminSubcontractingPage() {
       const payload = {
         ...newCourse,
         distance_km: newCourse.distance_km ? parseFloat(newCourse.distance_km) : null,
-        price_total: parseFloat(newCourse.price_total)
+        price_total: parseFloat(newCourse.price_total),
+        // Include GPS coordinates for driver arrival validation
+        pickup_lat: newCourse.pickup_lat,
+        pickup_lng: newCourse.pickup_lng,
+        dropoff_lat: newCourse.dropoff_lat,
+        dropoff_lng: newCourse.dropoff_lng
       };
       
       const res = await fetch(`${API_URL}/api/admin/subcontracting/courses`, {
@@ -209,7 +214,8 @@ export default function AdminSubcontractingPage() {
       setNewCourse({
         client_name: '', client_email: '', client_phone: '',
         pickup_address: '', dropoff_address: '',
-        date: '', time: '', distance_km: '', price_total: '', notes: ''
+        date: '', time: '', distance_km: '', price_total: '', notes: '',
+        pickup_lat: null, pickup_lng: null, dropoff_lat: null, dropoff_lng: null
       });
       fetchData();
     } catch (err) {
