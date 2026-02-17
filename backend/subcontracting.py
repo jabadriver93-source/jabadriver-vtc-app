@@ -286,6 +286,11 @@ class Course(BaseModel):
     price_total: float
     notes: Optional[str] = None
     admin_notes: Optional[str] = None  # Internal admin notes
+    # GPS coordinates for pickup/dropoff validation
+    pickup_lat: Optional[float] = None
+    pickup_lng: Optional[float] = None
+    dropoff_lat: Optional[float] = None
+    dropoff_lng: Optional[float] = None
     status: str = CourseStatusEnum.OPEN
     reserved_by_driver_id: Optional[str] = None
     reserved_until: Optional[str] = None
