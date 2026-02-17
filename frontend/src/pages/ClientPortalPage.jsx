@@ -648,6 +648,20 @@ export default function ClientPortalPage() {
                   </div>
                 )}
 
+                {/* Track Driver Button - Opens Google Maps with driver's arrival position */}
+                {(reservation.arrival_lat && reservation.arrival_lng) && (
+                  <a
+                    href={`https://www.google.com/maps/dir/?api=1&destination=${reservation.arrival_lat},${reservation.arrival_lng}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+                    data-testid="track-driver-btn"
+                  >
+                    <Navigation className="w-5 h-5" />
+                    🗺️ Suivre mon chauffeur
+                  </a>
+                )}
+
                 {/* "Je suis présent" button */}
                 {!reservation.client_present_time ? (
                   <Button
