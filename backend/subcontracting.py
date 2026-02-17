@@ -3369,6 +3369,423 @@ async def end_ride(ride_id: str, token: Optional[str] = Query(None, description=
     }
 
 # ============================================
+# DRIVER ARRIVED ENDPOINT
+# ============================================
+
+@driver_router.post("/ride/{ride_id}/arrive")
+async def driver_arrive(
+    ride_id: str, 
+    arrival_data: DriverArrivalRequest,
+    token: Optional[str] = Query(None, description="Driver access token"),
+    request: Request = None
+):
+    """
+    Driver signals arrival at pickup location.
+    
+    Requirements:
+    - GPS coordinates required
+    - Must be within 200m of pickup address
+    - Changes status to DRIVER_ARRIVED
+    - Starts waiting timer (server timestamp)
+    - Sends email to client
+    
+    Authentication: Token OR Session JWT
+    """
+    if not SUBCONTRACTING_ENABLED:
+        raise HTTPException(status_code=503, detail="Module sous-traitance désactivé")
+    
+    # Find course
+    course = await db.courses.find_one({"id": ride_id}, {"_id": 0})
+    if not course:
+        logger.warning(f"[ARRIVE-SECURITY] ⚠️ Arrive attempt on non-existent ride: {ride_id[:8]}")
+        raise HTTPException(status_code=404, detail="Course non trouvée")
+    
+    assigned_driver_id = course.get("assigned_driver_id")
+    if not assigned_driver_id:
+        raise HTTPException(status_code=400, detail="Aucun chauffeur assigné à cette course")
+    
+    # DUAL AUTH: Token OR Session
+    authenticated_driver_id = None
+    auth_method = None
+    
+    if token:
+        if course.get("driver_access_token") and course.get("driver_access_token") == token:
+            authenticated_driver_id = assigned_driver_id
+            auth_method = "token"
+            logger.info(f"[ARRIVE-AUTH] Driver via token for ride {ride_id[:8]}")
+        else:
+            raise HTTPException(status_code=403, detail="Token d'accès invalide")
+    else:
+        authorization = request.headers.get("Authorization") if request else None
+        if authorization:
+            try:
+                driver = await get_driver_from_token(authorization)
+                authenticated_driver_id = driver.get("id")
+                auth_method = "session"
+                logger.info(f"[ARRIVE-AUTH] Driver {authenticated_driver_id[:8]} via session for ride {ride_id[:8]}")
+            except HTTPException:
+                raise HTTPException(status_code=401, detail="Authentification requise")
+        else:
+            raise HTTPException(status_code=401, detail="Authentification requise")
+    
+    if authenticated_driver_id != assigned_driver_id:
+        logger.warning(f"[ARRIVE-SECURITY] 🚫 Wrong driver tried to arrive on ride {ride_id[:8]}")
+        raise HTTPException(status_code=403, detail="Vous n'êtes pas assigné à cette course")
+    
+    current_status = course.get("status")
+    logger.info(f"[ARRIVE] 📍 Request | ride={ride_id[:8]} | status={current_status} | gps=({arrival_data.lat}, {arrival_data.lng})")
+    
+    # IDEMPOTENT: If already DRIVER_ARRIVED, return success
+    if current_status == CourseStatusEnum.DRIVER_ARRIVED:
+        logger.info(f"[ARRIVE] ✅ IDEMPOTENT - Already DRIVER_ARRIVED for ride {ride_id[:8]}")
+        return {
+            "success": True,
+            "message": "Arrivée déjà enregistrée",
+            "status": CourseStatusEnum.DRIVER_ARRIVED,
+            "arrival_time": course.get("arrival_time"),
+            "idempotent": True
+        }
+    
+    # Must be ASSIGNED to arrive
+    if current_status != CourseStatusEnum.ASSIGNED:
+        if current_status in [CourseStatusEnum.IN_PROGRESS, CourseStatusEnum.DRIVER_COMPLETED, CourseStatusEnum.DONE]:
+            return JSONResponse(
+                status_code=409,
+                content={
+                    "error": "already_started",
+                    "detail": "La course a déjà démarré ou est terminée",
+                    "current_status": current_status
+                }
+            )
+        raise HTTPException(status_code=400, detail=f"Statut invalide: {current_status}")
+    
+    # GPS VALIDATION: Check distance from pickup
+    # First, we need to geocode the pickup address (use Google Maps API or stored coords)
+    pickup_lat = course.get("pickup_lat")
+    pickup_lng = course.get("pickup_lng")
+    
+    # If no stored coordinates, skip GPS validation but log warning
+    if pickup_lat is None or pickup_lng is None:
+        logger.warning(f"[ARRIVE] ⚠️ No pickup coordinates stored for ride {ride_id[:8]} - GPS validation skipped")
+        gps_distance = None
+    else:
+        gps_distance = haversine_distance(arrival_data.lat, arrival_data.lng, pickup_lat, pickup_lng)
+        logger.info(f"[ARRIVE] 📍 GPS distance: {gps_distance:.0f}m (max: {ARRIVAL_GPS_MAX_DISTANCE_METERS}m)")
+        
+        if gps_distance > ARRIVAL_GPS_MAX_DISTANCE_METERS:
+            logger.warning(f"[ARRIVE] ❌ Too far from pickup | ride={ride_id[:8]} | distance={gps_distance:.0f}m")
+            return JSONResponse(
+                status_code=400,
+                content={
+                    "error": "too_far",
+                    "detail": f"Vous devez être à proximité du client pour signaler votre arrivée. Distance actuelle: {int(gps_distance)}m (max: {ARRIVAL_GPS_MAX_DISTANCE_METERS}m)",
+                    "distance_meters": int(gps_distance),
+                    "max_distance_meters": ARRIVAL_GPS_MAX_DISTANCE_METERS
+                }
+            )
+    
+    # Update to DRIVER_ARRIVED with server timestamp
+    arrival_time = datetime.now(timezone.utc).isoformat()
+    
+    update_result = await db.courses.update_one(
+        {"id": ride_id, "status": CourseStatusEnum.ASSIGNED},
+        {"$set": {
+            "status": CourseStatusEnum.DRIVER_ARRIVED,
+            "arrival_time": arrival_time,
+            "arrival_lat": arrival_data.lat,
+            "arrival_lng": arrival_data.lng
+        }}
+    )
+    
+    if update_result.modified_count == 0:
+        # Race condition - refetch
+        refreshed = await db.courses.find_one({"id": ride_id}, {"_id": 0, "status": 1, "arrival_time": 1})
+        if refreshed and refreshed.get("status") == CourseStatusEnum.DRIVER_ARRIVED:
+            return {
+                "success": True,
+                "message": "Arrivée enregistrée",
+                "status": CourseStatusEnum.DRIVER_ARRIVED,
+                "arrival_time": refreshed.get("arrival_time"),
+                "idempotent": True
+            }
+        return JSONResponse(status_code=409, content={"error": "race_condition", "detail": "Statut modifié. Actualisez la page."})
+    
+    logger.info(f"[ARRIVE] ✅ SUCCESS | ride={ride_id[:8]} | arrival_time={arrival_time}")
+    
+    # Send email to client (non-blocking, idempotent)
+    updated_course = await db.courses.find_one({"id": ride_id}, {"_id": 0})
+    driver = await db.drivers.find_one({"id": assigned_driver_id}, {"_id": 0, "password_hash": 0})
+    
+    if updated_course and driver and not updated_course.get("arrival_email_sent"):
+        try:
+            # Send email in background, don't block response
+            asyncio.create_task(_send_arrival_email_async(ride_id, updated_course, driver))
+        except Exception as e:
+            logger.error(f"[ARRIVE] Failed to queue arrival email: {e}")
+    
+    return {
+        "success": True,
+        "message": "Arrivée enregistrée ! Le client a été notifié.",
+        "status": CourseStatusEnum.DRIVER_ARRIVED,
+        "arrival_time": arrival_time,
+        "gps_distance": int(gps_distance) if gps_distance else None
+    }
+
+
+async def _send_arrival_email_async(ride_id: str, course: dict, driver: dict):
+    """Background task to send arrival email and mark as sent"""
+    try:
+        result = await send_driver_arrived_to_client(course, driver)
+        if result.get("success"):
+            await db.courses.update_one(
+                {"id": ride_id},
+                {"$set": {"arrival_email_sent": True}}
+            )
+            logger.info(f"[ARRIVE] ✅ Email sent and flagged for ride {ride_id[:8]}")
+    except Exception as e:
+        logger.error(f"[ARRIVE] ❌ Failed to send arrival email: {e}")
+
+
+# ============================================
+# CLIENT PRESENT ENDPOINT
+# ============================================
+
+@driver_router.post("/ride/{ride_id}/client-present")
+async def client_present(ride_id: str, token: str = Query(..., description="Course ID as token")):
+    """
+    Client signals they are present at pickup location.
+    
+    Called from client portal page (my-booking/:id).
+    Does NOT stop the waiting timer - just notifies driver and admin.
+    """
+    if not SUBCONTRACTING_ENABLED:
+        raise HTTPException(status_code=503, detail="Module sous-traitance désactivé")
+    
+    course = await db.courses.find_one({"id": ride_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course non trouvée")
+    
+    # Simple token = course ID for client access
+    if token != ride_id:
+        raise HTTPException(status_code=403, detail="Accès non autorisé")
+    
+    current_status = course.get("status")
+    
+    # Must be DRIVER_ARRIVED to signal presence
+    if current_status != CourseStatusEnum.DRIVER_ARRIVED:
+        if current_status == CourseStatusEnum.ASSIGNED:
+            raise HTTPException(status_code=400, detail="Le chauffeur n'est pas encore arrivé")
+        elif current_status in [CourseStatusEnum.IN_PROGRESS, CourseStatusEnum.DRIVER_COMPLETED, CourseStatusEnum.DONE]:
+            return {
+                "success": True,
+                "message": "La course est déjà en cours ou terminée",
+                "idempotent": True
+            }
+        raise HTTPException(status_code=400, detail=f"Statut invalide: {current_status}")
+    
+    # IDEMPOTENT: If already present, just return success
+    if course.get("client_present_time"):
+        return {
+            "success": True,
+            "message": "Présence déjà signalée",
+            "client_present_time": course.get("client_present_time"),
+            "idempotent": True
+        }
+    
+    # Record client presence time (server timestamp)
+    client_present_time = datetime.now(timezone.utc).isoformat()
+    
+    await db.courses.update_one(
+        {"id": ride_id},
+        {"$set": {"client_present_time": client_present_time}}
+    )
+    
+    logger.info(f"[CLIENT-PRESENT] ✅ Client present for ride {ride_id[:8]} at {client_present_time}")
+    
+    # Send notifications to driver and admin (non-blocking)
+    driver = None
+    if course.get("assigned_driver_id"):
+        driver = await db.drivers.find_one({"id": course["assigned_driver_id"]}, {"_id": 0, "password_hash": 0})
+    
+    updated_course = await db.courses.find_one({"id": ride_id}, {"_id": 0})
+    
+    # Send emails in parallel with allSettled pattern
+    if driver and updated_course:
+        try:
+            results = await asyncio.gather(
+                send_client_present_to_driver(updated_course, driver),
+                send_client_present_to_admin(updated_course, driver),
+                return_exceptions=True
+            )
+            for i, result in enumerate(results):
+                if isinstance(result, Exception):
+                    logger.error(f"[CLIENT-PRESENT] Email {i} failed: {result}")
+        except Exception as e:
+            logger.error(f"[CLIENT-PRESENT] Email sending failed: {e}")
+    
+    return {
+        "success": True,
+        "message": "Le chauffeur a été informé de votre présence !",
+        "client_present_time": client_present_time
+    }
+
+
+# ============================================
+# NO SHOW ENDPOINT
+# ============================================
+
+@driver_router.post("/ride/{ride_id}/no-show")
+async def declare_no_show(
+    ride_id: str,
+    token: Optional[str] = Query(None, description="Driver access token"),
+    request: Request = None
+):
+    """
+    Driver declares client as no-show after 20+ minutes of waiting.
+    
+    Full course price is due.
+    Changes status to NO_SHOW.
+    """
+    if not SUBCONTRACTING_ENABLED:
+        raise HTTPException(status_code=503, detail="Module sous-traitance désactivé")
+    
+    course = await db.courses.find_one({"id": ride_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course non trouvée")
+    
+    assigned_driver_id = course.get("assigned_driver_id")
+    if not assigned_driver_id:
+        raise HTTPException(status_code=400, detail="Aucun chauffeur assigné")
+    
+    # Auth check
+    authenticated_driver_id = None
+    if token:
+        if course.get("driver_access_token") == token:
+            authenticated_driver_id = assigned_driver_id
+        else:
+            raise HTTPException(status_code=403, detail="Token invalide")
+    else:
+        authorization = request.headers.get("Authorization") if request else None
+        if authorization:
+            driver = await get_driver_from_token(authorization)
+            authenticated_driver_id = driver.get("id")
+        else:
+            raise HTTPException(status_code=401, detail="Authentification requise")
+    
+    if authenticated_driver_id != assigned_driver_id:
+        raise HTTPException(status_code=403, detail="Vous n'êtes pas assigné à cette course")
+    
+    current_status = course.get("status")
+    
+    # Must be DRIVER_ARRIVED to declare no-show
+    if current_status != CourseStatusEnum.DRIVER_ARRIVED:
+        raise HTTPException(status_code=400, detail="Vous devez d'abord signaler votre arrivée")
+    
+    # Check waiting time >= 20 minutes
+    arrival_time = course.get("arrival_time")
+    if not arrival_time:
+        raise HTTPException(status_code=400, detail="Heure d'arrivée non enregistrée")
+    
+    waiting_info = get_realtime_waiting_info(arrival_time)
+    
+    if waiting_info["waiting_minutes"] < WAITING_NO_SHOW_THRESHOLD_MINUTES:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "error": "too_early",
+                "detail": f"Vous devez attendre au moins {WAITING_NO_SHOW_THRESHOLD_MINUTES} minutes avant de déclarer un client absent. Attente actuelle: {waiting_info['waiting_minutes']} min",
+                "waiting_minutes": waiting_info["waiting_minutes"],
+                "threshold_minutes": WAITING_NO_SHOW_THRESHOLD_MINUTES
+            }
+        )
+    
+    # Update to NO_SHOW
+    no_show_time = datetime.now(timezone.utc).isoformat()
+    
+    await db.courses.update_one(
+        {"id": ride_id},
+        {"$set": {
+            "status": CourseStatusEnum.NO_SHOW,
+            "ended_at": no_show_time,
+            "waiting_minutes": waiting_info["waiting_minutes"],
+            "waiting_billable_minutes": WAITING_MAX_BILLABLE_MINUTES,  # Max charge for no-show
+            "waiting_price": WAITING_MAX_BILLABLE_MINUTES * WAITING_PRICE_PER_MINUTE
+        }}
+    )
+    
+    logger.info(f"[NO-SHOW] ✅ Client no-show for ride {ride_id[:8]} | Waiting: {waiting_info['waiting_minutes']} min")
+    
+    return {
+        "success": True,
+        "message": "Client absent déclaré. Le prix total de la course reste dû.",
+        "status": CourseStatusEnum.NO_SHOW,
+        "waiting_minutes": waiting_info["waiting_minutes"],
+        "full_price_due": True
+    }
+
+
+# ============================================
+# WAITING INFO ENDPOINT (for real-time display)
+# ============================================
+
+@driver_router.get("/ride/{ride_id}/waiting-info")
+async def get_waiting_info(ride_id: str, token: Optional[str] = Query(None)):
+    """
+    Get real-time waiting info for a ride.
+    
+    Used by frontend to display countdown and charges.
+    Public endpoint (uses course ID as implicit auth).
+    """
+    course = await db.courses.find_one({"id": ride_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course non trouvée")
+    
+    current_status = course.get("status")
+    arrival_time = course.get("arrival_time")
+    
+    # If not yet arrived, return empty waiting info
+    if current_status == CourseStatusEnum.ASSIGNED or not arrival_time:
+        return {
+            "status": current_status,
+            "has_arrived": False,
+            "waiting_minutes": 0,
+            "waiting_billable_minutes": 0,
+            "waiting_price": 0,
+            "free_minutes_remaining": WAITING_FREE_MINUTES,
+            "is_billable": False,
+            "can_declare_no_show": False,
+            "client_present_time": None
+        }
+    
+    # If ride has already started or ended, return final values
+    if current_status in [CourseStatusEnum.IN_PROGRESS, CourseStatusEnum.DRIVER_COMPLETED, CourseStatusEnum.DONE, CourseStatusEnum.NO_SHOW]:
+        return {
+            "status": current_status,
+            "has_arrived": True,
+            "arrival_time": arrival_time,
+            "waiting_minutes": course.get("waiting_minutes", 0),
+            "waiting_billable_minutes": course.get("waiting_billable_minutes", 0),
+            "waiting_price": course.get("waiting_price", 0),
+            "free_minutes_remaining": 0,
+            "is_billable": course.get("waiting_billable_minutes", 0) > 0,
+            "can_declare_no_show": False,
+            "client_present_time": course.get("client_present_time"),
+            "is_finalized": True
+        }
+    
+    # Status is DRIVER_ARRIVED - calculate real-time
+    waiting_info = get_realtime_waiting_info(arrival_time)
+    
+    return {
+        "status": current_status,
+        "has_arrived": True,
+        "arrival_time": arrival_time,
+        **waiting_info,
+        "client_present_time": course.get("client_present_time"),
+        "is_finalized": False
+    }
+
+# ============================================
 # CLIENT CONFIRMATION ENDPOINT
 # ============================================
 
