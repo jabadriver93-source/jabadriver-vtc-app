@@ -1019,8 +1019,28 @@ export default function DriverRidePage() {
                 )}
 
                 {ride?.client_present_time && (
-                  <div className="mt-3 bg-green-500/20 text-green-400 px-3 py-2 rounded-lg text-sm text-center">
-                    ✅ Client présent depuis {new Date(ride.client_present_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                  <div className="mt-3 space-y-2">
+                    <div className="bg-green-500/20 text-green-400 px-3 py-2 rounded-lg text-sm text-center">
+                      ✅ Client présent depuis {new Date(ride.client_present_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    
+                    {/* Localiser client button - only if GPS coords available or fallback to pickup */}
+                    <a
+                      href={
+                        ride?.client_lat && ride?.client_lng
+                          ? `https://www.google.com/maps/dir/?api=1&destination=${ride.client_lat},${ride.client_lng}`
+                          : (ride?.pickup_lat && ride?.pickup_lng
+                              ? `https://www.google.com/maps/dir/?api=1&destination=${ride.pickup_lat},${ride.pickup_lng}`
+                              : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ride?.pickup_address || '')}`)
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 w-full h-10 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition-colors text-sm"
+                      data-testid="locate-client-btn"
+                    >
+                      <MapPin className="w-4 h-4" />
+                      📍 Localiser client
+                    </a>
                   </div>
                 )}
               </CardContent>
