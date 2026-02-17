@@ -444,3 +444,84 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 
 ### P4 - Connu mais non prioritaire
 - Correction icône PWA chauffeur (problème mineur)
+
+
+
+---
+
+## Recent Updates [2026-02-17]
+
+### 23. Système Chauffeur Arrivé + Compteur Attente ✅ [2026-02-17]
+
+**Objectif** : Permettre au chauffeur de signaler son arrivée et facturer automatiquement le temps d'attente client.
+
+**Nouveau Statut Course :**
+- `DRIVER_ARRIVED` : Chauffeur arrivé au point de prise en charge, en attente du client
+- `NO_SHOW` : Client absent après 20+ minutes d'attente
+
+**Nouveaux Champs DB (collection `courses`) :**
+- `arrival_time` : Horodatage serveur de l'arrivée chauffeur
+- `arrival_lat`, `arrival_lng` : Coordonnées GPS du chauffeur à l'arrivée
+- `client_present_time` : Horodatage quand le client signale sa présence
+- `waiting_minutes` : Durée totale d'attente (calculée au démarrage)
+- `waiting_billable_minutes` : Minutes facturables (après 5 min gratuites, max 20)
+- `waiting_price` : Montant attente (1€/min, max 20€)
+- `arrival_email_sent` : Flag idempotent pour l'email client
+
+**Tarification Attente :**
+- 0-5 min : GRATUIT
+- 5-25 min : 1€/minute
+- Maximum facturable : 20 minutes = 20€
+- NO_SHOW (≥20 min) : Prix total de la course dû
+
+**Nouveaux Endpoints Backend :**
+- `POST /api/driver/ride/{id}/arrive` : Signaler arrivée (GPS requis)
+- `GET /api/driver/ride/{id}/waiting-info` : Info attente temps réel
+- `POST /api/driver/ride/{id}/client-present` : Client signale présence
+- `POST /api/driver/ride/{id}/no-show` : Déclarer client absent (après 20 min)
+
+**Flux des Statuts :**
+```
+ASSIGNED → (Je suis arrivé) → DRIVER_ARRIVED → (Démarrer) → IN_PROGRESS → ...
+                                    ↓
+                              (20 min attente)
+                                    ↓
+                              NO_SHOW (prix total dû)
+```
+
+**UI Chauffeur (DriverRidePage.jsx) :**
+- Statut ASSIGNED : Bouton "🚗 Je suis arrivé" (bleu)
+- Statut DRIVER_ARRIVED : 
+  - Card compteur attente (temps, € facturables)
+  - Bouton "Démarrer la course" (orange)
+  - Bouton "Client absent" après 20 min (rouge)
+- GPS demandé via HTML5 Geolocation API
+
+**UI Client (ClientPortalPage.jsx) :**
+- Alerte orange "Votre chauffeur est arrivé !"
+- Compteur temps d'attente en temps réel
+- Indicateur "Gratuit encore X min" / "Frais: X€"
+- Bouton "✅ Je suis présent"
+- Confirmation après clic
+
+**Emails Automatiques :**
+- `[EMAIL][ARRIVED][CLIENT]` : Email au client quand chauffeur arrive
+- `[EMAIL][CLIENT_PRESENT][DRIVER]` : Email au chauffeur quand client arrive
+- `[EMAIL][CLIENT_PRESENT][ADMIN]` : Email admin (info)
+- Tous avec retry automatique (429 rate limit handling)
+
+**Sécurité Anti-Fraude :**
+- GPS obligatoire pour signaler arrivée (validation ≤200m désactivée si pas de coords stockées)
+- Horodatage serveur obligatoire (pas l'heure téléphone)
+- Endpoints idempotents (pas de double action)
+- Plafond automatique 20€
+- Logs visibles admin
+
+**Test Results** : 100% backend (7 tests), 100% frontend - iteration_12.json
+
+**Non-régression confirmée :**
+- ✅ START/END existants fonctionnent
+- ✅ START accepte ASSIGNED et DRIVER_ARRIVED
+- ✅ Emails existants non impactés
+- ✅ PDF et factures non impactés
+- ✅ Commissions non impactées
