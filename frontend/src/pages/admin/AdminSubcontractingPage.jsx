@@ -184,6 +184,81 @@ export default function AdminSubcontractingPage() {
     fetchData();
   }, [navigate]);
 
+  // Load Google Maps script on mount
+  useEffect(() => {
+    loadGoogleMapsScript().then(() => {
+      if (window.google?.maps?.places) {
+        setMapsReady(true);
+        console.log('[ADMIN] Google Maps Places API ready');
+      }
+    });
+  }, []);
+
+  // Initialize autocomplete when modal opens
+  useEffect(() => {
+    if (!showCreateModal || !mapsReady || !window.google?.maps?.places) return;
+
+    const initAutocomplete = (inputRef, autocompleteRef, fieldName, latField, lngField) => {
+      const timer = setTimeout(() => {
+        if (!inputRef.current || autocompleteRef.current) return;
+
+        try {
+          const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
+            types: ["address"],
+            componentRestrictions: { country: "fr" },
+            fields: ["formatted_address", "geometry", "name"]
+          });
+
+          autocomplete.addListener("place_changed", () => {
+            const place = autocomplete.getPlace();
+            if (place && place.formatted_address) {
+              const lat = place.geometry?.location?.lat();
+              const lng = place.geometry?.location?.lng();
+              
+              setNewCourse(prev => ({
+                ...prev,
+                [fieldName]: place.formatted_address,
+                [latField]: lat || null,
+                [lngField]: lng || null
+              }));
+              
+              // Update input value directly
+              if (inputRef.current) {
+                inputRef.current.value = place.formatted_address;
+              }
+              
+              console.log(`[ADMIN] Address selected: ${fieldName} | GPS: (${lat}, ${lng})`);
+            }
+          });
+
+          autocompleteRef.current = autocomplete;
+          console.log(`[ADMIN] Autocomplete initialized for ${fieldName}`);
+        } catch (error) {
+          console.error(`[ADMIN] Failed to init autocomplete for ${fieldName}:`, error);
+        }
+      }, 200);
+
+      return () => clearTimeout(timer);
+    };
+
+    // Initialize autocomplete for both address fields
+    const cleanup1 = initAutocomplete(pickupInputRef, pickupAutocompleteRef, "pickup_address", "pickup_lat", "pickup_lng");
+    const cleanup2 = initAutocomplete(dropoffInputRef, dropoffAutocompleteRef, "dropoff_address", "dropoff_lat", "dropoff_lng");
+
+    return () => {
+      if (cleanup1) cleanup1();
+      if (cleanup2) cleanup2();
+    };
+  }, [showCreateModal, mapsReady]);
+
+  // Reset autocomplete refs when modal closes
+  useEffect(() => {
+    if (!showCreateModal) {
+      pickupAutocompleteRef.current = null;
+      dropoffAutocompleteRef.current = null;
+    }
+  }, [showCreateModal]);
+
   const fetchData = async () => {
     try {
       const [coursesRes, driversRes] = await Promise.all([
