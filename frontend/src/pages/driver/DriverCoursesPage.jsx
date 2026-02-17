@@ -761,19 +761,27 @@ export default function DriverCoursesPage() {
                         );
                       })()}
                       
-                      {/* Supplements button - only if invoice not issued and ASSIGNED */}
-                      {!isInvoiceIssued && course.status === 'ASSIGNED' && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="border-amber-600/50 text-amber-400 hover:bg-amber-900/30"
-                          onClick={() => openSupplementsModal(course)}
-                          data-testid={`supplements-${course.id}`}
-                        >
-                          <Plus className="w-4 h-4 mr-1" />
-                          Suppléments
-                        </Button>
-                      )}
+                      {/* Supplements button - visible from ASSIGNED through DRIVER_COMPLETED unless locked */}
+                      {(() => {
+                        const actions = getDriverActions(course);
+                        logDriverActions(course.id, actions, 'session');
+                        
+                        if (actions.canAddSupplements) {
+                          return (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-amber-600/50 text-amber-400 hover:bg-amber-900/30"
+                              onClick={() => openSupplementsModal(course)}
+                              data-testid={`supplements-${course.id}`}
+                            >
+                              <Plus className="w-4 h-4 mr-1" />
+                              Suppléments
+                            </Button>
+                          );
+                        }
+                        return null;
+                      })()}
                       
                       <Button
                         size="sm"
