@@ -3118,12 +3118,36 @@ async def start_ride(ride_id: str, token: Optional[str] = Query(None, descriptio
     if current_status == CourseStatusEnum.DRIVER_ARRIVED and course.get("arrival_time"):
         started_at = datetime.now(timezone.utc).isoformat()
         waiting_info = calculate_waiting_price(course.get("arrival_time"), started_at)
+        
+        # Store both waiting_* fields AND supplement_attente_* fields for invoice compatibility
         waiting_update = {
             "waiting_minutes": waiting_info["waiting_minutes"],
             "waiting_billable_minutes": waiting_info["waiting_billable_minutes"],
-            "waiting_price": waiting_info["waiting_price"]
+            "waiting_price": waiting_info["waiting_price"],
+            # These fields are used by the invoice system
+            "supplement_attente_minutes": waiting_info["waiting_billable_minutes"],
+            "supplement_attente_amount": waiting_info["waiting_price"]
         }
-        logger.info(f"[RIDE-START] ⏱️ Waiting calculated | ride={ride_id[:8]} | minutes={waiting_info['waiting_minutes']} | billable={waiting_info['waiting_billable_minutes']} | price={waiting_info['waiting_price']}€")
+        
+        # Recalculate price_with_supplements to include waiting fee
+        current_price = course.get("price_total", 0)
+        current_supplements = (
+            course.get("supplement_peage", 0) +
+            course.get("supplement_parking", 0)
+        )
+        new_price_with_supplements = current_price + current_supplements + waiting_info["waiting_price"]
+        waiting_update["price_with_supplements"] = new_price_with_supplements
+        
+        # Recalculate commission if needed (using driver's commission rate)
+        if course.get("assigned_driver_id"):
+            driver_for_commission = await db.drivers.find_one(
+                {"id": course["assigned_driver_id"]},
+                {"commission_rate": 1}
+            )
+            commission_rate = driver_for_commission.get("commission_rate", 0.15) if driver_for_commission else 0.15
+            waiting_update["commission_amount"] = new_price_with_supplements * commission_rate
+        
+        logger.info(f"[RIDE-START] ⏱️ Waiting calculated | ride={ride_id[:8]} | minutes={waiting_info['waiting_minutes']} | billable={waiting_info['waiting_billable_minutes']} | price={waiting_info['waiting_price']}€ | new_total={new_price_with_supplements}€")
     
     # Update status to IN_PROGRESS with audit fields
     started_at = datetime.now(timezone.utc).isoformat()
