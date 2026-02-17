@@ -676,11 +676,8 @@ export default function DriverCoursesPage() {
                             <Lock className="w-3 h-3" />
                             Facture {course.invoice_number}
                           </span>
-                        ) : (
-                          <span className="px-2 py-1 rounded text-xs bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                            Brouillon
-                          </span>
-                        )}
+                        ) : null}
+                        {/* Badge statut - masquer Brouillon, afficher uniquement Attribuée/En cours/Terminée */}
                         <span className={`px-2 py-1 rounded text-xs border ${getStatusColor(course.status)}`}>
                           {getStatusLabel(course.status)}
                         </span>
