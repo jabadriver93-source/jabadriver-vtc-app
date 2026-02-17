@@ -3564,7 +3564,7 @@ async def driver_arrive(
         "message": "Arrivée enregistrée ! Le client a été notifié.",
         "status": CourseStatusEnum.DRIVER_ARRIVED,
         "arrival_time": arrival_time,
-        "gps_distance": int(gps_distance) if gps_distance else None
+        "gps_distance": int(gps_distance) if gps_distance is not None else None
     }
 
 
