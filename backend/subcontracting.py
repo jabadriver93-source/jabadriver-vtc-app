@@ -3227,117 +3227,22 @@ async def token_download_bon_commande(ride_id: str, token: str = Query(...)):
 
 @driver_router.get("/ride/{ride_id}/invoice-pdf")
 async def token_download_invoice(ride_id: str, token: str = Query(...)):
-    """Download invoice preview/final via driver token (no session required)"""
+    """Download invoice preview/final via driver token (no session required) - Unified HTML template"""
     logger.info(f"[DRIVER-ACTIONS] Token download invoice | ride={ride_id[:8]}")
     
     course, driver = await verify_driver_token_for_ride(ride_id, token)
-    
-    # Generate invoice PDF (same as session-based version)
-    from reportlab.lib.pagesizes import A4
-    from reportlab.pdfgen import canvas
-    from reportlab.lib.units import cm
-    from io import BytesIO
-    
-    buffer = BytesIO()
-    c = canvas.Canvas(buffer, pagesize=A4)
-    width, height = A4
-    
     course_id_short = course.get('id', '')[:8].upper()
     is_final = course.get('invoice_status') == 'ISSUED'
     
-    # Header
-    c.setFont("Helvetica-Bold", 18)
-    title = "FACTURE" if is_final else "FACTURE PROVISOIRE"
-    c.drawString(2*cm, height - 2*cm, title)
-    
-    c.setFont("Helvetica", 10)
+    # Determine doc_type and filename
+    doc_type = 'facture_finale' if is_final else 'facture'
     invoice_num = course.get('invoice_number', f"PRO-{course_id_short}")
-    c.drawString(width - 6*cm, height - 2*cm, f"N° {invoice_num}")
-    c.drawString(width - 6*cm, height - 2.5*cm, f"Date: {course.get('date', '')}")
-    
-    # Émetteur (Driver)
-    y = height - 4*cm
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(2*cm, y, "ÉMETTEUR (Chauffeur VTC)")
-    y -= 0.6*cm
-    c.setFont("Helvetica", 10)
-    if driver:
-        c.drawString(2*cm, y, f"{driver.get('name', 'N/A')}")
-        y -= 0.5*cm
-        if driver.get('company_name'):
-            c.drawString(2*cm, y, f"{driver.get('company_name')}")
-            y -= 0.5*cm
-        if driver.get('siret'):
-            c.drawString(2*cm, y, f"SIRET: {driver.get('siret')}")
-            y -= 0.5*cm
-        c.drawString(2*cm, y, f"Tél: {driver.get('phone', 'N/A')}")
-    
-    # Client
-    y -= 1*cm
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(2*cm, y, "CLIENT")
-    y -= 0.6*cm
-    c.setFont("Helvetica", 10)
-    c.drawString(2*cm, y, f"{course.get('client_name', 'N/A')}")
-    
-    # Course details
-    y -= 1.5*cm
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(2*cm, y, "PRESTATION VTC")
-    y -= 0.6*cm
-    c.setFont("Helvetica", 10)
-    c.drawString(2*cm, y, f"Date: {course.get('date', '')} - Heure: {course.get('time', '')}")
-    y -= 0.5*cm
-    c.drawString(2*cm, y, f"De: {course.get('pickup_address', 'N/A')[:50]}")
-    y -= 0.5*cm
-    c.drawString(2*cm, y, f"À: {course.get('dropoff_address', 'N/A')[:50]}")
-    
-    # Pricing table
-    y -= 1.5*cm
-    c.setFont("Helvetica-Bold", 10)
-    c.drawString(2*cm, y, "Description")
-    c.drawString(width - 4*cm, y, "Montant")
-    y -= 0.3*cm
-    c.line(2*cm, y, width - 2*cm, y)
-    y -= 0.5*cm
-    
-    c.setFont("Helvetica", 10)
-    price_base = course.get('price_base') or course.get('price_total', 0)
-    c.drawString(2*cm, y, "Course VTC")
-    c.drawString(width - 4*cm, y, f"{price_base:.2f}€")
-    y -= 0.5*cm
-    
-    if course.get('supplement_peage'):
-        c.drawString(2*cm, y, "Péage")
-        c.drawString(width - 4*cm, y, f"{course['supplement_peage']:.2f}€")
-        y -= 0.5*cm
-    if course.get('supplement_parking'):
-        c.drawString(2*cm, y, "Parking")
-        c.drawString(width - 4*cm, y, f"{course['supplement_parking']:.2f}€")
-        y -= 0.5*cm
-    if course.get('supplement_attente_minutes'):
-        wait_amount = course['supplement_attente_minutes'] * 0.5
-        c.drawString(2*cm, y, f"Attente ({course['supplement_attente_minutes']} min)")
-        c.drawString(width - 4*cm, y, f"{wait_amount:.2f}€")
-        y -= 0.5*cm
-    
-    # Total
-    y -= 0.3*cm
-    c.line(2*cm, y, width - 2*cm, y)
-    y -= 0.6*cm
-    c.setFont("Helvetica-Bold", 12)
-    price_total = course.get('price_with_supplements') or course.get('price_total', 0)
-    c.drawString(2*cm, y, "TOTAL TTC")
-    c.drawString(width - 4*cm, y, f"{price_total:.2f}€")
-    
-    # Footer
-    c.setFont("Helvetica", 8)
-    c.drawString(2*cm, 2*cm, "TVA non applicable - Article 293B du CGI" if not is_final else "")
-    
-    c.save()
-    buffer.seek(0)
-    
     filename = f"facture-{invoice_num}.pdf" if is_final else f"facture-provisoire-{course_id_short}.pdf"
+    
+    # Generate unified PDF using HTML template
+    from pdf_template import generate_unified_pdf
+    buffer = generate_unified_pdf(course, driver, doc_type=doc_type, show_commission=False)
+    
     return StreamingResponse(
         buffer,
         media_type="application/pdf",
