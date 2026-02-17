@@ -553,26 +553,15 @@ export default function AdminSubcontractingPage() {
                       
                       {/* Mark as DONE - available for ASSIGNED, IN_PROGRESS, DRIVER_COMPLETED */}
                       {(course.status === 'ASSIGNED' || course.status === 'IN_PROGRESS' || course.status === 'DRIVER_COMPLETED') && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="border-green-600 text-green-400"
-                            onClick={() => markDone(course.id)}
-                          >
-                            <CheckCircle className="w-4 h-4 mr-1" />
-                            {course.status === 'DRIVER_COMPLETED' ? 'Confirmer' : 'Terminée'}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="border-slate-600 text-slate-300"
-                            onClick={() => downloadCommissionInvoice(course.id)}
-                          >
-                            <FileText className="w-4 h-4 mr-1" />
-                            Facture commission
-                          </Button>
-                        </>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-green-600 text-green-400"
+                          onClick={() => markDone(course.id)}
+                        >
+                          <CheckCircle className="w-4 h-4 mr-1" />
+                          {course.status === 'DRIVER_COMPLETED' ? 'Confirmer' : 'Terminée'}
+                        </Button>
                       )}
                       
                       {/* Test Driver Email - available when course has assigned driver */}
