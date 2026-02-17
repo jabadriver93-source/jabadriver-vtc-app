@@ -22,6 +22,11 @@ const STATUS_CONFIG = {
     color: 'bg-sky-500/20 text-sky-400 border-sky-500/30',
     icon: Car
   },
+  DRIVER_ARRIVED: {
+    label: 'En attente client',
+    color: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+    icon: Clock
+  },
   IN_PROGRESS: {
     label: 'En cours',
     color: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
@@ -36,6 +41,11 @@ const STATUS_CONFIG = {
     label: 'Terminée',
     color: 'bg-gray-500/20 text-gray-400 border-gray-500/30',
     icon: CheckCircle
+  },
+  NO_SHOW: {
+    label: 'Client absent',
+    color: 'bg-red-500/20 text-red-400 border-red-500/30',
+    icon: AlertTriangle
   }
 };
 
