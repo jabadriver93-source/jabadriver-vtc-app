@@ -567,3 +567,42 @@ def haversine_distance(lat1, lng1, lat2, lng2) -> float:
 ```python
 ARRIVAL_GPS_MAX_DISTANCE_METERS = 200
 ```
+
+
+### 25. Autocomplétion Google Places Admin ✅ [2026-02-17]
+
+**Objectif** : Ajouter l'autocomplétion d'adresses Google Places dans le formulaire admin pour garantir des coordonnées GPS précises.
+
+**Modifications (AdminSubcontractingPage.jsx) :**
+- Import du script Google Maps Places API (singleton pattern pour éviter les chargements multiples)
+- Refs pour les champs d'adresse : `pickupInputRef`, `dropoffInputRef`
+- Refs pour les instances Autocomplete : `pickupAutocompleteRef`, `dropoffAutocompleteRef`
+- État `mapsReady` pour suivre le chargement de l'API
+
+**Fonctionnement :**
+1. Le script Google Maps est chargé au montage du composant
+2. Quand le modal de création s'ouvre, les Autocomplete sont initialisés sur les champs d'adresse
+3. Quand l'utilisateur sélectionne une suggestion :
+   - L'adresse complète est mise à jour
+   - Les coordonnées GPS sont extraites de `place.geometry.location`
+   - Les champs `pickup_lat/lng` ou `dropoff_lat/lng` sont mis à jour automatiquement
+4. Les coordonnées GPS sont affichées sous chaque champ d'adresse (ex: "GPS: 48.86946, 2.33142")
+
+**Configuration Autocomplete :**
+```javascript
+new window.google.maps.places.Autocomplete(inputRef.current, {
+  types: ["address"],
+  componentRestrictions: { country: "fr" },
+  fields: ["formatted_address", "geometry", "name"]
+});
+```
+
+**UX Améliorée :**
+- Placeholder "Commencez à taper une adresse..." pour guider l'utilisateur
+- Indicateur GPS vert sous chaque champ quand les coordonnées sont disponibles
+- Le bouton "Calculer la distance" reste disponible en fallback
+
+**Variable d'environnement requise :**
+```
+REACT_APP_GOOGLE_MAPS_API_KEY=AIzaSy...
+```
