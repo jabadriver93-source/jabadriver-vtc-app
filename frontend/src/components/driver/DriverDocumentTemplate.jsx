@@ -384,6 +384,7 @@ export function FullDocumentPreview({
 }
 
 export default {
+  LogoHeader,
   CourseFinancialSummary,
   CourseInfoCard,
   DriverInfoCard,
