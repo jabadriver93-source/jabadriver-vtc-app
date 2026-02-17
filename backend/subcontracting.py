@@ -3509,15 +3509,21 @@ async def finalize_attribution(course_id: str, driver_id: str, payment_session_i
         if driver and updated_course:
             driver_email = driver.get('email', 'NO_EMAIL')
             
-            # 1. Send to admin
+            # 1. Send to admin (with delay before next to avoid rate limit)
             logger.info(f"[EMAIL-FLOW][AUTO-ASSIGN] [1/3] Sending admin notification...")
             await send_course_assigned_notification(updated_course, driver, payment_intent_id)
+            
+            # Rate limit protection: wait 600ms before next email (Resend allows 2 req/s)
+            await asyncio.sleep(EMAIL_DELAY_BETWEEN_SENDS)
             
             # 2. Send to client
             logger.info(f"[EMAIL-FLOW][AUTO-ASSIGN] [2/3] Sending client notification...")
             await send_course_assigned_to_client(updated_course, driver)
             
-            # 3. Send to driver with direct ride link
+            # Rate limit protection: wait 600ms before driver email (most important one)
+            await asyncio.sleep(EMAIL_DELAY_BETWEEN_SENDS)
+            
+            # 3. Send to driver with direct ride link (with retry for rate limit)
             logger.info(f"[EMAIL-FLOW][AUTO-ASSIGN] [3/3] Sending driver notification to {driver_email}...")
             email_result = await send_course_assigned_to_driver(updated_course, driver)
             
