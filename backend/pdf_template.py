@@ -473,3 +473,279 @@ def generate_pdf_from_html(html: str) -> BytesIO:
     """
     raise NotImplementedError("weasyprint not available - use generate_unified_pdf() instead")
 
+
+# ============================================
+# PLATFORM COMMISSION INVOICE (Jabadriver → Driver)
+# ============================================
+
+# Platform logo path (different from driver documents logo)
+PLATFORM_LOGO_PATH = Path(__file__).parent / "assets" / "logo_jabadriver_chauffeur.png"
+
+# Platform company info (Jabadriver)
+PLATFORM_INFO = {
+    "name": "JABADRIVER",
+    "legal_name": "JABADRIVER SAS",
+    "description": "Service de mise en relation VTC",
+    "siret": "XXX XXX XXX XXXXX",  # À configurer
+    "address": "Île-de-France, France",
+    "email": "contact@jabadriver.fr",
+    "vat_mention": "TVA non applicable — art. 293B du CGI"
+}
+
+
+def generate_platform_commission_invoice(
+    course: dict,
+    driver: dict,
+    invoice_number: str = None
+) -> BytesIO:
+    """
+    Generate Platform Commission Invoice (Jabadriver → Driver).
+    
+    This is a SEPARATE document from driver→client invoices.
+    Used for accounting: Jabadriver invoices the driver for the commission fee.
+    
+    Args:
+        course: Course data dict
+        driver: Driver data dict
+        invoice_number: Optional custom invoice number
+    
+    Returns:
+        BytesIO buffer containing PDF
+    """
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+    
+    course_id = course.get('id', 'N/A')
+    course_id_short = course_id[:8].upper() if course_id != 'N/A' else 'N/A'
+    
+    # Calculate commission
+    totals = calculate_totals(course)
+    commission_amount = totals['commission']
+    
+    # Invoice number
+    if not invoice_number:
+        # Generate invoice number: JABA-YYYY-{course_id_short}
+        from datetime import datetime
+        year = datetime.now().year
+        invoice_number = f"JABA-{year}-{course_id_short}"
+    
+    # Margins
+    margin_left = 1.8 * cm
+    margin_right = 1.8 * cm
+    content_width = width - margin_left - margin_right
+    
+    y = height - 1.5 * cm
+    
+    # === PLATFORM LOGO ===
+    if PLATFORM_LOGO_PATH.exists():
+        try:
+            img = ImageReader(str(PLATFORM_LOGO_PATH))
+            logo_width = 7 * cm
+            img_width, img_height = img.getSize()
+            aspect = img_height / img_width
+            logo_height = logo_width * aspect
+            
+            # Center horizontally
+            logo_x = (width - logo_width) / 2
+            c.drawImage(img, logo_x, y - logo_height, width=logo_width, height=logo_height, preserveAspectRatio=True, mask='auto')
+            y -= logo_height + 1 * cm
+        except Exception:
+            c.setFont("Helvetica-Bold", 24)
+            c.setFillColor(COLORS['text_primary'])
+            c.drawCentredString(width / 2, y - 0.8 * cm, "JABADRIVER")
+            y -= 1.5 * cm
+    else:
+        c.setFont("Helvetica-Bold", 24)
+        c.setFillColor(COLORS['text_primary'])
+        c.drawCentredString(width / 2, y - 0.8 * cm, "JABADRIVER")
+        y -= 1.5 * cm
+    
+    # Separator line
+    c.setStrokeColor(COLORS['card_border'])
+    c.setLineWidth(1)
+    c.line(margin_left, y, width - margin_right, y)
+    y -= 1 * cm
+    
+    # === DOCUMENT HEADER ===
+    c.setFont("Helvetica-Bold", 18)
+    c.setFillColor(COLORS['text_primary'])
+    c.drawString(margin_left, y, "FACTURE DE COMMISSION")
+    
+    c.setFont("Helvetica", 10)
+    c.setFillColor(COLORS['text_secondary'])
+    c.drawString(margin_left, y - 0.5 * cm, f"N° {invoice_number}")
+    
+    # Right side: date
+    from datetime import datetime
+    today = datetime.now().strftime("%d/%m/%Y")
+    c.setFont("Helvetica", 9)
+    c.drawRightString(width - margin_right, y, f"Date: {today}")
+    c.drawRightString(width - margin_right, y - 0.4 * cm, f"Réf. course: #{course_id_short}")
+    
+    y -= 1.8 * cm
+    
+    # Separator
+    c.setStrokeColor(COLORS['card_border'])
+    c.line(margin_left, y, width - margin_right, y)
+    y -= 0.8 * cm
+    
+    # === TWO COLUMN: ÉMETTEUR (Platform) & CLIENT (Driver) ===
+    card_width = (content_width - 0.5 * cm) / 2
+    card_height = 4.5 * cm
+    card_radius = 4
+    
+    # Left card: Émetteur (Jabadriver)
+    draw_rounded_rect(c, margin_left, y - card_height, card_width, card_height, 
+                      card_radius, fill_color=COLORS['bg'], stroke_color=COLORS['card_border'])
+    
+    card_y = y - 0.5 * cm
+    c.setFont("Helvetica-Bold", 8)
+    c.setFillColor(COLORS['amber'])
+    c.drawString(margin_left + 0.4 * cm, card_y, "ÉMETTEUR")
+    card_y -= 0.6 * cm
+    
+    c.setFont("Helvetica-Bold", 11)
+    c.setFillColor(COLORS['text_primary'])
+    c.drawString(margin_left + 0.4 * cm, card_y, PLATFORM_INFO['legal_name'])
+    card_y -= 0.45 * cm
+    
+    c.setFont("Helvetica", 8)
+    c.setFillColor(COLORS['text_secondary'])
+    c.drawString(margin_left + 0.4 * cm, card_y, PLATFORM_INFO['description'])
+    card_y -= 0.4 * cm
+    c.drawString(margin_left + 0.4 * cm, card_y, f"SIRET: {PLATFORM_INFO['siret']}")
+    card_y -= 0.4 * cm
+    c.drawString(margin_left + 0.4 * cm, card_y, PLATFORM_INFO['address'])
+    card_y -= 0.4 * cm
+    c.drawString(margin_left + 0.4 * cm, card_y, PLATFORM_INFO['email'])
+    
+    # Right card: Client (Driver)
+    client_x = margin_left + card_width + 0.5 * cm
+    draw_rounded_rect(c, client_x, y - card_height, card_width, card_height, 
+                      card_radius, fill_color=COLORS['bg'], stroke_color=COLORS['card_border'])
+    
+    card_y = y - 0.5 * cm
+    c.setFont("Helvetica-Bold", 8)
+    c.setFillColor(COLORS['emerald'])
+    c.drawString(client_x + 0.4 * cm, card_y, "CLIENT (CHAUFFEUR)")
+    card_y -= 0.6 * cm
+    
+    c.setFont("Helvetica-Bold", 11)
+    c.setFillColor(COLORS['text_primary'])
+    driver_name = driver.get('name', 'N/A') if driver else 'N/A'
+    c.drawString(client_x + 0.4 * cm, card_y, driver_name[:30])
+    card_y -= 0.45 * cm
+    
+    c.setFont("Helvetica", 8)
+    c.setFillColor(COLORS['text_secondary'])
+    if driver:
+        if driver.get('company_name') and driver.get('company_name') != driver.get('name'):
+            c.drawString(client_x + 0.4 * cm, card_y, driver.get('company_name', '')[:35])
+            card_y -= 0.4 * cm
+        if driver.get('siret'):
+            c.drawString(client_x + 0.4 * cm, card_y, f"SIRET: {driver.get('siret')}")
+            card_y -= 0.4 * cm
+        if driver.get('email'):
+            c.drawString(client_x + 0.4 * cm, card_y, driver.get('email', '')[:35])
+            card_y -= 0.4 * cm
+        if driver.get('phone'):
+            c.drawString(client_x + 0.4 * cm, card_y, f"Tél: {driver.get('phone', 'N/A')}")
+    
+    y -= card_height + 0.8 * cm
+    
+    # === OBJET / DESCRIPTION ===
+    obj_height = 2.5 * cm
+    draw_rounded_rect(c, margin_left, y - obj_height, content_width, obj_height, 
+                      card_radius, fill_color=COLORS['bg'], stroke_color=COLORS['card_border'])
+    
+    card_y = y - 0.5 * cm
+    c.setFont("Helvetica-Bold", 8)
+    c.setFillColor(COLORS['sky'])
+    c.drawString(margin_left + 0.4 * cm, card_y, "OBJET")
+    card_y -= 0.6 * cm
+    
+    c.setFont("Helvetica", 10)
+    c.setFillColor(COLORS['text_primary'])
+    c.drawString(margin_left + 0.4 * cm, card_y, f"Commission de mise en relation — Course #{course_id_short}")
+    card_y -= 0.5 * cm
+    
+    c.setFont("Helvetica", 8)
+    c.setFillColor(COLORS['text_secondary'])
+    c.drawString(margin_left + 0.4 * cm, card_y, f"Date course: {course.get('date', 'N/A')} | Client: {course.get('client_name', 'N/A')}")
+    
+    y -= obj_height + 0.8 * cm
+    
+    # === FINANCIAL DETAILS ===
+    fin_height = 3.5 * cm
+    draw_rounded_rect(c, margin_left, y - fin_height, content_width, fin_height, 
+                      card_radius, fill_color=COLORS['emerald_bg'], stroke_color=COLORS['emerald_light'])
+    
+    card_y = y - 0.5 * cm
+    c.setFont("Helvetica-Bold", 8)
+    c.setFillColor(COLORS['emerald'])
+    c.drawString(margin_left + 0.4 * cm, card_y, "DÉTAIL FACTURATION")
+    card_y -= 0.8 * cm
+    
+    row_left = margin_left + 0.4 * cm
+    row_right = width - margin_right - 0.4 * cm
+    
+    # Course total
+    c.setFont("Helvetica", 9)
+    c.setFillColor(COLORS['text_secondary'])
+    c.drawString(row_left, card_y, "Montant total course TTC")
+    c.setFillColor(COLORS['text_primary'])
+    c.drawRightString(row_right, card_y, f"{totals['total']:.2f} €")
+    card_y -= 0.5 * cm
+    
+    # Commission rate
+    c.setFillColor(COLORS['text_secondary'])
+    c.drawString(row_left, card_y, "Taux commission plateforme")
+    c.setFillColor(COLORS['text_primary'])
+    c.drawRightString(row_right, card_y, "10%")
+    card_y -= 0.6 * cm
+    
+    # Separator
+    c.setStrokeColor(COLORS['emerald'])
+    c.setLineWidth(1.5)
+    c.line(row_left, card_y + 0.15 * cm, row_right, card_y + 0.15 * cm)
+    card_y -= 0.5 * cm
+    
+    # TOTAL Commission
+    c.setFont("Helvetica-Bold", 11)
+    c.setFillColor(COLORS['text_primary'])
+    c.drawString(row_left, card_y, "MONTANT COMMISSION TTC")
+    c.setFont("Helvetica-Bold", 14)
+    c.setFillColor(COLORS['emerald'])
+    c.drawRightString(row_right, card_y, f"{commission_amount:.2f} €")
+    
+    y -= fin_height + 1 * cm
+    
+    # === TVA MENTION ===
+    c.setFont("Helvetica-Oblique", 8)
+    c.setFillColor(COLORS['text_muted'])
+    c.drawString(margin_left, y, PLATFORM_INFO['vat_mention'])
+    y -= 0.5 * cm
+    
+    # === FOOTER ===
+    y -= 0.5 * cm
+    c.setStrokeColor(COLORS['card_border'])
+    c.setLineWidth(0.5)
+    c.line(margin_left, y, width - margin_right, y)
+    y -= 0.5 * cm
+    
+    c.setFont("Helvetica-Bold", 7)
+    c.setFillColor(COLORS['text_secondary'])
+    c.drawString(margin_left, y, "JABADRIVER — Plateforme de mise en relation VTC")
+    y -= 0.35 * cm
+    
+    c.setFont("Helvetica", 7)
+    c.setFillColor(COLORS['text_muted'])
+    c.drawString(margin_left, y, "Ce document constitue une facture de commission pour les services de mise en relation.")
+    y -= 0.35 * cm
+    c.drawString(margin_left, y, f"Facture N° {invoice_number} | Réf. course: #{course_id_short}")
+    
+    c.save()
+    buffer.seek(0)
+    return buffer
+
