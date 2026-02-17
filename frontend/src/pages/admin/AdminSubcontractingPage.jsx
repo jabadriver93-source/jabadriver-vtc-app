@@ -21,6 +21,7 @@ export default function AdminSubcontractingPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showTestRides, setShowTestRides] = useState(false); // Filter: default OFF = hide test rides
   const [emailTestLoading, setEmailTestLoading] = useState(null); // courseId being tested
+  const [commissionInvoiceLoading, setCommissionInvoiceLoading] = useState(null); // courseId being downloaded
   const [newCourse, setNewCourse] = useState({
     client_name: '',
     client_email: '',
@@ -33,6 +34,36 @@ export default function AdminSubcontractingPage() {
     price_total: '',
     notes: ''
   });
+
+  // Download platform commission invoice (Jabadriver → Driver)
+  const downloadCommissionInvoice = async (courseId) => {
+    setCommissionInvoiceLoading(courseId);
+    try {
+      const res = await fetch(`${API_URL}/api/admin/subcontracting/courses/${courseId}/platform-invoice-pdf`);
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.detail || 'Erreur lors de la génération');
+      }
+      
+      // Download PDF
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `facture-commission-${courseId.slice(0, 8).toUpperCase()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Facture commission téléchargée');
+    } catch (err) {
+      toast.error(`Erreur: ${err.message}`);
+    } finally {
+      setCommissionInvoiceLoading(null);
+    }
+  };
 
   // Test driver email for a specific course
   const testDriverEmail = async (courseId, driverEmail) => {
