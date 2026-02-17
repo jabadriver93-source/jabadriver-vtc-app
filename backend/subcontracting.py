@@ -2932,6 +2932,8 @@ async def get_driver_ride(ride_id: str, token: Optional[str] = Query(None, descr
         "client_phone": course.get("client_phone"),
         "pickup_address": course.get("pickup_address"),
         "dropoff_address": course.get("dropoff_address"),
+        "pickup_lat": course.get("pickup_lat"),
+        "pickup_lng": course.get("pickup_lng"),
         "date": course.get("date"),
         "time": course.get("time"),
         "distance_km": course.get("distance_km"),
@@ -2949,7 +2951,21 @@ async def get_driver_ride(ride_id: str, token: Optional[str] = Query(None, descr
         "started_at": course.get("started_at"),
         "ended_at": course.get("ended_at"),
         "assigned_at": course.get("assigned_at"),
+        "confirmed_at": course.get("confirmed_at"),  # When client confirmed the ride
         "driver_access_token": course.get("driver_access_token"),  # Include token for frontend
+        # Client presence info (for "Localiser client" button)
+        "client_present_time": course.get("client_present_time"),
+        "client_present": course.get("client_present", False),
+        "client_lat": course.get("client_lat"),
+        "client_lng": course.get("client_lng"),
+        # Driver arrival info
+        "arrival_time": course.get("arrival_time"),
+        "arrival_lat": course.get("arrival_lat"),
+        "arrival_lng": course.get("arrival_lng"),
+        # Waiting info
+        "waiting_minutes": course.get("waiting_minutes", 0),
+        "waiting_billable_minutes": course.get("waiting_billable_minutes", 0),
+        "waiting_price": course.get("waiting_price", 0),
         "driver": {
             "id": driver.get("id") if driver else None,
             "name": driver.get("name") if driver else None,
