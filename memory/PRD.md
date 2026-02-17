@@ -385,3 +385,62 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
   - Logs: `[EMAIL-FLOW][ADMIN][RIDE-ENDED]`
 
 - **Test Results**: 100% (20/20 tests) - iteration_9.json
+
+
+### 21. Corrections UI/UX Mobile ✅ [2026-02-17]
+- **Bouton Visible (Page Token Mobile)**:
+  - Le bouton d'action fixe "Démarrer/Terminer la course" était masqué par la bannière "Made with Emergent"
+  - **Fix**: `bottom-20` au lieu de `bottom-4` pour que le bouton reste au-dessus de la bannière
+  - Testé sur viewport mobile (viewport iPhone)
+
+- **Badge "Brouillon" masqué**:
+  - Le badge de statut "Brouillon" apparaissait inutilement dans le portail chauffeur
+  - **Fix**: Condition ajoutée pour exclure les factures en statut "DRAFT" de l'affichage du badge
+  - Fichier: `/app/frontend/src/pages/driver/DriverCoursesPage.jsx`
+
+- **"FACTURE PROVISOIRE" → "FACTURE"**:
+  - Remplacement du texte sur tous les documents (frontend + PDF)
+  - Fichiers: `DriverDocumentTemplate.jsx`, `pdf_template.py`
+
+- **Bannière Statut Non-Bloquante**:
+  - La bannière "Course terminée" recouvrait les boutons de téléchargement PDF
+  - **Fix**: Déplacée dans le flux normal du document au lieu d'être en position absolue
+
+### 22. Flux de Redirection Post-Login ✅ [2026-12-17]
+- **Problème**: Un chauffeur non connecté cliquant sur `/claim/:token` était redirigé vers `/driver/courses` après login au lieu de revenir à la page `/claim/:token`
+- **Solution robuste implémentée**:
+  - **Module utilitaire**: `/app/frontend/src/lib/authRedirect.js`
+    - `buildLoginRedirectUrl(targetPath)`: Construit l'URL de login avec paramètre redirect encodé
+    - `storeRedirectTarget(path)`: Stocke la destination dans sessionStorage
+    - `getPostLoginRedirect(searchParams)`: Récupère la destination (URL param > sessionStorage > default)
+    - `getRedirectFromParams(searchParams)`: Décode le paramètre redirect
+  - **ClaimPage.jsx**: Utilise `buildLoginRedirectUrl()` pour rediriger vers `/driver/login?redirect=%2Fclaim%2F{token}`
+  - **DriverLoginPage.jsx**: Utilise `getPostLoginRedirect(searchParams)` après login réussi
+- **Test Results**: 100% (4/4 tests frontend) - iteration_11.json
+  - ✅ Unauthenticated user redirected to login with correct redirect param
+  - ✅ Login with redirect param → redirected to claim page
+  - ✅ Normal login without redirect → goes to /driver/courses
+  - ✅ Full flow test passed
+
+---
+
+## Updated Backlog [2026-12-17]
+
+### P0 - Prochaine Priorité
+- ⏳ **Système de Bonus / Parrainage Chauffeurs**: À implémenter
+
+### P1 - Dashboard Statistiques Admin
+- Tableau de bord avec statistiques (courses, revenus, chauffeurs)
+- Graphiques d'évolution
+
+### P2 - Améliorations
+- Notifications push chauffeurs
+- Chat en temps réel
+- Historique des commissions
+
+### P3 - Backlog
+- Application mobile native
+- Intégration GPS temps réel
+
+### P4 - Connu mais non prioritaire
+- Correction icône PWA chauffeur (problème mineur)
