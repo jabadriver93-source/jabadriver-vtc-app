@@ -88,13 +88,20 @@ export default function AdminSubcontractingPage() {
     distance_km: '',
     price_total: '',
     notes: '',
-    // GPS coordinates (from calculate-route)
+    // GPS coordinates (from calculate-route or autocomplete)
     pickup_lat: null,
     pickup_lng: null,
     dropoff_lat: null,
     dropoff_lng: null
   });
   const [calculatingRoute, setCalculatingRoute] = useState(false);
+  
+  // Google Maps autocomplete refs
+  const [mapsReady, setMapsReady] = useState(false);
+  const pickupInputRef = useRef(null);
+  const dropoffInputRef = useRef(null);
+  const pickupAutocompleteRef = useRef(null);
+  const dropoffAutocompleteRef = useRef(null);
 
   // Download platform commission invoice (Jabadriver → Driver)
   const downloadCommissionInvoice = async (courseId) => {
