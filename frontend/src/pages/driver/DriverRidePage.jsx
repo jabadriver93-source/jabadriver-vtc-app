@@ -181,6 +181,127 @@ export default function DriverRidePage() {
     }
   };
 
+  // Fetch waiting info for real-time display
+  const fetchWaitingInfo = async () => {
+    try {
+      const url = buildUrl('/waiting-info');
+      const res = await fetch(url, getFetchOptions('GET'));
+      const { data } = await safeReadJson(res);
+      if (res.ok && data) {
+        setWaitingInfo(data);
+      }
+    } catch (err) {
+      console.error('[WAITING] Failed to fetch:', err);
+    }
+  };
+
+  // Poll waiting info every 30 seconds when DRIVER_ARRIVED
+  useEffect(() => {
+    if (ride?.status === 'DRIVER_ARRIVED') {
+      fetchWaitingInfo();
+      const interval = setInterval(fetchWaitingInfo, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [ride?.status]);
+
+  // Handle driver arrival
+  const handleArrive = async () => {
+    if (arriveLoading || isActionDisabled) {
+      console.log('[SECURITY] Prevented double-click on arrive');
+      return;
+    }
+
+    setArriveLoading(true);
+    setGpsError(null);
+    setIsActionDisabled(true);
+
+    try {
+      // Get GPS position
+      const position = await new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error('La géolocalisation n\'est pas supportée'));
+          return;
+        }
+        navigator.geolocation.getCurrentPosition(
+          resolve,
+          (err) => {
+            if (err.code === 1) reject(new Error('Veuillez autoriser la géolocalisation'));
+            else if (err.code === 2) reject(new Error('Position indisponible'));
+            else if (err.code === 3) reject(new Error('Délai de localisation dépassé'));
+            else reject(new Error('Erreur de géolocalisation'));
+          },
+          { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+        );
+      });
+
+      const { latitude: lat, longitude: lng } = position.coords;
+      console.log('[ARRIVE] GPS position:', lat, lng);
+
+      const url = buildUrl('/arrive');
+      const res = await fetch(url, {
+        ...getFetchOptions('POST'),
+        body: JSON.stringify({ lat, lng })
+      });
+
+      const { data } = await safeReadJson(res);
+      console.log('[ARRIVE] Response:', res.status, data);
+
+      if (!res.ok) {
+        if (data?.error === 'too_far') {
+          setGpsError(data.detail);
+          toast.error(data.detail);
+        } else {
+          toast.error(data?.detail || 'Erreur lors de l\'enregistrement de l\'arrivée');
+        }
+        setIsActionDisabled(false);
+        return;
+      }
+
+      toast.success(data?.message || 'Arrivée enregistrée !');
+      fetchRide();
+      fetchWaitingInfo();
+    } catch (err) {
+      console.error('[ARRIVE] Error:', err);
+      setGpsError(err.message);
+      toast.error(err.message);
+      setIsActionDisabled(false);
+    } finally {
+      setArriveLoading(false);
+    }
+  };
+
+  // Handle no-show declaration
+  const handleNoShow = async () => {
+    if (actionLoading || isActionDisabled) return;
+
+    if (!confirm('Voulez-vous vraiment déclarer le client absent ? Le prix total de la course sera dû.')) {
+      return;
+    }
+
+    setActionLoading(true);
+    setIsActionDisabled(true);
+
+    try {
+      const url = buildUrl('/no-show');
+      const res = await fetch(url, getFetchOptions('POST'));
+      const { data } = await safeReadJson(res);
+
+      if (!res.ok) {
+        toast.error(data?.detail || 'Erreur lors de la déclaration');
+        setIsActionDisabled(false);
+        return;
+      }
+
+      toast.success(data?.message || 'Client absent déclaré');
+      fetchRide();
+    } catch (err) {
+      toast.error(err.message);
+      setIsActionDisabled(false);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleStartRide = async () => {
     // Prevent double-clicks
     if (actionLoading || isActionDisabled) {
