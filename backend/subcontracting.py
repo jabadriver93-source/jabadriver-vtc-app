@@ -3209,85 +3209,15 @@ def generate_document_pdf(course: dict, driver: dict, doc_type: str = 'bon') -> 
 
 @driver_router.get("/ride/{ride_id}/bon-commande-pdf")
 async def token_download_bon_commande(ride_id: str, token: str = Query(...)):
-    """Download bon de commande via driver token (no session required)"""
+    """Download bon de commande via driver token (no session required) - Unified HTML template"""
     logger.info(f"[DRIVER-ACTIONS] Token download bon-commande | ride={ride_id[:8]}")
     
     course, driver = await verify_driver_token_for_ride(ride_id, token)
-    
-    # Generate PDF
-    from reportlab.lib.pagesizes import A4
-    from reportlab.pdfgen import canvas
-    from reportlab.lib.units import cm
-    from io import BytesIO
-    
-    buffer = BytesIO()
-    c = canvas.Canvas(buffer, pagesize=A4)
-    width, height = A4
-    
-    # Header
-    c.setFont("Helvetica-Bold", 18)
-    c.drawString(2*cm, height - 2*cm, "BON DE COMMANDE VTC")
-    
     course_id_short = course.get('id', '')[:8].upper()
-    c.setFont("Helvetica", 10)
-    c.drawString(width - 6*cm, height - 2*cm, f"N° {course_id_short}")
-    c.drawString(width - 6*cm, height - 2.5*cm, f"Date: {course.get('date', '')}")
     
-    # Driver info
-    y = height - 4*cm
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(2*cm, y, "PRESTATAIRE VTC")
-    y -= 0.6*cm
-    c.setFont("Helvetica", 10)
-    if driver:
-        c.drawString(2*cm, y, f"{driver.get('name', 'N/A')}")
-        y -= 0.5*cm
-        c.drawString(2*cm, y, f"Tél: {driver.get('phone', 'N/A')}")
-        y -= 0.5*cm
-        c.drawString(2*cm, y, f"Email: {driver.get('email', 'N/A')}")
-    
-    # Client info
-    y -= 1*cm
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(2*cm, y, "CLIENT")
-    y -= 0.6*cm
-    c.setFont("Helvetica", 10)
-    c.drawString(2*cm, y, f"{course.get('client_name', 'N/A')}")
-    y -= 0.5*cm
-    c.drawString(2*cm, y, f"Tél: {course.get('client_phone', 'N/A')}")
-    
-    # Course details
-    y -= 1.5*cm
-    c.setFont("Helvetica-Bold", 11)
-    c.drawString(2*cm, y, "DETAILS DE LA COURSE")
-    y -= 0.6*cm
-    c.setFont("Helvetica", 10)
-    c.drawString(2*cm, y, f"Date/Heure: {course.get('date', '')} à {course.get('time', '')}")
-    y -= 0.5*cm
-    c.drawString(2*cm, y, f"Départ: {course.get('pickup_address', 'N/A')[:60]}")
-    y -= 0.5*cm
-    c.drawString(2*cm, y, f"Arrivée: {course.get('dropoff_address', 'N/A')[:60]}")
-    
-    # Price
-    y -= 1.5*cm
-    price_total = course.get('price_with_supplements') or course.get('price_total', 0)
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(2*cm, y, f"MONTANT TOTAL: {price_total:.2f}€")
-    
-    if course.get('supplement_peage') or course.get('supplement_parking') or course.get('supplement_attente_minutes'):
-        y -= 0.7*cm
-        c.setFont("Helvetica", 9)
-        supplements_text = []
-        if course.get('supplement_peage'):
-            supplements_text.append(f"Péage: {course['supplement_peage']}€")
-        if course.get('supplement_parking'):
-            supplements_text.append(f"Parking: {course['supplement_parking']}€")
-        if course.get('supplement_attente_minutes'):
-            supplements_text.append(f"Attente: {course['supplement_attente_minutes']}min")
-        c.drawString(2*cm, y, f"(dont suppléments: {', '.join(supplements_text)})")
-    
-    c.save()
-    buffer.seek(0)
+    # Generate unified PDF using HTML template
+    from pdf_template import generate_unified_pdf
+    buffer = generate_unified_pdf(course, driver, doc_type='bon', show_commission=True)
     
     return StreamingResponse(
         buffer,
