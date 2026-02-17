@@ -729,6 +729,22 @@ export default function DriverRidePage() {
               {ride?.invoice_status === 'ISSUED' ? 'Facture finale' : 'Aperçu facture'}
             </Button>
           </div>
+          
+          {/* Completed State Message - IN FLOW (not overlay) to not block buttons */}
+          {(ride?.status === 'DRIVER_COMPLETED' || ride?.status === 'DONE') && (
+            <div className="mt-4 bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center">
+              <CheckCircle className="w-8 h-8 text-green-400 mx-auto mb-2" />
+              <p className="text-green-400 font-semibold">
+                {ride?.status === 'DRIVER_COMPLETED' ? 'Course terminée' : 'Course clôturée'}
+              </p>
+              <p className="text-gray-400 text-sm mt-1">
+                {ride?.status === 'DRIVER_COMPLETED' 
+                  ? 'En attente de confirmation client' 
+                  : 'Merci pour cette course !'
+                }
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
