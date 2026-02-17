@@ -4764,9 +4764,25 @@ def _generate_driver_bon_commande_pdf_legacy(course: dict, driver: dict):
     return buffer.getvalue()
 
 
-
 def generate_driver_invoice_pdf(course: dict, driver: dict, invoice_number: str, invoice_date: str):
-    """Generate invoice from driver to client (émetteur = chauffeur) with supplements"""
+    """Generate invoice with unified HTML template (matches frontend exactly)"""
+    from pdf_template import generate_unified_pdf
+    
+    # Determine if it's a final invoice
+    is_final = course.get('invoice_status') == 'ISSUED' or (invoice_number and 'BROUILLON' not in invoice_number)
+    doc_type = 'facture_finale' if is_final else 'facture'
+    
+    # Inject invoice number/date into course for template
+    course_copy = dict(course)
+    course_copy['invoice_number'] = invoice_number
+    course_copy['invoice_date'] = invoice_date
+    
+    buffer = generate_unified_pdf(course_copy, driver, doc_type=doc_type, show_commission=False)
+    return buffer.read()
+
+
+def _generate_driver_invoice_pdf_legacy(course: dict, driver: dict, invoice_number: str, invoice_date: str):
+    """LEGACY: Generate invoice from driver to client (émetteur = chauffeur) - DEPRECATED"""
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
