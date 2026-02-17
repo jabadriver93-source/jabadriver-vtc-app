@@ -5063,8 +5063,19 @@ async def admin_create_course(data: CourseCreate):
         distance_km=data.distance_km,
         price_total=data.price_total,
         notes=data.notes,
-        commission_amount=round(data.price_total * COMMISSION_RATE, 2)
+        commission_amount=round(data.price_total * COMMISSION_RATE, 2),
+        # GPS coordinates for driver arrival validation
+        pickup_lat=data.pickup_lat,
+        pickup_lng=data.pickup_lng,
+        dropoff_lat=data.dropoff_lat,
+        dropoff_lng=data.dropoff_lng
     )
+    
+    # Log if GPS coordinates are provided
+    if data.pickup_lat and data.pickup_lng:
+        logger.info(f"[SUBCONTRACTING] Course created with GPS coords: pickup=({data.pickup_lat:.6f}, {data.pickup_lng:.6f})")
+    else:
+        logger.info(f"[SUBCONTRACTING] Course created WITHOUT GPS coords (will skip arrival distance validation)")
     
     await db.courses.insert_one(course.model_dump())
     
