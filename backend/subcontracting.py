@@ -233,6 +233,14 @@ class ClaimToken(BaseModel):
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 # ============================================
+# MODELS - SUPPLEMENTS UPDATE
+# ============================================
+class SupplementsUpdate(BaseModel):
+    supplement_peage: Optional[float] = None
+    supplement_parking: Optional[float] = None
+    supplement_attente_minutes: Optional[int] = None
+
+# ============================================
 # MODELS - COMMISSION PAYMENTS
 # ============================================
 class CommissionPayment(BaseModel):
