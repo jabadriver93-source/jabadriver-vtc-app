@@ -28,7 +28,7 @@
     "driver_email": "chauffeur1@test.com",
     "driver_password": "test123",
     "test_claim_token": "jGDCBDJoJHP0fr3Lm3U5TuBrQzfJLxueKsKv3b00260",
-    "test_claim_url": "https://driver-claim-auth.preview.emergentagent.com/claim/jGDCBDJoJHP0fr3Lm3U5TuBrQzfJLxueKsKv3b00260"
+    "test_claim_url": "https://gps-validation.preview.emergentagent.com/claim/jGDCBDJoJHP0fr3Lm3U5TuBrQzfJLxueKsKv3b00260"
   },
   "seed_data_creation": "Created test course with claim token for testing redirect flow (course_id: f1618641-1e48-4818-8d5b-635c06f4b1c3)",
   "retest_needed": false,
@@ -38,7 +38,7 @@
     "test_1_unauthenticated_claim_page": {
       "status": "PASSED",
       "description": "Clicking 'Se connecter pour réserver' on claim page redirects to /driver/login?redirect=%2Fclaim%2F{token}",
-      "verified_url": "https://driver-claim-auth.preview.emergentagent.com/driver/login?redirect=%2Fclaim%2FjGDCBDJoJHP0fr3Lm3U5TuBrQzfJLxueKsKv3b00260"
+      "verified_url": "https://gps-validation.preview.emergentagent.com/driver/login?redirect=%2Fclaim%2FjGDCBDJoJHP0fr3Lm3U5TuBrQzfJLxueKsKv3b00260"
     },
     "test_2_login_with_redirect_param": {
       "status": "PASSED", 

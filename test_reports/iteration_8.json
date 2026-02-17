@@ -25,7 +25,7 @@
   "test_credentials": {
     "test_course_id": "318325c9-7f05-43f6-b8f5-aa2583609e25",
     "test_token": "VYGIP4_TxdLZODDSxI7rvtSQR3DQ63tJOLawViPbAn0",
-    "api_url": "https://driver-claim-auth.preview.emergentagent.com"
+    "api_url": "https://gps-validation.preview.emergentagent.com"
   },
   "seed_data_creation": "Used existing test ride data",
   "retest_needed": false,

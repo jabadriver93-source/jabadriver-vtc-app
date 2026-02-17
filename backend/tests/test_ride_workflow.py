@@ -18,7 +18,7 @@ import uuid
 # Get base URL from environment
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://driver-claim-auth.preview.emergentagent.com"
+    BASE_URL = "https://gps-validation.preview.emergentagent.com"
 
 # Test credentials
 DRIVER_EMAIL = "chauffeur1@test.com"
