@@ -3000,28 +3000,212 @@ async def send_ride_confirmed_to_admin(course: dict):
         logger.error(f"[EMAIL] ❌ Failed to send ride confirmed to admin | Error: {str(e)}")
 
 # ============================================
-# TOKEN-BASED DOCUMENT AND SUPPLEMENTS ENDPOINTS
-# For access via driver email link (no session required)
+# PDF GENERATION HELPER - Unified template
 # ============================================
-
-async def verify_driver_token_for_ride(ride_id: str, token: str):
-    """Verify driver access token and return course + driver info"""
-    course = await db.courses.find_one({"id": ride_id}, {"_id": 0})
-    if not course:
-        raise HTTPException(status_code=404, detail="Course non trouvée")
+def generate_document_pdf(course: dict, driver: dict, doc_type: str = 'bon') -> BytesIO:
+    """
+    Generate PDF document with unified template
     
-    if not course.get("driver_access_token") or course.get("driver_access_token") != token:
-        raise HTTPException(status_code=403, detail="Token d'accès invalide")
+    Args:
+        course: Course data dict
+        driver: Driver data dict
+        doc_type: 'bon' for bon de commande, 'facture' for invoice, 'facture_finale' for final invoice
     
-    # Get driver info
-    driver = None
-    if course.get("assigned_driver_id"):
-        driver = await db.drivers.find_one(
-            {"id": course["assigned_driver_id"]}, 
-            {"_id": 0, "password_hash": 0}
-        )
+    Returns:
+        BytesIO buffer containing PDF
+    """
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.units import cm
+    from reportlab.lib.colors import Color
+    from io import BytesIO
     
-    return course, driver
+    buffer = BytesIO()
+    c = canvas.Canvas(buffer, pagesize=A4)
+    width, height = A4
+    
+    course_id_short = course.get('id', '')[:8].upper()
+    is_final = doc_type == 'facture_finale' or course.get('invoice_status') == 'ISSUED'
+    
+    # Colors
+    primary_color = Color(0.2, 0.2, 0.25)  # Dark gray
+    accent_color = Color(0.1, 0.7, 0.5)    # Green
+    text_color = Color(0.3, 0.3, 0.35)
+    
+    # === HEADER ===
+    if doc_type == 'bon':
+        title = "BON DE COMMANDE VTC"
+        doc_num = f"BC-{course_id_short}"
+    elif is_final:
+        title = "FACTURE"
+        doc_num = course.get('invoice_number', f"F-{course_id_short}")
+    else:
+        title = "FACTURE PROVISOIRE"
+        doc_num = f"PRO-{course_id_short}"
+    
+    # Header background
+    c.setFillColor(Color(0.95, 0.95, 0.97))
+    c.rect(0, height - 3.5*cm, width, 3.5*cm, fill=1, stroke=0)
+    
+    # JABADRIVER Logo/Title
+    c.setFillColor(primary_color)
+    c.setFont("Helvetica-Bold", 22)
+    c.drawString(2*cm, height - 1.5*cm, "JABADRIVER")
+    c.setFont("Helvetica", 10)
+    c.setFillColor(text_color)
+    c.drawString(2*cm, height - 2.1*cm, "Service VTC Premium")
+    
+    # Document title
+    c.setFillColor(primary_color)
+    c.setFont("Helvetica-Bold", 14)
+    c.drawRightString(width - 2*cm, height - 1.5*cm, title)
+    c.setFont("Helvetica", 10)
+    c.setFillColor(text_color)
+    c.drawRightString(width - 2*cm, height - 2.1*cm, f"N° {doc_num}")
+    c.drawRightString(width - 2*cm, height - 2.6*cm, f"Date: {course.get('date', 'N/A')}")
+    
+    y = height - 5*cm
+    
+    # === PRESTATAIRE (DRIVER) ===
+    c.setFillColor(accent_color)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(2*cm, y, "PRESTATAIRE VTC")
+    y -= 0.6*cm
+    c.setFillColor(text_color)
+    c.setFont("Helvetica", 10)
+    
+    if driver:
+        c.drawString(2*cm, y, f"{driver.get('name', 'N/A')}")
+        y -= 0.45*cm
+        if driver.get('company_name') and driver.get('company_name') != driver.get('name'):
+            c.drawString(2*cm, y, f"{driver.get('company_name')}")
+            y -= 0.45*cm
+        if driver.get('siret'):
+            c.drawString(2*cm, y, f"SIRET: {driver.get('siret')}")
+            y -= 0.45*cm
+        if driver.get('address'):
+            c.drawString(2*cm, y, f"{driver.get('address')[:50]}")
+            y -= 0.45*cm
+        c.drawString(2*cm, y, f"Tél: {driver.get('phone', 'N/A')} | Email: {driver.get('email', 'N/A')}")
+    else:
+        c.drawString(2*cm, y, "Chauffeur non spécifié")
+    
+    # === CLIENT ===
+    y -= 1.2*cm
+    c.setFillColor(accent_color)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(2*cm, y, "CLIENT")
+    y -= 0.6*cm
+    c.setFillColor(text_color)
+    c.setFont("Helvetica", 10)
+    c.drawString(2*cm, y, f"{course.get('client_name', 'N/A')}")
+    y -= 0.45*cm
+    c.drawString(2*cm, y, f"Tél: {course.get('client_phone', 'N/A')}")
+    if course.get('client_email'):
+        y -= 0.45*cm
+        c.drawString(2*cm, y, f"Email: {course.get('client_email')}")
+    
+    # === COURSE DETAILS ===
+    y -= 1.2*cm
+    c.setFillColor(accent_color)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(2*cm, y, "DÉTAILS DE LA COURSE")
+    y -= 0.6*cm
+    c.setFillColor(text_color)
+    c.setFont("Helvetica", 10)
+    c.drawString(2*cm, y, f"Date & Heure: {course.get('date', 'N/A')} à {course.get('time', 'N/A')}")
+    y -= 0.5*cm
+    
+    # Pickup with green dot
+    c.setFillColor(Color(0.2, 0.8, 0.4))
+    c.circle(2.3*cm, y + 0.15*cm, 0.15*cm, fill=1, stroke=0)
+    c.setFillColor(text_color)
+    c.drawString(2.7*cm, y, f"Départ: {course.get('pickup_address', 'N/A')[:55]}")
+    y -= 0.5*cm
+    
+    # Dropoff with red dot
+    c.setFillColor(Color(0.9, 0.3, 0.3))
+    c.circle(2.3*cm, y + 0.15*cm, 0.15*cm, fill=1, stroke=0)
+    c.setFillColor(text_color)
+    c.drawString(2.7*cm, y, f"Arrivée: {course.get('dropoff_address', 'N/A')[:55]}")
+    
+    if course.get('distance_km'):
+        y -= 0.5*cm
+        c.drawString(2*cm, y, f"Distance: {course.get('distance_km')} km")
+    
+    # === TARIFICATION ===
+    y -= 1.5*cm
+    c.setFillColor(accent_color)
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(2*cm, y, "TARIFICATION")
+    
+    # Table header line
+    y -= 0.4*cm
+    c.setStrokeColor(Color(0.85, 0.85, 0.85))
+    c.setLineWidth(0.5)
+    c.line(2*cm, y, width - 2*cm, y)
+    y -= 0.5*cm
+    
+    # Calculate prices
+    price_base = course.get('price_base') or course.get('price_total', 0)
+    supplement_peage = course.get('supplement_peage', 0) or 0
+    supplement_parking = course.get('supplement_parking', 0) or 0
+    supplement_attente_minutes = course.get('supplement_attente_minutes', 0) or 0
+    supplement_attente = course.get('supplement_attente', 0) or supplement_attente_minutes * 0.5
+    
+    total = price_base + supplement_peage + supplement_parking + supplement_attente
+    
+    c.setFillColor(text_color)
+    c.setFont("Helvetica", 10)
+    
+    # Base price
+    c.drawString(2*cm, y, "Course VTC")
+    c.drawRightString(width - 2*cm, y, f"{price_base:.2f} €")
+    y -= 0.5*cm
+    
+    # Supplements
+    if supplement_peage > 0:
+        c.drawString(2*cm, y, "Péage")
+        c.drawRightString(width - 2*cm, y, f"+{supplement_peage:.2f} €")
+        y -= 0.5*cm
+    
+    if supplement_parking > 0:
+        c.drawString(2*cm, y, "Parking")
+        c.drawRightString(width - 2*cm, y, f"+{supplement_parking:.2f} €")
+        y -= 0.5*cm
+    
+    if supplement_attente_minutes > 0:
+        c.drawString(2*cm, y, f"Attente ({supplement_attente_minutes} min)")
+        c.drawRightString(width - 2*cm, y, f"+{supplement_attente:.2f} €")
+        y -= 0.5*cm
+    
+    # Total line
+    y -= 0.2*cm
+    c.setStrokeColor(Color(0.1, 0.7, 0.5))
+    c.setLineWidth(1.5)
+    c.line(2*cm, y, width - 2*cm, y)
+    y -= 0.6*cm
+    
+    c.setFillColor(primary_color)
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(2*cm, y, "TOTAL TTC")
+    c.setFillColor(accent_color)
+    c.drawRightString(width - 2*cm, y, f"{total:.2f} €")
+    
+    # === FOOTER / LEGAL ===
+    c.setFillColor(text_color)
+    c.setFont("Helvetica", 8)
+    
+    if doc_type in ['facture', 'facture_finale']:
+        c.drawString(2*cm, 3*cm, "TVA non applicable - Article 293B du CGI")
+    
+    c.drawString(2*cm, 2.5*cm, "JABADRIVER — Service VTC Premium Île-de-France")
+    c.drawString(2*cm, 2*cm, "Contact: contact@jabadriver.fr | WhatsApp disponible")
+    c.drawString(2*cm, 1.5*cm, f"Réf. course: #{course_id_short}")
+    
+    c.save()
+    buffer.seek(0)
+    return buffer
 
 @driver_router.get("/ride/{ride_id}/bon-commande-pdf")
 async def token_download_bon_commande(ride_id: str, token: str = Query(...)):
