@@ -2185,6 +2185,9 @@ async def send_driver_arrived_to_client(course: dict, driver: dict):
     
     Uses send_email_with_retry() for automatic 429 rate limit handling.
     Logs: [EMAIL][ARRIVED][CLIENT]
+    
+    IMPORTANT: Uses the client_portal_token from the linked reservation,
+    NOT the course ID (which would give 404 on /my-booking/).
     """
     client_email = course.get('client_email')
     if not client_email or not SENDER_EMAIL:
@@ -2194,7 +2197,8 @@ async def send_driver_arrived_to_client(course: dict, driver: dict):
     if not resend.api_key:
         resend.api_key = os.environ.get('RESEND_API_KEY', '')
     
-    course_id_short = course.get('id', '')[:8].upper()
+    course_id = course.get('id', '')
+    course_id_short = course_id[:8].upper()
     client_name = course.get('client_name', 'Client')
     driver_name = driver.get('company_name') or driver.get('name', 'Votre chauffeur') if driver else 'Votre chauffeur'
     driver_phone = driver.get('phone', '') if driver else ''
@@ -2207,9 +2211,22 @@ async def send_driver_arrived_to_client(course: dict, driver: dict):
     except:
         arrival_str = "maintenant"
     
-    # Client portal link
-    client_token = course.get('client_confirmation_token') or course.get('id')
-    client_url = f"{FRONTEND_URL}/my-booking/{course.get('id')}" if FRONTEND_URL else "#"
+    # Get the client_portal_token from the linked reservation
+    # This is the CORRECT token for /my-booking/{token}
+    client_url = "#"  # Fallback
+    if FRONTEND_URL:
+        try:
+            reservation = await db.reservations.find_one(
+                {"subcontracting_course_id": course_id},
+                {"client_portal_token": 1, "_id": 0}
+            )
+            if reservation and reservation.get("client_portal_token"):
+                client_url = f"{FRONTEND_URL}/my-booking/{reservation['client_portal_token']}"
+                logger.info(f"[EMAIL][ARRIVED][CLIENT] Using client_portal_token for course {course_id_short}")
+            else:
+                logger.warning(f"[EMAIL][ARRIVED][CLIENT] No client_portal_token found for course {course_id_short}")
+        except Exception as e:
+            logger.error(f"[EMAIL][ARRIVED][CLIENT] Failed to get client_portal_token: {e}")
     
     html_content = f"""
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
