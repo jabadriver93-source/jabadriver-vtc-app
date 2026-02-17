@@ -5,16 +5,25 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { getPostLoginRedirect, storeRedirectTarget, getRedirectFromParams } from '@/lib/authRedirect';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
 export default function DriverLoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const redirectUrl = searchParams.get('redirect'); // Get redirect URL from query params
   
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
+  
+  // On mount: store redirect from URL param to sessionStorage for persistence
+  useEffect(() => {
+    const redirectFromUrl = getRedirectFromParams(searchParams);
+    if (redirectFromUrl) {
+      storeRedirectTarget(redirectFromUrl);
+      console.log('[LOGIN] Stored redirect from URL param:', redirectFromUrl);
+    }
+  }, [searchParams]);
   
   // Set driver manifest and apple-touch-icon for PWA
   useEffect(() => {
