@@ -38,6 +38,13 @@ RESERVATION_DURATION_MINUTES = 3
 CLAIM_TOKEN_EXPIRY_MINUTES = 30
 SUBCONTRACTING_ENABLED = True  # Feature flag
 
+# Waiting time pricing configuration
+WAITING_FREE_MINUTES = 5  # First 5 minutes free
+WAITING_PRICE_PER_MINUTE = 1.0  # 1€ per minute after grace period
+WAITING_MAX_BILLABLE_MINUTES = 20  # Cap at 20 minutes (= 20€ max)
+WAITING_NO_SHOW_THRESHOLD_MINUTES = 20  # Can declare no-show after 20 minutes
+ARRIVAL_GPS_MAX_DISTANCE_METERS = 200  # Max distance from pickup to confirm arrival
+
 # Email rate limit protection
 EMAIL_RETRY_MAX_ATTEMPTS = 3
 EMAIL_RETRY_INITIAL_DELAY = 1.0  # seconds
