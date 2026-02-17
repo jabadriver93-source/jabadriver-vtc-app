@@ -1,0 +1,93 @@
+{
+  "summary": "Tested Jabadriver workflow iteration 14 - Client presence and driver localization features. All 4 requested corrections verified working: 1) 'Je suis présent' button works with toast, 2) 'Localiser client' button visible after presence confirmation, 3) Waiting fees automatically injected on START, 4) 'Client confirmé' message displayed correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_jabadriver_workflow_v14.py",
+    "/app/test_reports/pytest/pytest_workflow_v14.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "POST /api/client-portal/{token}/client-present endpoint correctly implements idempotent behavior (returns idempotent=true if already signaled)",
+    "Client GPS coordinates (client_lat, client_lng) stored correctly when provided in request",
+    "Waiting fees correctly calculated and injected (supplement_attente_minutes, supplement_attente_amount) in START endpoint when transitioning from DRIVER_ARRIVED",
+    "'Je suis présent' button correctly disabled after click and replaced with 'Présence signalée à HH:MM'",
+    "'Localiser client' button correctly visible only when client_present_time is set",
+    "'Client confirmé' message with timestamp correctly displayed when confirmed_at is present"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_jabadriver_workflow_v14.py"
+  ],
+  "success_rate": {
+    "backend": "100% (6 passed, 2 skipped - skips due to auth requirements for driver-ride endpoint)",
+    "frontend": "100% (all UI elements verified via Playwright)"
+  },
+  "test_credentials": {
+    "test_tokens": {
+      "driver_arrived_with_client_present": "e5x6PQTokVp1umye_6NIQtuoGleOnuurJqFHpJJE6qA",
+      "driver_completed_confirmed": "test-course-001"
+    },
+    "driver_access_tokens": {
+      "318325c9": "VYGIP4_TxdLZODDSxI7rvtSQR3DQ63tJOLawViPbAn0",
+      "test-course-001": "Z86uDpLHtxUURIwjePlsEv8Jj40ue3STbfyYWBiMuas"
+    }
+  },
+  "seed_data_creation": "Used existing test courses from previous iterations",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All 4 workflow corrections verified working. Client portal shows 'Présence signalée à HH:MM' after clicking 'Je suis présent'. Driver page shows 'Localiser client' button when client_present_time is set. DRIVER_COMPLETED status shows '✅ Client confirmé' with timestamp. Waiting fees (supplement_attente_amount) correctly injected on START.",
+  "features_verified": {
+    "1_je_suis_present_button": {
+      "status": "VERIFIED",
+      "endpoint": "POST /api/client-portal/{token}/client-present",
+      "behavior": "Button disabled after click, shows 'Présence signalée à HH:MM'",
+      "toast": "Success toast 'Merci, le chauffeur a été informé de votre présence !'"
+    },
+    "2_localiser_client_button": {
+      "status": "VERIFIED",
+      "visibility": "Visible when client_present_time is set",
+      "data_testid": "locate-client-btn",
+      "href_format": "Google Maps link with client GPS or pickup GPS fallback"
+    },
+    "3_waiting_fee_injection": {
+      "status": "VERIFIED",
+      "trigger": "START from DRIVER_ARRIVED status",
+      "fields_updated": ["supplement_attente_minutes", "supplement_attente_amount", "price_with_supplements"],
+      "calculation": "calculate_waiting_price() at line 3120 of subcontracting.py"
+    },
+    "4_client_confirme_message": {
+      "status": "VERIFIED",
+      "visibility": "Visible when status=DRIVER_COMPLETED and confirmed_at is set",
+      "display": "'✅ Client confirmé' + 'Confirmé à HH:MM'"
+    }
+  },
+  "playwright_verification": {
+    "client_portal_page": {
+      "url": "/my-booking/{token}",
+      "status_badge": "Chauffeur arrivé",
+      "presence_indicator": "Présence signalée à 23:35",
+      "track_driver_button": "Suivre mon chauffeur with GPS link",
+      "waiting_display": "101 min, 20.00 €"
+    },
+    "driver_ride_page_arrived": {
+      "url": "/driver/ride/{id}?token={token}",
+      "status_badge": "En attente client",
+      "client_present_message": "✅ Client présent depuis 23:35",
+      "localiser_client_button": "Visible with GPS link",
+      "waiting_display": "102 min, 20.00 €"
+    },
+    "driver_ride_page_completed": {
+      "url": "/driver/ride/test-course-001?token={token}",
+      "status_badge": "Terminée chauffeur",
+      "client_confirme_message": "✅ Client confirmé",
+      "confirmation_time": "Confirmé à 23:36"
+    }
+  }
+}
