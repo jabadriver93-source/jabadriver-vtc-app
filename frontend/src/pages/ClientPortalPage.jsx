@@ -577,6 +577,81 @@ export default function ClientPortalPage() {
               </div>
             )}
 
+            {/* Driver Arrived Alert with Waiting Counter */}
+            {reservation.status === 'DRIVER_ARRIVED' && (
+              <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-orange-500/20 rounded-full flex items-center justify-center">
+                      <Clock className="w-5 h-5 text-orange-400 animate-pulse" />
+                    </div>
+                    <div>
+                      <p className="text-orange-400 font-semibold">🚗 Votre chauffeur est arrivé !</p>
+                      {reservation.arrival_time && (
+                        <p className="text-gray-400 text-sm">
+                          Arrivé à {new Date(reservation.arrival_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Waiting time counter */}
+                {waitingInfo && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center px-2">
+                      <span className="text-gray-400 text-sm">Temps d'attente</span>
+                      <span className="text-white font-mono text-lg">{waitingInfo.waiting_minutes || 0} min</span>
+                    </div>
+                    
+                    {!waitingInfo.is_billable ? (
+                      <div className="bg-green-500/20 text-green-400 px-3 py-2 rounded-lg text-sm text-center">
+                        ⏱️ Gratuit encore {waitingInfo.free_minutes_remaining || 0} minutes
+                      </div>
+                    ) : (
+                      <div className="bg-orange-500/20 text-orange-400 px-3 py-2 rounded-lg text-sm">
+                        <div className="flex justify-between items-center">
+                          <span>Frais d'attente</span>
+                          <span className="font-bold">{(waitingInfo.waiting_price || 0).toFixed(2)} €</span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <p className="text-gray-500 text-xs text-center">
+                      5 min gratuites, puis 1€/min (max 20€)
+                    </p>
+                  </div>
+                )}
+
+                {/* "Je suis présent" button */}
+                {!reservation.client_present_time ? (
+                  <Button
+                    onClick={handlePresenceClick}
+                    disabled={presenceLoading}
+                    className="w-full h-12 bg-green-500 hover:bg-green-600 text-white font-semibold"
+                    data-testid="client-present-btn"
+                  >
+                    {presenceLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        Envoi en cours...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-5 h-5 mr-2" />
+                        ✅ Je suis présent
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <div className="bg-green-500/20 text-green-400 px-4 py-3 rounded-lg text-center">
+                    <CheckCircle className="w-5 h-5 inline mr-2" />
+                    Présence signalée à {new Date(reservation.client_present_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Invoice Status Warning */}
             {reservation.invoice_status === 'ISSUED' && (
               <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
