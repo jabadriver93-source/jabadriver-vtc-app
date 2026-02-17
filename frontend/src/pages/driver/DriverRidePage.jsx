@@ -649,59 +649,8 @@ export default function DriverRidePage() {
             </CardContent>
           </Card>
 
-          {/* Price Summary Card */}
-          <Card className="bg-gray-900 border-gray-800">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 bg-amber-500/20 rounded-lg flex items-center justify-center">
-                  <Euro className="w-5 h-5 text-amber-400" />
-                </div>
-                <p className="text-gray-400 text-sm">Récapitulatif financier</p>
-              </div>
-              
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Prix course</span>
-                  <span className="text-white">{ride?.price_total}€</span>
-                </div>
-                
-                {(ride?.supplement_peage > 0 || ride?.supplement_parking > 0 || ride?.supplement_attente_amount > 0) && (
-                  <>
-                    {ride?.supplement_peage > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Péage</span>
-                        <span className="text-white">+{ride.supplement_peage}€</span>
-                      </div>
-                    )}
-                    {ride?.supplement_parking > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Parking</span>
-                        <span className="text-white">+{ride.supplement_parking}€</span>
-                      </div>
-                    )}
-                    {ride?.supplement_attente_amount > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-gray-400">Attente ({ride.supplement_attente_minutes} min)</span>
-                        <span className="text-white">+{ride.supplement_attente_amount}€</span>
-                      </div>
-                    )}
-                  </>
-                )}
-                
-                <div className="flex justify-between text-red-400">
-                  <span>Commission payée</span>
-                  <span>-{ride?.commission_amount?.toFixed(2)}€</span>
-                </div>
-                
-                <div className="border-t border-gray-700 pt-2 mt-2">
-                  <div className="flex justify-between">
-                    <span className="text-white font-semibold">Votre gain net</span>
-                    <span className="text-green-400 font-bold text-lg">{netDriver.toFixed(2)}€</span>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Price Summary Card - Using unified template */}
+          <CourseFinancialSummary course={ride} showCommission={true} />
 
           {/* Notes if present */}
           {ride?.notes && (
