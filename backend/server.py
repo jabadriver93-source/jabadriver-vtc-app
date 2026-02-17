@@ -2106,6 +2106,173 @@ async def client_portal_cancellation_request(token: str, reason: Optional[str] =
     
     return {"message": message, "is_late_cancellation": is_late}
 
+# ============================================
+# CLIENT PRESENCE ENDPOINT (for client portal)
+# ============================================
+
+class ClientPresenceRequest(BaseModel):
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+
+@api_router.post("/client-portal/{token}/client-present")
+async def client_portal_client_present(token: str, data: Optional[ClientPresenceRequest] = None):
+    """
+    Client signals they are present at pickup location.
+    
+    Called from client portal page (/my-booking/:token).
+    Does NOT stop the waiting timer - just notifies driver and admin.
+    """
+    from subcontracting import send_email_with_retry, CourseStatusEnum
+    
+    # Find reservation by client_portal_token
+    reservation = await db.reservations.find_one({"client_portal_token": token}, {"_id": 0})
+    if not reservation:
+        raise HTTPException(status_code=404, detail="Réservation non trouvée")
+    
+    # Get linked course
+    course_id = reservation.get("subcontracting_course_id")
+    if not course_id:
+        raise HTTPException(status_code=400, detail="Aucune course liée à cette réservation")
+    
+    course = await db.courses.find_one({"id": course_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course non trouvée")
+    
+    current_status = course.get("status")
+    
+    # Must be DRIVER_ARRIVED to signal presence
+    if current_status != "DRIVER_ARRIVED":
+        if current_status == "ASSIGNED":
+            raise HTTPException(status_code=400, detail="Le chauffeur n'est pas encore arrivé")
+        elif current_status in ["IN_PROGRESS", "DRIVER_COMPLETED", "DONE"]:
+            return {
+                "success": True,
+                "message": "La course est déjà en cours ou terminée",
+                "idempotent": True,
+                "client_present": True
+            }
+        raise HTTPException(status_code=400, detail=f"Statut invalide: {current_status}")
+    
+    # IDEMPOTENT: If already present, just return success
+    if course.get("client_present_time"):
+        return {
+            "success": True,
+            "message": "Présence déjà signalée",
+            "client_present": True,
+            "client_present_time": course.get("client_present_time"),
+            "client_lat": course.get("client_lat"),
+            "client_lng": course.get("client_lng"),
+            "idempotent": True
+        }
+    
+    # Record client presence
+    client_present_time = datetime.now(timezone.utc).isoformat()
+    update_data = {
+        "client_present_time": client_present_time,
+        "client_present": True
+    }
+    
+    # Store client GPS coordinates if provided
+    client_lat = None
+    client_lng = None
+    if data and data.lat and data.lng:
+        client_lat = data.lat
+        client_lng = data.lng
+        update_data["client_lat"] = client_lat
+        update_data["client_lng"] = client_lng
+    
+    await db.courses.update_one(
+        {"id": course_id},
+        {"$set": update_data}
+    )
+    
+    logger.info(f"[CLIENT-PRESENT] ✅ Client present for course {course_id[:8]} at {client_present_time} | GPS: {client_lat}, {client_lng}")
+    
+    # Send notifications to driver and admin (non-blocking)
+    driver = None
+    if course.get("assigned_driver_id"):
+        driver = await db.drivers.find_one(
+            {"id": course["assigned_driver_id"]}, 
+            {"_id": 0, "password_hash": 0}
+        )
+    
+    # Get updated course for notifications
+    updated_course = await db.courses.find_one({"id": course_id}, {"_id": 0})
+    
+    # Send notification email to driver
+    if driver and driver.get("email"):
+        try:
+            driver_name = driver.get("name", "").split()[0] if driver.get("name") else "Chauffeur"
+            client_name = course.get("client_name", "Le client")
+            
+            # Build GPS link if coordinates available
+            gps_link_html = ""
+            if client_lat and client_lng:
+                gps_link_html = f"""
+                    <div style="text-align: center; margin: 20px 0;">
+                        <a href="https://www.google.com/maps/dir/?api=1&destination={client_lat},{client_lng}" 
+                           style="display: inline-block; background-color: #22c55e; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: 700;">
+                            📍 Localiser le client
+                        </a>
+                    </div>
+                """
+            
+            params = {
+                "from": SENDER_EMAIL,
+                "to": [driver["email"]],
+                "subject": f"✅ Client présent — Course #{course_id[:8].upper()}",
+                "html": f"""
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <div style="background: #22c55e; color: white; padding: 25px; text-align: center;">
+                        <h1 style="margin: 0;">✅ CLIENT PRÉSENT</h1>
+                    </div>
+                    <div style="padding: 25px; background: #F8FAFC;">
+                        <p style="font-size: 16px; color: #1e3a5f;">
+                            Bonjour {driver_name},
+                        </p>
+                        
+                        <div style="background: #dcfce7; border-left: 4px solid #22c55e; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                            <p style="margin: 0; font-weight: bold; color: #166534;">
+                                {client_name} vient de signaler sa présence !
+                            </p>
+                            <p style="margin: 5px 0 0 0; font-size: 14px; color: #166534;">
+                                Heure: {datetime.fromisoformat(client_present_time.replace('Z', '+00:00')).strftime('%H:%M')}
+                            </p>
+                        </div>
+                        
+                        {gps_link_html}
+                        
+                        <div style="background: white; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #e2e8f0;">
+                            <p style="margin: 5px 0;"><strong>📍 Adresse prise en charge:</strong></p>
+                            <p style="margin: 5px 0; color: #64748b;">{course.get('pickup_address', 'N/A')}</p>
+                        </div>
+                        
+                        <p style="color: #64748b; font-size: 13px; text-align: center;">
+                            Vous pouvez maintenant démarrer la course.
+                        </p>
+                    </div>
+                </div>
+                """
+            }
+            
+            result = await send_email_with_retry(params, "[EMAIL][CLIENT-PRESENT][DRIVER]")
+            if result.get("success"):
+                logger.info(f"[CLIENT-PRESENT] ✅ Email sent to driver {driver['email']}")
+            else:
+                logger.error(f"[CLIENT-PRESENT] ❌ Email to driver failed: {result.get('error')}")
+                
+        except Exception as e:
+            logger.error(f"[CLIENT-PRESENT] ❌ Failed to send driver notification: {e}")
+    
+    return {
+        "success": True,
+        "message": "Le chauffeur a été informé de votre présence !",
+        "client_present": True,
+        "client_present_time": client_present_time,
+        "client_lat": client_lat,
+        "client_lng": client_lng
+    }
+
 # Admin endpoint to flag abusive client
 @api_router.patch("/reservations/{reservation_id}/flag-abusive")
 async def flag_abusive_client(reservation_id: str, is_abusive: bool = True):
