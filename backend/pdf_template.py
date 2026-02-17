@@ -153,8 +153,8 @@ def generate_unified_pdf(
         title = "FACTURE"
         doc_num = course.get('invoice_number', f"F-{course_id_short}")
     else:
-        title = "FACTURE PROVISOIRE"
-        doc_num = f"PRO-{course_id_short}"
+        title = "FACTURE"
+        doc_num = f"F-{course_id_short}"
     
     # Calculate financials
     totals = calculate_totals(course)
