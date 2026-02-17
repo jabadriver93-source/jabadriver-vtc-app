@@ -287,3 +287,55 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 
 ### P4 - Connu mais non prioritaire
 - Correction icône PWA chauffeur (problème mineur)
+
+---
+
+## Recent Updates [2026-02-17]
+
+### 16. END Idempotent + Rate Limit Handling ✅ [2026-02-17]
+- **Problème PROD**: Le bouton "Terminer la course" échouait avec erreur 409 similaire au START
+- **Corrections Backend (`/api/driver/ride/{id}/end`)**:
+  - **END idempotent**: Si course déjà `DRIVER_COMPLETED`, retourne **200 OK** avec `{ idempotent: true, status: "DRIVER_COMPLETED" }`
+  - Même logique que START pour gérer les race conditions
+
+### 17. Email Assignment - Rate Limit Handling ✅ [2026-02-17]
+- **Problème PROD**: L'email d'attribution chauffeur n'était pas envoyé (429 Too Many Requests de Resend)
+- **Corrections**:
+  - **Variable d'environnement**: Utilisation de `SENDER_EMAIL_NEW` au lieu de `SENDER_EMAIL`
+  - **Helper `send_email_with_retry()`**: Gestion automatique des erreurs 429 avec exponential backoff (3 tentatives max)
+  - **Flag `assignment_email_sent`**: Évite les doublons d'email si la course est déjà marquée `ASSIGNED`
+  - **Bouton admin "Tester email chauffeur"**: Pour debug en production, affiche le `resend_id` dans le toast
+
+### 18. Unification Visuelle Documents Chauffeur ✅ [2026-02-17]
+- **Objectif**: Cohérence visuelle parfaite entre portail chauffeur, page token, et PDF téléchargés
+- **Logo JABADRIVER**:
+  - Affiché en haut de la page token (`/driver/ride/{id}?token=xxx`)
+  - Affiché en haut du portail chauffeur (`/driver/courses`)
+  - Intégré dans les PDF générés (bon de commande et facture)
+  - Largeur: ~240px, centré horizontalement, fond transparent
+- **Module PDF unifié (`/app/backend/pdf_template.py`)**:
+  - Utilise reportlab pour générer des PDF identiques au design frontend
+  - Couleurs et espacements alignés avec le composant `DriverDocumentTemplate.jsx`
+  - Sections: Logo → Header (titre/numéro) → Prestataire/Client → Détails course → Récapitulatif financier → Footer
+  - Commission affichée uniquement sur le bon de commande (pas sur la facture)
+- **Endpoints PDF**:
+  - Token-based: `GET /api/driver/ride/{id}/bon-commande-pdf?token=xxx`
+  - Token-based: `GET /api/driver/ride/{id}/invoice-pdf?token=xxx`
+  - Session-based: `GET /api/driver/courses/{id}/bon-commande-pdf` (Auth Bearer)
+  - Session-based: `GET /api/driver/courses/{id}/invoice-pdf` (Auth Bearer)
+- **Helper `verify_driver_token_for_ride()`**: Fonction centralisée pour vérifier le token d'accès chauffeur
+- **Test Results**: 100% (13/13 tests backend, tous tests frontend passés) - iteration_7.json
+
+## Key Files Reference
+
+### Backend
+- `/app/backend/server.py` - Main FastAPI server
+- `/app/backend/subcontracting.py` - Business logic, endpoints, email sending
+- `/app/backend/pdf_template.py` - **NEW** Unified PDF generation module
+- `/app/backend/assets/jabadriver_logo.png` - Logo for PDF generation
+
+### Frontend
+- `/app/frontend/src/pages/driver/DriverRidePage.jsx` - Token-based ride page with logo
+- `/app/frontend/src/pages/driver/DriverCoursesPage.jsx` - Driver portal with logo
+- `/app/frontend/src/components/driver/DriverDocumentTemplate.jsx` - Unified document components
+- `/app/frontend/public/jabadriver_logo.png` - Logo for frontend display
