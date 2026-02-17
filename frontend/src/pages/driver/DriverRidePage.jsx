@@ -276,23 +276,38 @@ export default function DriverRidePage() {
   };
 
   const downloadPDF = async (type) => {
-    // Use standard driver auth for PDF download
+    // Support both session auth and token auth for document downloads
     const driverToken = localStorage.getItem('driver_token');
-    if (!driverToken) {
-      toast.error('Connexion requise pour télécharger les documents');
-      return;
-    }
     
     try {
-      const endpoint = type === 'bon' 
-        ? `${API_URL}/api/driver/courses/${rideId}/bon-commande-pdf`
-        : `${API_URL}/api/driver/courses/${rideId}/invoice-pdf`;
+      let endpoint;
+      let fetchOptions = {};
       
-      const res = await fetch(endpoint, {
-        headers: { 'Authorization': `Bearer ${driverToken}` }
-      });
+      if (driverToken) {
+        // Session auth - use standard driver endpoints
+        endpoint = type === 'bon' 
+          ? `${API_URL}/api/driver/courses/${rideId}/bon-commande-pdf`
+          : `${API_URL}/api/driver/courses/${rideId}/invoice-pdf`;
+        fetchOptions = {
+          headers: { 'Authorization': `Bearer ${driverToken}` }
+        };
+      } else if (urlToken) {
+        // Token auth - use token-based endpoints
+        endpoint = type === 'bon' 
+          ? `${API_URL}/api/driver/ride/${rideId}/bon-commande-pdf?token=${urlToken}`
+          : `${API_URL}/api/driver/ride/${rideId}/invoice-pdf?token=${urlToken}`;
+      } else {
+        toast.error('Authentification requise');
+        return;
+      }
+      
+      toast.info('Génération du document en cours...');
+      
+      const res = await fetch(endpoint, fetchOptions);
       
       if (!res.ok) {
+        const errorText = await res.text();
+        console.error('[PDF] Download error:', res.status, errorText);
         toast.error('Erreur téléchargement');
         return;
       }
@@ -306,8 +321,56 @@ export default function DriverRidePage() {
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
+      
+      toast.success('Document téléchargé');
     } catch (err) {
+      console.error('[PDF] Exception:', err);
       toast.error('Erreur téléchargement');
+    }
+  };
+  
+  // Save supplements (supports both auth methods)
+  const saveSupplements = async () => {
+    setSavingSupplements(true);
+    
+    try {
+      let endpoint;
+      let fetchOptions = {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          supplement_peage: parseFloat(supplements.peage) || 0,
+          supplement_parking: parseFloat(supplements.parking) || 0,
+          supplement_attente_minutes: parseInt(supplements.attente_minutes) || 0
+        })
+      };
+      
+      if (sessionToken) {
+        endpoint = `${API_URL}/api/driver/courses/${rideId}/supplements`;
+        fetchOptions.headers['Authorization'] = `Bearer ${sessionToken}`;
+      } else if (urlToken) {
+        endpoint = `${API_URL}/api/driver/ride/${rideId}/supplements?token=${urlToken}`;
+      } else {
+        toast.error('Authentification requise');
+        return;
+      }
+      
+      const res = await fetch(endpoint, fetchOptions);
+      const data = await res.json();
+      
+      if (!res.ok) {
+        toast.error(data.detail || 'Erreur sauvegarde suppléments');
+        return;
+      }
+      
+      toast.success('Suppléments enregistrés');
+      setShowSupplementsModal(false);
+      fetchRide(); // Refresh ride data
+    } catch (err) {
+      console.error('[SUPPLEMENTS] Error:', err);
+      toast.error('Erreur sauvegarde');
+    } finally {
+      setSavingSupplements(false);
     }
   };
 
