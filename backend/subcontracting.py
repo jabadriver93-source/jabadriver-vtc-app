@@ -4022,6 +4022,58 @@ async def admin_test_driver_email(course_id: str):
             "sender_attempted": SENDER_EMAIL
         }
 
+
+@admin_subcontracting_router.get("/courses/{course_id}/platform-invoice-pdf")
+async def admin_get_platform_commission_invoice(course_id: str):
+    """
+    Generate Platform Commission Invoice PDF (Jabadriver → Driver).
+    
+    This is the invoice from Jabadriver to the driver for the commission fee.
+    Separate from driver→client invoices.
+    
+    Admin only endpoint.
+    """
+    logger.info(f"[PLATFORM-INVOICE] Generating commission invoice for course {course_id[:8]}")
+    
+    # Find course
+    course = await db.courses.find_one({"id": course_id}, {"_id": 0})
+    if not course:
+        # Try partial match
+        course = await db.courses.find_one({"id": {"$regex": f"^{course_id}", "$options": "i"}}, {"_id": 0})
+    
+    if not course:
+        logger.error(f"[PLATFORM-INVOICE] Course not found: {course_id}")
+        raise HTTPException(status_code=404, detail=f"Course not found: {course_id}")
+    
+    # Get driver info
+    driver_id = course.get("assigned_driver_id")
+    driver = None
+    if driver_id:
+        driver = await db.drivers.find_one({"id": driver_id}, {"_id": 0, "password_hash": 0})
+    
+    if not driver:
+        logger.warning(f"[PLATFORM-INVOICE] No driver assigned to course {course_id[:8]}, using placeholder")
+        driver = {"name": "Chauffeur non assigné", "email": "N/A", "siret": "N/A"}
+    
+    # Generate invoice number
+    from datetime import datetime
+    year = datetime.now().year
+    course_id_short = course.get('id', 'XXX')[:8].upper()
+    invoice_number = f"JABA-{year}-{course_id_short}"
+    
+    # Generate PDF
+    from pdf_template import generate_platform_commission_invoice
+    buffer = generate_platform_commission_invoice(course, driver, invoice_number)
+    
+    logger.info(f"[PLATFORM-INVOICE] ✅ Generated invoice {invoice_number} for driver {driver.get('name', 'N/A')}")
+    
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=facture-commission-{course_id_short}.pdf"}
+    )
+
+
 # ============================================
 # ADMIN ROUTES - COURSES MANAGEMENT
 # ============================================
