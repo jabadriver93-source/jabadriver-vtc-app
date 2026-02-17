@@ -613,12 +613,18 @@ async def send_course_assigned_notification(course: dict, driver: dict, payment_
             "html": html_content
         }
         
-        logger.info(f"[EMAIL] Sending course assigned notification to admin | Course: {course.get('id', '')[:8]}")
-        response = await asyncio.to_thread(resend.Emails.send, params)
-        logger.info(f"[EMAIL] ✅ Course assigned notification sent | Resend ID: {response.get('id', 'N/A')}")
+        logger.info(f"[EMAIL][ADMIN] Sending course assigned notification | Course: {course.get('id', '')[:8]}")
+        
+        # Use retry helper for rate limit protection
+        result = await send_email_with_retry(params, "[EMAIL][ADMIN]")
+        
+        if result.get("success"):
+            logger.info(f"[EMAIL][ADMIN] ✅ Notification sent | Resend ID: {result.get('resend_id', 'N/A')} | attempts={result.get('attempts', 1)}")
+        else:
+            logger.error(f"[EMAIL][ADMIN] ❌ Failed | error: {result.get('error', 'Unknown')}")
     except Exception as e:
-        logger.error(f"[EMAIL] ❌ Failed to send course assigned notification | Error: {str(e)}")
-        logger.exception("Full exception trace:")
+        logger.error(f"[EMAIL][ADMIN] ❌ Exception | Error: {str(e)}")
+        logger.exception("[EMAIL][ADMIN] Full exception trace:")
 
 async def send_course_assigned_to_client(course: dict, driver: dict):
     """Send email to client when a driver is assigned to their course"""
