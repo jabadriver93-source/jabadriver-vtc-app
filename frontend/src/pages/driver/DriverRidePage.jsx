@@ -431,8 +431,20 @@ export default function DriverRidePage() {
 
   return (
     <div className="min-h-screen bg-gray-950 pb-32">
+      {/* Logo Header */}
+      <div className="bg-gray-950 px-4 pt-6 pb-2">
+        <div className="max-w-lg mx-auto text-center">
+          <img 
+            src="/jabadriver_logo.png" 
+            alt="JABADRIVER" 
+            className="mx-auto"
+            style={{ maxWidth: '200px', height: 'auto' }}
+          />
+        </div>
+      </div>
+      
       {/* Header */}
-      <div className="bg-gradient-to-b from-amber-500/20 to-gray-950 px-4 pt-6 pb-8">
+      <div className="bg-gradient-to-b from-amber-500/20 to-gray-950 px-4 pt-4 pb-8">
         <div className="max-w-lg mx-auto">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-bold text-white">Ma Course</h1>
