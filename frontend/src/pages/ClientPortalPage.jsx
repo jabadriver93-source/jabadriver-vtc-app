@@ -147,22 +147,61 @@ export default function ClientPortalPage() {
     
     setPresenceLoading(true);
     try {
-      const res = await fetch(`${API_URL}/api/driver/ride/${reservation.id}/client-present?token=${reservation.id}`, {
+      // Try to get client's GPS location (optional)
+      let clientLat = null;
+      let clientLng = null;
+      
+      if (navigator.geolocation) {
+        try {
+          const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, {
+              enableHighAccuracy: true,
+              timeout: 5000,
+              maximumAge: 0
+            });
+          });
+          clientLat = position.coords.latitude;
+          clientLng = position.coords.longitude;
+          console.log('[PRESENCE] Got GPS:', clientLat, clientLng);
+        } catch (gpsError) {
+          console.log('[PRESENCE] GPS unavailable:', gpsError.message);
+          // Continue without GPS - it's optional
+        }
+      }
+      
+      // Use the correct client-portal endpoint with the token from URL
+      const res = await fetch(`${API_URL}/api/client-portal/${token}/client-present`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lat: clientLat,
+          lng: clientLng
+        })
       });
       
       const data = await res.json();
       
-      if (res.ok) {
+      if (res.ok && data.success) {
+        // Show success toast
+        toast.success('Merci, le chauffeur a été informé de votre présence !');
+        
         // Update reservation with presence time
-        setReservation(prev => ({ ...prev, client_present_time: data.client_present_time }));
-        // Refresh to get updated data
+        setReservation(prev => ({ 
+          ...prev, 
+          client_present_time: data.client_present_time,
+          client_lat: data.client_lat,
+          client_lng: data.client_lng
+        }));
+        
+        // Refresh to get fully updated data
         fetchReservation();
       } else {
+        const errorMsg = data.detail || data.message || 'Erreur lors de l\'envoi';
+        toast.error(errorMsg);
         console.error('[PRESENCE] Error:', data);
       }
     } catch (err) {
+      toast.error('Erreur de connexion');
       console.error('[PRESENCE] Network error:', err);
     } finally {
       setPresenceLoading(false);
