@@ -224,6 +224,17 @@ class Course(BaseModel):
     # Client confirmation
     client_confirmation_token: Optional[str] = None  # Token for client to confirm ride
     confirmed_at: Optional[str] = None  # When client confirmed the ride
+    # Driver arrival system (waiting time tracking)
+    arrival_time: Optional[str] = None  # Server timestamp when driver clicked "Je suis arrivé"
+    arrival_lat: Optional[float] = None  # GPS latitude when driver arrived
+    arrival_lng: Optional[float] = None  # GPS longitude when driver arrived
+    client_present_time: Optional[str] = None  # When client clicked "Je suis présent"
+    waiting_minutes: int = 0  # Total waiting time (calculated when ride starts)
+    waiting_billable_minutes: int = 0  # Billable minutes (after 5 min grace, max 20)
+    waiting_price: float = 0.0  # Waiting price (1€/min, max 20€)
+    arrival_email_sent: bool = False  # Idempotent flag for arrival email
+    # Admin notification flags
+    end_admin_notification_sent: bool = False  # Idempotent flag for end ride admin email
 
 # ============================================
 # MODELS - CLAIM TOKENS
