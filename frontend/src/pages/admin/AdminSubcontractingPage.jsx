@@ -138,6 +138,48 @@ export default function AdminSubcontractingPage() {
     }
   };
 
+  // Calculate route distance and get GPS coordinates
+  const calculateRoute = async () => {
+    if (!newCourse.pickup_address || !newCourse.dropoff_address) {
+      toast.error('Veuillez saisir les adresses de départ et d\'arrivée');
+      return;
+    }
+    
+    setCalculatingRoute(true);
+    try {
+      const params = new URLSearchParams({
+        origin: newCourse.pickup_address,
+        destination: newCourse.dropoff_address
+      });
+      
+      const res = await fetch(`${API_URL}/api/calculate-route?${params}`);
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.detail || 'Erreur calcul itinéraire');
+      
+      // Update form with route data including GPS coordinates
+      setNewCourse(prev => ({
+        ...prev,
+        distance_km: data.distance_km.toString(),
+        pickup_lat: data.pickup_lat,
+        pickup_lng: data.pickup_lng,
+        dropoff_lat: data.dropoff_lat,
+        dropoff_lng: data.dropoff_lng
+      }));
+      
+      toast.success(`Distance: ${data.distance_km} km • Durée: ${data.duration_text}`);
+      
+      // Log GPS coords for debugging
+      if (data.pickup_lat && data.pickup_lng) {
+        console.log(`[ROUTE] GPS coords: pickup=(${data.pickup_lat}, ${data.pickup_lng})`);
+      }
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setCalculatingRoute(false);
+    }
+  };
+
   const createCourse = async (e) => {
     e.preventDefault();
     try {
