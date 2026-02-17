@@ -11,6 +11,7 @@ import {
   MessageCircle, ExternalLink, Plus, X
 } from 'lucide-react';
 import { getDriverActions, logDriverActions } from '@/utils/driverActionsHelper';
+import { CourseFinancialSummary } from '@/components/driver/DriverDocumentTemplate';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
