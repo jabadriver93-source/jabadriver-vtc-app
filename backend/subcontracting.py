@@ -1924,6 +1924,51 @@ def get_driver_ride_url(course: dict) -> str:
         return ""
     return f"{FRONTEND_URL}/driver/ride/{course.get('id')}?token={course.get('driver_access_token')}"
 
+
+async def verify_driver_token_for_ride(ride_id: str, token: str) -> tuple:
+    """
+    Verify driver access token and return (course, driver) tuple.
+    
+    Args:
+        ride_id: Course ID
+        token: Driver access token
+    
+    Returns:
+        tuple: (course dict, driver dict)
+    
+    Raises:
+        HTTPException: If token invalid or course not found
+    """
+    if not SUBCONTRACTING_ENABLED:
+        raise HTTPException(status_code=503, detail="Module sous-traitance désactivé")
+    
+    course = await db.courses.find_one({"id": ride_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Course non trouvée")
+    
+    # Validate token
+    if not course.get("driver_access_token") or course.get("driver_access_token") != token:
+        logger.warning(f"[DRIVER-TOKEN] Invalid token for ride {ride_id[:8]}")
+        raise HTTPException(status_code=403, detail="Token d'accès invalide")
+    
+    # Token expires when ride is DONE
+    if course.get("status") == CourseStatusEnum.DONE:
+        raise HTTPException(status_code=403, detail="Cette course est terminée. Le lien n'est plus valide.")
+    
+    # Get driver info
+    driver = None
+    assigned_driver_id = course.get("assigned_driver_id")
+    if assigned_driver_id:
+        driver = await db.drivers.find_one(
+            {"id": assigned_driver_id}, 
+            {"_id": 0, "password_hash": 0}
+        )
+    
+    logger.info(f"[DRIVER-TOKEN] Verified token for ride {ride_id[:8]} | driver={assigned_driver_id[:8] if assigned_driver_id else 'N/A'}")
+    
+    return course, driver
+
+
 def simple_hash(password: str) -> str:
     """Simple hash for demo - use bcrypt in production"""
     import hashlib
