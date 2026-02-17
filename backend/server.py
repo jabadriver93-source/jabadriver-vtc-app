@@ -1583,7 +1583,22 @@ async def calculate_route(origin: str = Query(...), destination: str = Query(...
 
 @api_router.get("/client-portal/{token}")
 async def client_portal_get_reservation(token: str):
-    """Get reservation info via client portal token (public, no auth)"""
+    """
+    Get reservation info via client portal token (public, no auth).
+    
+    Returns display_status based on the REAL ride status from the linked course.
+    Includes all driver arrival and waiting info for client tracking.
+    
+    Status mapping:
+    - ASSIGNED → "En attente chauffeur"
+    - DRIVER_ARRIVED → "Chauffeur arrivé"
+    - IN_PROGRESS → "En cours"
+    - DRIVER_COMPLETED / DONE → "Terminée"
+    - NO_SHOW → "Client absent"
+    - CANCELLED_* → "Annulée"
+    """
+    from fastapi.responses import JSONResponse
+    
     reservation = await db.reservations.find_one(
         {"client_portal_token": token},
         {"_id": 0, "client_portal_token": 0}  # Don't expose token in response
@@ -1591,11 +1606,24 @@ async def client_portal_get_reservation(token: str):
     if not reservation:
         raise HTTPException(status_code=404, detail="Réservation non trouvée ou lien invalide")
     
-    # Check if there's a linked course in subcontracting and get its invoice status
+    # Check if there's a linked course in subcontracting and get its status
     course = None
     can_modify = True
     invoice_status = "DRAFT"
     assigned_driver_name = None
+    assigned_driver_phone = None
+    
+    # Real course status (used for display_status)
+    current_status = None
+    display_status = "En attente"
+    
+    # Driver arrival info
+    arrival_time = None
+    arrival_lat = None
+    arrival_lng = None
+    client_present_time = None
+    waiting_minutes = 0
+    waiting_price = 0.0
     
     if reservation.get("subcontracting_course_id"):
         course = await db.courses.find_one(
@@ -1606,7 +1634,34 @@ async def client_portal_get_reservation(token: str):
             invoice_status = course.get("invoice_status", "DRAFT")
             can_modify = invoice_status != "ISSUED"
             
-            # Get driver name if assigned
+            # Get REAL course status
+            current_status = course.get("status")
+            
+            # Map status to display text
+            status_mapping = {
+                "OPEN": "En attente",
+                "RESERVED": "En attente",
+                "ASSIGNED": "En attente chauffeur",
+                "DRIVER_ARRIVED": "Chauffeur arrivé",
+                "IN_PROGRESS": "En cours",
+                "DRIVER_COMPLETED": "Terminée",
+                "DONE": "Terminée",
+                "NO_SHOW": "Client absent",
+                "CANCELLED": "Annulée",
+                "CANCELLED_LATE_DRIVER": "Annulée",
+                "CANCELLED_LATE_CLIENT": "Annulée"
+            }
+            display_status = status_mapping.get(current_status, "En attente")
+            
+            # Driver arrival info
+            arrival_time = course.get("arrival_time")
+            arrival_lat = course.get("arrival_lat")
+            arrival_lng = course.get("arrival_lng")
+            client_present_time = course.get("client_present_time")
+            waiting_minutes = course.get("waiting_minutes", 0)
+            waiting_price = course.get("waiting_price", 0.0)
+            
+            # Get driver info if assigned
             if course.get("assigned_driver_id"):
                 driver = await db.drivers.find_one(
                     {"id": course["assigned_driver_id"]},
@@ -1614,8 +1669,10 @@ async def client_portal_get_reservation(token: str):
                 )
                 if driver:
                     assigned_driver_name = driver.get("company_name") or driver.get("name")
+                    assigned_driver_phone = driver.get("phone")
     
-    return {
+    # Build response with Cache-Control header to prevent Safari caching
+    response_data = {
         "id": reservation.get("id"),
         "name": reservation.get("name"),
         "date": reservation.get("date"),
@@ -1626,13 +1683,32 @@ async def client_portal_get_reservation(token: str):
         "estimated_price": reservation.get("estimated_price"),
         "distance_km": reservation.get("distance_km"),
         "duration_min": reservation.get("duration_min"),
+        # Legacy status field (from reservation)
         "status": reservation.get("status"),
+        # NEW: Real course status for accurate display
+        "current_status": current_status,
+        "display_status": display_status,
         "created_at": reservation.get("created_at"),
-        # New fields for modification
+        # Modification flags
         "can_modify": can_modify,
         "invoice_status": invoice_status,
-        "assigned_driver_name": assigned_driver_name
+        # Driver info
+        "assigned_driver_name": assigned_driver_name,
+        "assigned_driver_phone": assigned_driver_phone,
+        # Driver arrival/waiting info (for client tracking)
+        "arrival_time": arrival_time,
+        "arrival_lat": arrival_lat,
+        "arrival_lng": arrival_lng,
+        "client_present_time": client_present_time,
+        "waiting_minutes": waiting_minutes,
+        "waiting_price": waiting_price
     }
+    
+    # Return with no-cache headers for Safari
+    return JSONResponse(
+        content=response_data,
+        headers={"Cache-Control": "no-store, no-cache, must-revalidate, max-age=0"}
+    )
 
 @api_router.post("/client-portal/{token}/message")
 async def client_portal_send_message(token: str, data: ClientPortalMessage):
