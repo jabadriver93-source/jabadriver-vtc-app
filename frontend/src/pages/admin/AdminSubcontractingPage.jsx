@@ -302,21 +302,6 @@ export default function AdminSubcontractingPage() {
     }
   };
 
-  const downloadCommissionInvoice = async (courseId) => {
-    try {
-      const res = await fetch(`${API_URL}/api/admin/subcontracting/courses/${courseId}/commission-invoice-pdf`);
-      if (!res.ok) throw new Error('Erreur téléchargement');
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `commission_${courseId.slice(0,8)}.pdf`;
-      a.click();
-    } catch (err) {
-      toast.error(err.message);
-    }
-  };
-
   const getStatusColor = (status) => {
     switch (status) {
       case 'OPEN': return 'bg-sky-500/20 text-sky-400 border-sky-500/30';
