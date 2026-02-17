@@ -1,0 +1,128 @@
+{
+  "summary": "Tested platform commission invoice feature (Jabadriver → Chauffeur). All backend APIs working, frontend button present and functional. PDF downloads correctly with proper content.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_platform_commission_invoice.py",
+    "/app/test_reports/pytest/pytest_platform_invoice.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_platform_commission_invoice.py"
+  ],
+  "success_rate": {
+    "backend": "100% (13/13 tests passed)",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "test_course_id": "318325c9-7f05-43f6-b8f5-aa2583609e25",
+    "test_token": "VYGIP4_TxdLZODDSxI7rvtSQR3DQ63tJOLawViPbAn0",
+    "api_url": "https://ride-visual-sync.preview.emergentagent.com"
+  },
+  "seed_data_creation": "Used existing test ride data",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Platform commission invoice feature fully working. Endpoint GET /api/admin/subcontracting/courses/{id}/platform-invoice-pdf generates PDF. Frontend button 'Facture commission' visible on courses with assigned drivers.",
+  "features_verified": {
+    "platform_invoice_endpoint": {
+      "endpoint": "GET /api/admin/subcontracting/courses/{course_id}/platform-invoice-pdf",
+      "status": "WORKING",
+      "response": "HTTP 200, Content-Type: application/pdf, valid PDF"
+    },
+    "platform_invoice_404": {
+      "status": "WORKING",
+      "behavior": "Returns 404 for non-existent course"
+    },
+    "pdf_content_verification": {
+      "status": "WORKING",
+      "verified_elements": [
+        "FACTURE DE COMMISSION title",
+        "Invoice number JABA-{YEAR}-{COURSE_ID}",
+        "ÉMETTEUR: JABADRIVER SAS",
+        "CLIENT (CHAUFFEUR): Driver name + company + SIRET",
+        "OBJET: Commission de mise en relation",
+        "MONTANT COMMISSION TTC: 10% of course total",
+        "TVA mention"
+      ]
+    },
+    "frontend_button": {
+      "status": "WORKING",
+      "location": "AdminSubcontractingPage.jsx",
+      "button_text": "Facture commission",
+      "data-testid": "commission-invoice-btn-{course_id}",
+      "visibility": "Only visible on courses with assigned_driver",
+      "icon": "Receipt (emerald color)"
+    },
+    "download_functionality": {
+      "status": "WORKING",
+      "behavior": "Clicking button downloads PDF with filename facture-commission-{COURSE_ID}.pdf",
+      "toast": "Facture commission téléchargée"
+    },
+    "existing_endpoints_not_broken": {
+      "status": "WORKING",
+      "endpoints_verified": [
+        "GET /api/driver/ride/{id}?token=xxx",
+        "GET /api/driver/ride/{id}/bon-commande-pdf?token=xxx",
+        "GET /api/driver/ride/{id}/invoice-pdf?token=xxx",
+        "POST /api/driver/ride/{id}/start?token=xxx",
+        "POST /api/driver/ride/{id}/end?token=xxx"
+      ]
+    }
+  },
+  "test_details": {
+    "backend_tests": {
+      "TestPlatformCommissionInvoice": {
+        "test_platform_invoice_returns_200": "PASSED",
+        "test_platform_invoice_content_type_is_pdf": "PASSED",
+        "test_platform_invoice_is_valid_pdf": "PASSED",
+        "test_platform_invoice_has_correct_filename": "PASSED",
+        "test_platform_invoice_404_for_nonexistent_course": "PASSED"
+      },
+      "TestExistingEndpointsStillWork": {
+        "test_ride_details_returns_200": "PASSED",
+        "test_bon_commande_pdf_returns_200": "PASSED",
+        "test_invoice_pdf_returns_200": "PASSED",
+        "test_start_endpoint_exists": "PASSED (409 Conflict - expected for already processed ride)",
+        "test_end_endpoint_exists": "PASSED (409 Conflict - expected for already processed ride)"
+      },
+      "TestAdminSubcontractingEndpoints": {
+        "test_admin_courses_list": "PASSED",
+        "test_admin_drivers_list": "PASSED",
+        "test_test_course_exists_in_list": "PASSED"
+      }
+    },
+    "frontend_tests": {
+      "admin_subcontracting_page_loads": "PASSED",
+      "facture_commission_button_visible": "PASSED (16 buttons found for courses with drivers)",
+      "button_click_downloads_pdf": "PASSED",
+      "pdf_filename_correct": "PASSED - facture-commission-C511237A.pdf",
+      "success_toast_displayed": "PASSED - 'Facture commission téléchargée'"
+    }
+  },
+  "pdf_content_sample": {
+    "title": "FACTURE DE COMMISSION",
+    "invoice_number": "JABA-2026-C511237A",
+    "emetteur": "JABADRIVER SAS - Service de mise en relation VTC",
+    "client": "Jean Dupont (VTC Express) - SIRET: 123 456 789 00012",
+    "objet": "Commission de mise en relation — Course #C511237A",
+    "course_info": "Date course: 2025-12-22 | Client: Workflow Test Client",
+    "montant_course_ttc": "55.00 €",
+    "taux_commission": "10%",
+    "montant_commission_ttc": "5.50 €",
+    "tva_mention": "TVA non applicable — art. 293B du CGI"
+  },
+  "files_reference": {
+    "backend_endpoint": "/app/backend/subcontracting.py (lines 4026-4074)",
+    "pdf_generator": "/app/backend/pdf_template.py (function generate_platform_commission_invoice)",
+    "frontend_button": "/app/frontend/src/pages/admin/AdminSubcontractingPage.jsx (lines 38-66, 587-605)",
+    "platform_logo": "/app/backend/assets/logo_jabadriver_chauffeur.png"
+  }
+}
