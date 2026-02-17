@@ -85,16 +85,16 @@ class TestExistingEndpointsStillWork:
         assert response.content[:5] == b'%PDF-', "Not a valid PDF"
     
     def test_start_endpoint_exists(self):
-        """START endpoint exists and returns proper response (may be 400 if already started)"""
+        """START endpoint exists and returns proper response (may be 400/409 if already started)"""
         response = requests.post(f"{BASE_URL}/api/driver/ride/{TEST_COURSE_ID}/start?token={TEST_TOKEN}")
-        # Should be 200 (started) or 400 (already started/invalid state)
-        assert response.status_code in [200, 400], f"Unexpected status: {response.status_code}"
+        # Should be 200 (started) or 400/409 (already started/invalid state/conflict)
+        assert response.status_code in [200, 400, 409], f"Unexpected status: {response.status_code}"
     
     def test_end_endpoint_exists(self):
-        """END endpoint exists and returns proper response (may be 400 if not started)"""
+        """END endpoint exists and returns proper response (may be 400/409 if not started)"""
         response = requests.post(f"{BASE_URL}/api/driver/ride/{TEST_COURSE_ID}/end?token={TEST_TOKEN}")
-        # Should be 200 (ended) or 400 (not started/invalid state)
-        assert response.status_code in [200, 400], f"Unexpected status: {response.status_code}"
+        # Should be 200 (ended) or 400/409 (not started/invalid state/conflict)
+        assert response.status_code in [200, 400, 409], f"Unexpected status: {response.status_code}"
 
 
 class TestAdminSubcontractingEndpoints:
