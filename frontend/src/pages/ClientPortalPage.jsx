@@ -788,7 +788,8 @@ export default function ClientPortalPage() {
             Contacter l'équipe
           </Button>
 
-          {reservation.status !== 'cancelled' && canModify && (
+          {/* Show cancel button only if not cancelled/completed - check realStatus */}
+          {!['cancelled', 'CANCELLED', 'CANCELLED_LATE_DRIVER', 'CANCELLED_LATE_CLIENT', 'DONE', 'DRIVER_COMPLETED', 'NO_SHOW'].includes(realStatus) && canModify && (
             <Button 
               onClick={() => setShowCancelModal(true)}
               variant="ghost"
