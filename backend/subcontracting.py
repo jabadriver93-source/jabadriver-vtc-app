@@ -2992,11 +2992,34 @@ async def end_ride(ride_id: str, token: Optional[str] = Query(None, description=
         try:
             await send_ride_ended_to_client(updated_course, driver)
         except Exception as e:
-            logger.error(f"[RIDE] Failed to send ride ended notification: {e}")
+            logger.error(f"[RIDE] Failed to send ride ended notification to client: {e}")
+    
+    # IDEMPOTENT ADMIN EMAIL: Only send if not already sent (flag: end_admin_notification_sent)
+    if driver and updated_course and not updated_course.get('end_admin_notification_sent'):
+        try:
+            logger.info(f"[EMAIL-FLOW][ADMIN][RIDE-ENDED] Sending admin notification for ride {ride_id[:8]}")
+            
+            # Mark as sent BEFORE sending (optimistic) to prevent double sends on race condition
+            await db.courses.update_one(
+                {"id": ride_id},
+                {"$set": {"end_admin_notification_sent": True, "end_admin_notification_attempted_at": datetime.now(timezone.utc).isoformat()}}
+            )
+            
+            result = await send_ride_ended_to_admin(updated_course, driver)
+            
+            if result.get("success"):
+                logger.info(f"[EMAIL-FLOW][ADMIN][RIDE-ENDED] ✅ Admin notified for ride {ride_id[:8]} | Resend ID: {result.get('resend_id')}")
+            else:
+                logger.warning(f"[EMAIL-FLOW][ADMIN][RIDE-ENDED] ⚠️ Admin email failed for ride {ride_id[:8]}: {result.get('error')}")
+                
+        except Exception as e:
+            logger.error(f"[EMAIL-FLOW][ADMIN][RIDE-ENDED] ❌ Exception sending admin notification for ride {ride_id[:8]}: {e}")
+    elif updated_course and updated_course.get('end_admin_notification_sent'):
+        logger.info(f"[EMAIL-FLOW][ADMIN][RIDE-ENDED] ⏭️ SKIPPED (idempotent) - Admin already notified for ride {ride_id[:8]}")
     
     return {
         "success": True,
-        "message": "Course terminée ! Le client a été notifié.",
+        "message": "Course terminée ! Le client et l'admin ont été notifiés.",
         "status": CourseStatusEnum.DRIVER_COMPLETED,
         "ended_at": ended_at,
         "ended_by_driver_id": authenticated_driver_id
