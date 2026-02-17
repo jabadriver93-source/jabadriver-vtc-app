@@ -3,11 +3,14 @@ import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
   MapPin, Clock, Phone, User, Euro, FileText, 
   Loader2, Play, CheckCircle, AlertTriangle, Car, Navigation,
-  MessageCircle, ExternalLink
+  MessageCircle, ExternalLink, Plus, X
 } from 'lucide-react';
+import { getDriverActions, logDriverActions } from '@/utils/driverActionsHelper';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
