@@ -124,8 +124,10 @@ export default function DriverRidePage() {
 
   useEffect(() => {
     if (!authMode) {
-      setError('Authentification requise. Connectez-vous ou utilisez le lien email.');
-      setLoading(false);
+      // No token and no session - redirect to login with return URL
+      const currentPath = window.location.pathname + window.location.search;
+      console.log('[AUTH] No auth, redirecting to login with redirect:', currentPath);
+      navigate(`/driver/login?redirect=${encodeURIComponent(currentPath)}`);
       return;
     }
     fetchRide();
