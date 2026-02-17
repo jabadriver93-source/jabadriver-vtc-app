@@ -71,6 +71,11 @@ export default function DriverRidePage() {
     attente_minutes: ''
   });
   const [savingSupplements, setSavingSupplements] = useState(false);
+  
+  // Waiting time tracking
+  const [waitingInfo, setWaitingInfo] = useState(null);
+  const [arriveLoading, setArriveLoading] = useState(false);
+  const [gpsError, setGpsError] = useState(null);
 
   // Determine auth mode
   const authMode = urlToken ? 'token' : (sessionToken ? 'session' : null);
