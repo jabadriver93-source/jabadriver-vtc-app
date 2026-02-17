@@ -896,12 +896,21 @@ async def send_course_assigned_to_driver(course: dict, driver: dict):
         }
         
         logger.info(f"[EMAIL][ASSIGNED] Sending | from={actual_sender} | to={driver_email} | course={course_id_short}")
-        response = await asyncio.to_thread(resend.Emails.send, params)
-        resend_id = response.get('id', 'N/A') if isinstance(response, dict) else str(response)
-        logger.info(f"[EMAIL][ASSIGNED] ✅ SUCCESS | from={actual_sender} | to={driver_email} | course={course_id_short} | resend_id={resend_id}")
-        return {"success": True, "resend_id": resend_id, "from": actual_sender}
+        
+        # Use retry helper for rate limit protection
+        result = await send_email_with_retry(params, "[EMAIL][ASSIGNED]")
+        
+        if result.get("success"):
+            resend_id = result.get("resend_id", "N/A")
+            attempts = result.get("attempts", 1)
+            logger.info(f"[EMAIL][ASSIGNED] ✅ SUCCESS | from={actual_sender} | to={driver_email} | course={course_id_short} | resend_id={resend_id} | attempts={attempts}")
+            return {"success": True, "resend_id": resend_id, "from": actual_sender, "attempts": attempts}
+        else:
+            error = result.get("error", "Unknown error")
+            logger.error(f"[EMAIL][ASSIGNED] ❌ FAILED | from={actual_sender} | to={driver_email} | course={course_id_short} | error={error}")
+            return {"success": False, "error": error}
     except Exception as e:
-        logger.error(f"[EMAIL][ASSIGNED] ❌ FAILED | from={SENDER_EMAIL} | to={driver_email} | course={course_id_short} | error={str(e)}")
+        logger.error(f"[EMAIL][ASSIGNED] ❌ EXCEPTION | from={SENDER_EMAIL} | to={driver_email} | course={course_id_short} | error={str(e)}")
         logger.exception("[EMAIL][ASSIGNED] Full exception trace:")
         return {"success": False, "error": str(e)}
 
