@@ -429,6 +429,13 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 ### P0 - Prochaine Priorité
 - ⏳ **Système de Bonus / Parrainage Chauffeurs**: À implémenter
 
+### Correction Flux Client Portal ✅ [2026-12-17]
+- ✅ Lien email "Suivre mon chauffeur" corrigé (utilise client_portal_token)
+- ✅ Statut client correct (current_status de la course)
+- ✅ Bouton "Suivre mon chauffeur" avec GPS Google Maps
+- ✅ Cache-Control Safari
+- ✅ Tests 100% (iteration_13.json)
+
 ### P1 - Dashboard Statistiques Admin
 - Tableau de bord avec statistiques (courses, revenus, chauffeurs)
 - Graphiques d'évolution
