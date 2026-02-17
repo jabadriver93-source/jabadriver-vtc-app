@@ -84,6 +84,10 @@ export default function ClientPortalPage() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   
+  // Waiting time states
+  const [waitingInfo, setWaitingInfo] = useState(null);
+  const [presenceLoading, setPresenceLoading] = useState(false);
+  
   // Form states
   const [message, setMessage] = useState('');
   const [cancelReason, setCancelReason] = useState('');
@@ -109,6 +113,57 @@ export default function ClientPortalPage() {
   useEffect(() => {
     fetchReservation();
   }, [token]);
+  
+  // Fetch waiting info when driver has arrived
+  const fetchWaitingInfo = useCallback(async () => {
+    if (!reservation?.id) return;
+    try {
+      const res = await fetch(`${API_URL}/api/driver/ride/${reservation.id}/waiting-info?token=${reservation.id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setWaitingInfo(data);
+      }
+    } catch (err) {
+      console.error('[WAITING] Failed to fetch:', err);
+    }
+  }, [reservation?.id]);
+
+  // Poll waiting info every 30 seconds when DRIVER_ARRIVED
+  useEffect(() => {
+    if (reservation?.status === 'DRIVER_ARRIVED') {
+      fetchWaitingInfo();
+      const interval = setInterval(fetchWaitingInfo, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [reservation?.status, fetchWaitingInfo]);
+
+  // Handle client presence
+  const handlePresenceClick = async () => {
+    if (presenceLoading || reservation?.client_present_time) return;
+    
+    setPresenceLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/api/driver/ride/${reservation.id}/client-present?token=${reservation.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok) {
+        // Update reservation with presence time
+        setReservation(prev => ({ ...prev, client_present_time: data.client_present_time }));
+        // Refresh to get updated data
+        fetchReservation();
+      } else {
+        console.error('[PRESENCE] Error:', data);
+      }
+    } catch (err) {
+      console.error('[PRESENCE] Network error:', err);
+    } finally {
+      setPresenceLoading(false);
+    }
+  };
 
   // Load Google Maps script
   useEffect(() => {
