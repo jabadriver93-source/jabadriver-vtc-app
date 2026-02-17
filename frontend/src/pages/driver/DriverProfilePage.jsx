@@ -35,7 +35,8 @@ export default function DriverProfilePage() {
   useEffect(() => {
     const token = localStorage.getItem('driver_token');
     if (!token) {
-      navigate('/driver/login');
+      const currentPath = window.location.pathname;
+      navigate(`/driver/login?redirect=${encodeURIComponent(currentPath)}`);
       return;
     }
     fetchProfile(token);
@@ -49,7 +50,8 @@ export default function DriverProfilePage() {
       
       if (res.status === 401 || res.status === 403) {
         localStorage.removeItem('driver_token');
-        navigate('/driver/login');
+        const currentPath = window.location.pathname;
+        navigate(`/driver/login?redirect=${encodeURIComponent(currentPath)}`);
         return;
       }
       
