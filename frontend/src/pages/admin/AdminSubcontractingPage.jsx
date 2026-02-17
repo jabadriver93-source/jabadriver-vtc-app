@@ -810,7 +810,7 @@ export default function AdminSubcontractingPage() {
                     <Label className="text-slate-300 text-sm">Adresse départ *</Label>
                     <Input
                       value={newCourse.pickup_address}
-                      onChange={(e) => setNewCourse({...newCourse, pickup_address: e.target.value})}
+                      onChange={(e) => setNewCourse({...newCourse, pickup_address: e.target.value, pickup_lat: null, pickup_lng: null})}
                       className="bg-slate-700 border-slate-600 text-white"
                       required
                     />
@@ -820,10 +820,38 @@ export default function AdminSubcontractingPage() {
                     <Label className="text-slate-300 text-sm">Adresse arrivée *</Label>
                     <Input
                       value={newCourse.dropoff_address}
-                      onChange={(e) => setNewCourse({...newCourse, dropoff_address: e.target.value})}
+                      onChange={(e) => setNewCourse({...newCourse, dropoff_address: e.target.value, dropoff_lat: null, dropoff_lng: null})}
                       className="bg-slate-700 border-slate-600 text-white"
                       required
                     />
+                  </div>
+                  
+                  {/* Calculate route button */}
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      onClick={calculateRoute}
+                      disabled={calculatingRoute || !newCourse.pickup_address || !newCourse.dropoff_address}
+                      className="bg-amber-600 hover:bg-amber-700 text-white"
+                    >
+                      {calculatingRoute ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          Calcul...
+                        </>
+                      ) : (
+                        <>
+                          <Navigation className="w-4 h-4 mr-2" />
+                          Calculer la distance
+                        </>
+                      )}
+                    </Button>
+                    {newCourse.pickup_lat && newCourse.pickup_lng && (
+                      <span className="text-green-400 text-xs flex items-center gap-1">
+                        <CheckCircle className="w-3 h-3" />
+                        GPS validé
+                      </span>
+                    )}
                   </div>
                   
                   <div className="grid grid-cols-3 gap-3">
