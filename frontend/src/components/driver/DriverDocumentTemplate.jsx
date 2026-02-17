@@ -273,17 +273,34 @@ export function ClientInfoCard({ course }) {
 }
 
 /**
+ * LogoHeader - Centered logo for documents
+ */
+export function LogoHeader() {
+  return (
+    <div className="text-center mb-6 pb-4 border-b border-gray-700">
+      <img 
+        src="/jabadriver_logo.png" 
+        alt="JABADRIVER" 
+        className="mx-auto"
+        style={{ maxWidth: '240px', height: 'auto' }}
+      />
+    </div>
+  );
+}
+
+/**
  * DocumentHeader - Header for documents (bon de commande / facture)
  */
 export function DocumentHeader({ 
   type = 'bon', // 'bon' | 'facture' | 'facture_finale'
   courseId, 
   invoiceNumber,
-  date 
+  date,
+  showLogo = true
 }) {
   const titles = {
     bon: 'BON DE COMMANDE VTC',
-    facture: 'FACTURE PROVISOIRE',
+    factura: 'FACTURE PROVISOIRE',
     facture_finale: 'FACTURE'
   };
   
@@ -293,16 +310,19 @@ export function DocumentHeader({
     : `${type === 'bon' ? 'BC' : 'PRO'}-${shortId}`;
   
   return (
-    <div className="flex justify-between items-start mb-6 pb-4 border-b border-gray-700">
-      <div>
-        <h2 className="text-xl font-bold text-white">{titles[type]}</h2>
-        <p className="text-gray-400 text-sm mt-1">N° {docNumber}</p>
+    <>
+      {showLogo && <LogoHeader />}
+      <div className="flex justify-between items-start mb-6 pb-4 border-b border-gray-700">
+        <div>
+          <h2 className="text-xl font-bold text-white">{titles[type] || titles.factura}</h2>
+          <p className="text-gray-400 text-sm mt-1">N° {docNumber}</p>
+        </div>
+        <div className="text-right text-gray-400 text-sm">
+          <p>Date: {date || formatDate(new Date().toISOString())}</p>
+          <p className="text-xs mt-1">Réf: #{shortId}</p>
+        </div>
       </div>
-      <div className="text-right text-gray-400 text-sm">
-        <p>Date: {date || formatDate(new Date().toISOString())}</p>
-        <p className="text-xs mt-1">Réf: #{shortId}</p>
-      </div>
-    </div>
+    </>
   );
 }
 
