@@ -98,6 +98,95 @@ async def send_email_with_retry(params: dict, context: str, max_attempts: int = 
     return {"success": False, "error": last_error, "attempts": max_attempts}
 
 # ============================================
+# GPS DISTANCE HELPERS
+# ============================================
+def haversine_distance(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+    """
+    Calculate the great circle distance between two points on Earth (in meters).
+    Uses the Haversine formula.
+    """
+    R = 6371000  # Earth's radius in meters
+    
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lng2 - lng1)
+    
+    a = math.sin(delta_phi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(delta_lambda / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    
+    return R * c
+
+# ============================================
+# WAITING TIME CALCULATION HELPERS
+# ============================================
+def calculate_waiting_price(arrival_time_str: str, end_time_str: Optional[str] = None) -> dict:
+    """
+    Calculate waiting time and price based on Jabadriver rules:
+    - First 5 minutes: FREE
+    - 5-25 minutes: 1€/minute
+    - Maximum billable: 20 minutes = 20€
+    
+    Args:
+        arrival_time_str: ISO timestamp when driver arrived
+        end_time_str: ISO timestamp when ride started (or now if not provided)
+    
+    Returns:
+        dict with waiting_minutes, waiting_billable_minutes, waiting_price
+    """
+    try:
+        arrival_time = datetime.fromisoformat(arrival_time_str.replace('Z', '+00:00'))
+        
+        if end_time_str:
+            end_time = datetime.fromisoformat(end_time_str.replace('Z', '+00:00'))
+        else:
+            end_time = datetime.now(timezone.utc)
+        
+        # Total waiting duration in minutes
+        waiting_duration = end_time - arrival_time
+        waiting_minutes = max(0, int(waiting_duration.total_seconds() / 60))
+        
+        # Billable minutes (after 5 min grace, max 20)
+        billable_minutes = max(0, waiting_minutes - WAITING_FREE_MINUTES)
+        billable_minutes = min(billable_minutes, WAITING_MAX_BILLABLE_MINUTES)
+        
+        # Price calculation (1€/min, max 20€)
+        waiting_price = billable_minutes * WAITING_PRICE_PER_MINUTE
+        
+        return {
+            "waiting_minutes": waiting_minutes,
+            "waiting_billable_minutes": billable_minutes,
+            "waiting_price": waiting_price
+        }
+    except Exception as e:
+        logger.error(f"[WAITING] Error calculating waiting price: {e}")
+        return {
+            "waiting_minutes": 0,
+            "waiting_billable_minutes": 0,
+            "waiting_price": 0.0
+        }
+
+def get_realtime_waiting_info(arrival_time_str: str) -> dict:
+    """
+    Get real-time waiting info for display purposes.
+    Returns current waiting state without finalizing it.
+    """
+    result = calculate_waiting_price(arrival_time_str)
+    
+    # Add extra info for frontend display
+    waiting_minutes = result["waiting_minutes"]
+    free_remaining = max(0, WAITING_FREE_MINUTES - waiting_minutes)
+    
+    return {
+        **result,
+        "free_minutes_remaining": free_remaining,
+        "is_billable": waiting_minutes > WAITING_FREE_MINUTES,
+        "can_declare_no_show": waiting_minutes >= WAITING_NO_SHOW_THRESHOLD_MINUTES,
+        "max_billable_minutes": WAITING_MAX_BILLABLE_MINUTES,
+        "price_per_minute": WAITING_PRICE_PER_MINUTE
+    }
+
+# ============================================
 # MODELS - CHAUFFEURS
 # ============================================
 class DriverCreate(BaseModel):
