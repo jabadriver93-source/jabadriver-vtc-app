@@ -331,11 +331,36 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 ### Backend
 - `/app/backend/server.py` - Main FastAPI server
 - `/app/backend/subcontracting.py` - Business logic, endpoints, email sending
-- `/app/backend/pdf_template.py` - **NEW** Unified PDF generation module
-- `/app/backend/assets/jabadriver_logo.png` - Logo for PDF generation
+- `/app/backend/pdf_template.py` - Unified PDF generation module (driver docs + platform commission invoice)
+- `/app/backend/assets/jabadriver_logo.png` - Logo for driver documents (bon de commande, facture)
+- `/app/backend/assets/logo_jabadriver_chauffeur.png` - Logo for platform commission invoice
 
 ### Frontend
 - `/app/frontend/src/pages/driver/DriverRidePage.jsx` - Token-based ride page with logo
 - `/app/frontend/src/pages/driver/DriverCoursesPage.jsx` - Driver portal with logo
+- `/app/frontend/src/pages/admin/AdminSubcontractingPage.jsx` - Admin subcontracting with "Facture commission" button
 - `/app/frontend/src/components/driver/DriverDocumentTemplate.jsx` - Unified document components
 - `/app/frontend/public/jabadriver_logo.png` - Logo for frontend display
+
+---
+
+## Recent Updates [2026-02-17]
+
+### 19. Facture Commission Plateforme (Jabadriver → Chauffeur) ✅ [2026-02-17]
+- **Objectif**: Pouvoir générer une facture officielle Jabadriver → Chauffeur pour chaque commission payée
+- **Endpoint**: `GET /api/admin/subcontracting/courses/{id}/platform-invoice-pdf` (admin only)
+- **Bouton UI**: "Facture commission" (vert emerald) ajouté dans la carte course admin (visible quand chauffeur assigné)
+- **PDF généré**:
+  - **Logo**: JABADRIVER CHAUFFEUR (logo_jabadriver_chauffeur.png)
+  - **Émetteur**: JABADRIVER SAS - Service de mise en relation VTC
+  - **Client**: Nom chauffeur + Société + SIRET + Email
+  - **Objet**: Commission de mise en relation — Course #{course_id}
+  - **Montant**: Commission 10% du total course TTC
+  - **TVA**: TVA non applicable — art. 293B du CGI
+  - **Numéro facture**: JABA-{ANNÉE}-{COURSE_ID}
+- **Séparation des flux**:
+  - ✅ Facture chauffeur → client (existante, non modifiée)
+  - ✅ Facture Jabadriver → chauffeur (NOUVEAU)
+  - Commission JAMAIS affichée sur documents client
+- **Non-régression confirmée**: START/END idempotent, Emails Resend, Factures chauffeur existantes, Token driver pages
+- **Test Results**: 100% (13/13 backend, 100% frontend) - iteration_8.json
