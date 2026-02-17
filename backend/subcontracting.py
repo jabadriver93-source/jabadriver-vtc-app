@@ -37,6 +37,57 @@ RESERVATION_DURATION_MINUTES = 3
 CLAIM_TOKEN_EXPIRY_MINUTES = 30
 SUBCONTRACTING_ENABLED = True  # Feature flag
 
+# Email rate limit protection
+EMAIL_RETRY_MAX_ATTEMPTS = 3
+EMAIL_RETRY_INITIAL_DELAY = 1.0  # seconds
+EMAIL_DELAY_BETWEEN_SENDS = 0.6  # seconds (Resend limit is 2 req/s)
+
+# ============================================
+# EMAIL HELPER WITH RETRY
+# ============================================
+async def send_email_with_retry(params: dict, context: str, max_attempts: int = EMAIL_RETRY_MAX_ATTEMPTS) -> dict:
+    """
+    Send email via Resend with automatic retry on 429 (rate limit).
+    
+    Args:
+        params: Resend email params (from, to, subject, html)
+        context: Log context string (e.g., "[EMAIL][ASSIGNED]")
+        max_attempts: Maximum retry attempts
+    
+    Returns:
+        dict with success, resend_id, or error
+    """
+    last_error = None
+    
+    for attempt in range(1, max_attempts + 1):
+        try:
+            response = await asyncio.to_thread(resend.Emails.send, params)
+            resend_id = response.get('id', 'N/A') if isinstance(response, dict) else str(response)
+            
+            if attempt > 1:
+                logger.info(f"{context}[RETRY] ✅ SUCCESS on attempt {attempt} | resend_id={resend_id}")
+            
+            return {"success": True, "resend_id": resend_id, "attempts": attempt}
+            
+        except Exception as e:
+            last_error = str(e)
+            is_rate_limit = "429" in last_error or "Too Many Requests" in last_error or "rate" in last_error.lower()
+            
+            if is_rate_limit and attempt < max_attempts:
+                # Exponential backoff: 1s, 2s, 4s
+                delay = EMAIL_RETRY_INITIAL_DELAY * (2 ** (attempt - 1))
+                logger.warning(f"{context}[RETRY] ⏳ Rate limit (429) on attempt {attempt}/{max_attempts} | Waiting {delay}s before retry...")
+                await asyncio.sleep(delay)
+            elif attempt < max_attempts:
+                # Non-rate-limit error, still retry with shorter delay
+                delay = 0.5
+                logger.warning(f"{context}[RETRY] ⚠️ Error on attempt {attempt}/{max_attempts}: {last_error[:100]} | Retrying in {delay}s...")
+                await asyncio.sleep(delay)
+            else:
+                logger.error(f"{context}[RETRY] ❌ FAILED after {max_attempts} attempts | Last error: {last_error}")
+    
+    return {"success": False, "error": last_error, "attempts": max_attempts}
+
 # ============================================
 # MODELS - CHAUFFEURS
 # ============================================
