@@ -2167,8 +2167,234 @@ async def send_ride_ended_to_admin(course: dict, driver: dict):
 
 
 # ============================================
-# HELPER - Generate driver ride URL with token
+# EMAIL - DRIVER ARRIVED (to client)
 # ============================================
+async def send_driver_arrived_to_client(course: dict, driver: dict):
+    """
+    Email to client when driver arrives at pickup location.
+    
+    Uses send_email_with_retry() for automatic 429 rate limit handling.
+    Logs: [EMAIL][ARRIVED][CLIENT]
+    """
+    client_email = course.get('client_email')
+    if not client_email or not SENDER_EMAIL:
+        logger.warning("[EMAIL][ARRIVED][CLIENT] Skipping - email not configured")
+        return {"success": False, "error": "Email not configured"}
+    
+    if not resend.api_key:
+        resend.api_key = os.environ.get('RESEND_API_KEY', '')
+    
+    course_id_short = course.get('id', '')[:8].upper()
+    client_name = course.get('client_name', 'Client')
+    driver_name = driver.get('company_name') or driver.get('name', 'Votre chauffeur') if driver else 'Votre chauffeur'
+    driver_phone = driver.get('phone', '') if driver else ''
+    
+    # Format arrival time
+    arrival_time = course.get('arrival_time', '')
+    try:
+        dt = datetime.fromisoformat(arrival_time.replace('Z', '+00:00'))
+        arrival_str = dt.strftime("%H:%M")
+    except:
+        arrival_str = "maintenant"
+    
+    # Client portal link
+    client_token = course.get('client_confirmation_token') or course.get('id')
+    client_url = f"{FRONTEND_URL}/my-booking/{course.get('id')}" if FRONTEND_URL else "#"
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #0ea5e9; color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0;">🚗 VOTRE CHAUFFEUR EST ARRIVÉ</h1>
+            <p style="margin: 10px 0 0 0; opacity: 0.9;">Il vous attend au point de prise en charge</p>
+        </div>
+        <div style="padding: 30px; background: #F8FAFC;">
+            
+            <div style="background: #e0f2fe; border-left: 4px solid #0ea5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0; font-weight: bold; color: #0369a1;">⏰ Arrivé à {arrival_str}</p>
+                <p style="margin: 5px 0 0 0; font-size: 14px; color: #0369a1;">
+                    <strong>5 minutes d'attente gratuites</strong>, puis 1€/minute (max 20€).
+                </p>
+            </div>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <h3 style="margin-top: 0; color: #1e3a5f;">👤 Votre chauffeur</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 8px 0; color: #64748b; width: 40%;">Nom :</td>
+                        <td style="padding: 8px 0; font-weight: bold;">{driver_name}</td>
+                    </tr>
+                    {"<tr><td style='padding: 8px 0; color: #64748b;'>Téléphone :</td><td style='padding: 8px 0;'><a href='tel:" + driver_phone + "' style='color: #0ea5e9;'>" + driver_phone + "</a></td></tr>" if driver_phone else ""}
+                </table>
+            </div>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <h3 style="margin-top: 0; color: #1e3a5f;">📍 Prise en charge</h3>
+                <p style="margin: 5px 0; color: #475569;">{course.get('pickup_address', 'N/A')}</p>
+                <p style="margin: 5px 0; color: #64748b; font-size: 14px;">📅 {course.get('date', 'N/A')} à {course.get('time', 'N/A')}</p>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="{client_url}" style="display: inline-block; background-color: #0ea5e9; color: white; padding: 15px 35px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 16px;">
+                    📱 SUIVRE MON CHAUFFEUR
+                </a>
+            </div>
+            
+            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0; font-size: 13px; color: #92400e;">
+                    <strong>💡 Conseil :</strong> Rejoignez votre chauffeur dès que possible pour éviter les frais d'attente.
+                </p>
+            </div>
+            
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 8px;">
+                <p style="margin: 0; color: #64748b; font-size: 12px;">
+                    <strong>JABADRIVER</strong><br/>
+                    Module de sous-traitance VTC
+                </p>
+            </div>
+        </div>
+    </div>
+    """
+    
+    params = {
+        "from": SENDER_EMAIL,
+        "to": [client_email],
+        "subject": f"🚗 Votre chauffeur Jabadriver est arrivé — #{course_id_short}",
+        "html": html_content
+    }
+    
+    logger.info(f"[EMAIL][ARRIVED][CLIENT] Sending | Course: {course_id_short} | Client: {client_email}")
+    
+    result = await send_email_with_retry(params, "[EMAIL][ARRIVED][CLIENT]")
+    
+    if result.get("success"):
+        logger.info(f"[EMAIL][ARRIVED][CLIENT] ✅ Sent | Resend ID: {result.get('resend_id')}")
+    else:
+        logger.error(f"[EMAIL][ARRIVED][CLIENT] ❌ Failed | Error: {result.get('error')}")
+    
+    return result
+
+
+# ============================================
+# EMAIL - CLIENT PRESENT (to driver + admin)
+# ============================================
+async def send_client_present_to_driver(course: dict, driver: dict):
+    """
+    Email to driver when client clicks "Je suis présent".
+    
+    Logs: [EMAIL][CLIENT_PRESENT][DRIVER]
+    """
+    driver_email = driver.get('email') if driver else None
+    if not driver_email or not SENDER_EMAIL:
+        logger.warning("[EMAIL][CLIENT_PRESENT][DRIVER] Skipping - email not configured")
+        return {"success": False, "error": "Email not configured"}
+    
+    if not resend.api_key:
+        resend.api_key = os.environ.get('RESEND_API_KEY', '')
+    
+    course_id_short = course.get('id', '')[:8].upper()
+    client_name = course.get('client_name', 'Le client')
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #22c55e; color: white; padding: 30px; text-align: center;">
+            <h1 style="margin: 0;">✅ CLIENT SUR PLACE</h1>
+        </div>
+        <div style="padding: 30px; background: #F8FAFC;">
+            
+            <div style="background: #dcfce7; border-left: 4px solid #22c55e; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0; font-weight: bold; color: #166534;">🎉 {client_name} vous a signalé sa présence !</p>
+                <p style="margin: 5px 0 0 0; font-size: 14px; color: #166534;">
+                    Vous pouvez démarrer la course dès que le client est à bord.
+                </p>
+            </div>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <h3 style="margin-top: 0; color: #1e3a5f;">📋 Course #{course_id_short}</h3>
+                <p style="margin: 5px 0;"><strong>Date :</strong> {course.get('date', 'N/A')} à {course.get('time', 'N/A')}</p>
+                <p style="margin: 5px 0;"><strong>Client :</strong> {client_name}</p>
+                <p style="margin: 5px 0;"><strong>Téléphone :</strong> <a href="tel:{course.get('client_phone', '')}" style="color: #0ea5e9;">{course.get('client_phone', 'N/A')}</a></p>
+            </div>
+            
+            <div style="text-align: center; margin: 20px 0; padding: 15px; background: #f8fafc; border-radius: 8px;">
+                <p style="margin: 0; color: #64748b; font-size: 12px;">
+                    <strong>JABADRIVER</strong>
+                </p>
+            </div>
+        </div>
+    </div>
+    """
+    
+    params = {
+        "from": SENDER_EMAIL,
+        "to": [driver_email],
+        "subject": f"✅ Client sur place — Course #{course_id_short}",
+        "html": html_content
+    }
+    
+    logger.info(f"[EMAIL][CLIENT_PRESENT][DRIVER] Sending | Course: {course_id_short}")
+    
+    result = await send_email_with_retry(params, "[EMAIL][CLIENT_PRESENT][DRIVER]")
+    
+    if result.get("success"):
+        logger.info(f"[EMAIL][CLIENT_PRESENT][DRIVER] ✅ Sent | Resend ID: {result.get('resend_id')}")
+    else:
+        logger.error(f"[EMAIL][CLIENT_PRESENT][DRIVER] ❌ Failed | Error: {result.get('error')}")
+    
+    return result
+
+
+async def send_client_present_to_admin(course: dict, driver: dict):
+    """
+    Email to admin when client confirms presence.
+    
+    Logs: [EMAIL][CLIENT_PRESENT][ADMIN]
+    """
+    if not ADMIN_EMAIL or not SENDER_EMAIL:
+        logger.warning("[EMAIL][CLIENT_PRESENT][ADMIN] Skipping - email not configured")
+        return {"success": False, "error": "Email not configured"}
+    
+    if not resend.api_key:
+        resend.api_key = os.environ.get('RESEND_API_KEY', '')
+    
+    course_id_short = course.get('id', '')[:8].upper()
+    client_name = course.get('client_name', 'Client')
+    driver_name = driver.get('company_name') or driver.get('name', 'Chauffeur') if driver else 'Chauffeur'
+    
+    # Calculate waiting so far
+    arrival_time = course.get('arrival_time')
+    waiting_info = get_realtime_waiting_info(arrival_time) if arrival_time else {}
+    
+    html_content = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: #3b82f6; color: white; padding: 20px; text-align: center;">
+            <h1 style="margin: 0; font-size: 20px;">📍 CLIENT PRÉSENT</h1>
+        </div>
+        <div style="padding: 20px; background: #F8FAFC;">
+            <p style="margin: 0 0 15px 0;">
+                <strong>Course #{course_id_short}</strong><br/>
+                {client_name} a confirmé sa présence.<br/>
+                Chauffeur : {driver_name}<br/>
+                Attente actuelle : {waiting_info.get('waiting_minutes', 0)} min ({waiting_info.get('waiting_price', 0):.2f}€)
+            </p>
+        </div>
+    </div>
+    """
+    
+    params = {
+        "from": SENDER_EMAIL,
+        "to": [ADMIN_EMAIL],
+        "subject": f"📍 Client présent — Course #{course_id_short}",
+        "html": html_content
+    }
+    
+    logger.info(f"[EMAIL][CLIENT_PRESENT][ADMIN] Sending | Course: {course_id_short}")
+    
+    result = await send_email_with_retry(params, "[EMAIL][CLIENT_PRESENT][ADMIN]")
+    
+    if result.get("success"):
+        logger.info(f"[EMAIL][CLIENT_PRESENT][ADMIN] ✅ Sent")
+    
+    return result
 def get_driver_ride_url(course: dict) -> str:
     """Generate the direct driver ride URL with token"""
     if not FRONTEND_URL or not course.get('driver_access_token'):
