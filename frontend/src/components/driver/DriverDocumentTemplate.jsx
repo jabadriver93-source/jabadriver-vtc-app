@@ -300,14 +300,15 @@ export function DocumentHeader({
 }) {
   const titles = {
     bon: 'BON DE COMMANDE VTC',
-    factura: 'FACTURE PROVISOIRE',
+    factura: 'FACTURE',
+    facture: 'FACTURE',
     facture_finale: 'FACTURE'
   };
   
   const shortId = courseId?.slice(0, 8).toUpperCase() || 'N/A';
   const docNumber = type === 'facture_finale' && invoiceNumber 
     ? invoiceNumber 
-    : `${type === 'bon' ? 'BC' : 'PRO'}-${shortId}`;
+    : `${type === 'bon' ? 'BC' : 'F'}-${shortId}`;
   
   return (
     <>
