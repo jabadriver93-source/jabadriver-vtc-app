@@ -1558,13 +1558,22 @@ async def calculate_route(origin: str = Query(...), destination: str = Query(...
         distance_km = round(distance_m / 1000, 2)
         duration_min = round(duration_s / 60, 1)
         
+        # Extract GPS coordinates from route (for driver arrival validation)
+        start_location = route.get("start_location", {})
+        end_location = route.get("end_location", {})
+        
         return {
             "distance_km": distance_km,
             "duration_min": duration_min,
             "distance_text": route["distance"]["text"],
             "duration_text": route["duration"]["text"],
             "start_address": route.get("start_address", origin),
-            "end_address": route.get("end_address", destination)
+            "end_address": route.get("end_address", destination),
+            # GPS coordinates for pickup/dropoff validation
+            "pickup_lat": start_location.get("lat"),
+            "pickup_lng": start_location.get("lng"),
+            "dropoff_lat": end_location.get("lat"),
+            "dropoff_lng": end_location.get("lng")
         }
     except HTTPException:
         raise
