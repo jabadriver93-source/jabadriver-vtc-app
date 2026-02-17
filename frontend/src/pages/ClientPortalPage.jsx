@@ -243,7 +243,11 @@ export default function ClientPortalPage() {
 
   const fetchReservation = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/client-portal/${token}`);
+      // Add cache-busting and no-cache headers for Safari
+      const res = await fetch(`${API_URL}/api/client-portal/${token}?_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-store' }
+      });
       if (!res.ok) {
         if (res.status === 404) {
           setError('Réservation non trouvée ou lien invalide');
