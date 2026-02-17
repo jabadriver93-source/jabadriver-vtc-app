@@ -525,3 +525,45 @@ ASSIGNED → (Je suis arrivé) → DRIVER_ARRIVED → (Démarrer) → IN_PROGRES
 - ✅ Emails existants non impactés
 - ✅ PDF et factures non impactés
 - ✅ Commissions non impactées
+
+
+### 24. Géocodification GPS et Validation Arrivée ✅ [2026-02-17]
+
+**Objectif** : Stocker les coordonnées GPS des adresses et activer la validation de distance (200m max) pour le bouton "Je suis arrivé".
+
+**Modifications Backend :**
+- **`/api/calculate-route`** : Retourne maintenant `pickup_lat`, `pickup_lng`, `dropoff_lat`, `dropoff_lng` depuis Google Directions API
+- **Modèle `CourseCreate`** : Nouveaux champs optionnels pour les coordonnées GPS
+- **Modèle `Course`** : Nouveaux champs `pickup_lat`, `pickup_lng`, `dropoff_lat`, `dropoff_lng`
+- **`POST /courses`** : Stocke les coordonnées GPS si fournies
+
+**Modifications Frontend (AdminSubcontractingPage.jsx) :**
+- Nouveau bouton "Calculer la distance" dans le formulaire de création de course
+- Appelle `/api/calculate-route` avec les adresses départ/arrivée
+- Remplit automatiquement le champ distance ET stocke les coordonnées GPS
+- Indicateur "GPS validé" affiché quand les coordonnées sont disponibles
+
+**Validation GPS Activée :**
+- Si `pickup_lat` et `pickup_lng` sont présents dans la course :
+  - Calcul de distance Haversine entre position chauffeur et adresse pickup
+  - Si distance > 200m → Erreur "too_far" avec message explicatif
+  - Si distance ≤ 200m → Arrivée acceptée
+- Si pas de coordonnées → Validation ignorée (compatibilité anciennes courses)
+
+**Tests Effectués :**
+- ✅ Position trop loin (Lyon → Paris) : 393km → Rejeté
+- ✅ Position exacte (0m) : Accepté
+- ✅ Anciennes courses sans GPS : Validation ignorée
+
+**Formule Haversine :**
+```python
+def haversine_distance(lat1, lng1, lat2, lng2) -> float:
+    R = 6371000  # Earth radius in meters
+    # ... calcul sphérique
+    return distance_meters
+```
+
+**Constante de Configuration :**
+```python
+ARRIVAL_GPS_MAX_DISTANCE_METERS = 200
+```
