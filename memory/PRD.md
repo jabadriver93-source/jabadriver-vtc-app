@@ -352,7 +352,7 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 - **Bouton UI**: "Facture commission" (vert emerald) ajouté dans la carte course admin (visible quand chauffeur assigné)
 - **PDF généré**:
   - **Logo**: JABADRIVER CHAUFFEUR (logo_jabadriver_chauffeur.png)
-  - **Émetteur**: JABADRIVER SAS - Service de mise en relation VTC
+  - **Émetteur**: JABADRIVER - 49 boulevard Marc Chagall, 93600 Aulnay-sous-Bois - SIRET: 941 473 217 00011
   - **Client**: Nom chauffeur + Société + SIRET + Email
   - **Objet**: Commission de mise en relation — Course #{course_id}
   - **Montant**: Commission 10% du total course TTC
@@ -364,3 +364,24 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
   - Commission JAMAIS affichée sur documents client
 - **Non-régression confirmée**: START/END idempotent, Emails Resend, Factures chauffeur existantes, Token driver pages
 - **Test Results**: 100% (13/13 backend, 100% frontend) - iteration_8.json
+
+### 20. Corrections ciblées ✅ [2026-02-17]
+- **Correction 1 - Infos société facture commission**:
+  - JABADRIVER, 49 boulevard Marc Chagall, 93600 Aulnay-sous-Bois
+  - SIRET: 941 473 217 00011
+  - Visible dans `PLATFORM_INFO` de `/app/backend/pdf_template.py`
+
+- **Correction 2 - Commission supprimée du bon de commande client**:
+  - Le bon de commande (doc_type='bon') n'affiche JAMAIS la commission
+  - Affiche uniquement: Prix course, Suppléments (péage, parking, attente), **Total TTC**
+  - Logique: `show_commission_in_pdf = show_commission and doc_type not in ['bon', 'facture', 'facture_finale']`
+  - La commission reste visible dans: Dashboard admin, Facture commission plateforme, Vue chauffeur (frontend)
+
+- **Correction 3 - Email admin quand chauffeur termine course**:
+  - Fonction: `send_ride_ended_to_admin()` utilisant `send_email_with_retry()` (retry 429 automatique)
+  - **IDEMPOTENT**: Flag `end_admin_notification_sent` empêche les doublons
+  - Sujet: "✅ Course terminée — #{course_id}"
+  - Contenu: Client, Trajet, Date/Heure, Montant, Chauffeur, Commission, Lien admin
+  - Logs: `[EMAIL-FLOW][ADMIN][RIDE-ENDED]`
+
+- **Test Results**: 100% (20/20 tests) - iteration_9.json
