@@ -51,6 +51,15 @@ export default function DriverRidePage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionSuccess, setActionSuccess] = useState(null); // Track successful actions
   const [isActionDisabled, setIsActionDisabled] = useState(false); // Prevent double-clicks
+  
+  // Supplements modal state
+  const [showSupplementsModal, setShowSupplementsModal] = useState(false);
+  const [supplements, setSupplements] = useState({
+    peage: '',
+    parking: '',
+    attente_minutes: ''
+  });
+  const [savingSupplements, setSavingSupplements] = useState(false);
 
   // Determine auth mode
   const authMode = urlToken ? 'token' : (sessionToken ? 'session' : null);
