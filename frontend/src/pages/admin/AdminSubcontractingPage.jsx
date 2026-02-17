@@ -610,6 +610,26 @@ export default function AdminSubcontractingPage() {
                         </Button>
                       )}
                       
+                      {/* Platform Commission Invoice - available when course has assigned driver */}
+                      {course.assigned_driver && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="border-emerald-600 text-emerald-400 hover:bg-emerald-900/30"
+                          onClick={() => downloadCommissionInvoice(course.id)}
+                          disabled={commissionInvoiceLoading === course.id}
+                          data-testid={`commission-invoice-btn-${course.id}`}
+                          title="Télécharger facture commission (Jabadriver → Chauffeur)"
+                        >
+                          {commissionInvoiceLoading === course.id ? (
+                            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                          ) : (
+                            <Receipt className="w-4 h-4 mr-1" />
+                          )}
+                          Facture commission
+                        </Button>
+                      )}
+                      
                       {/* Cancel - only for OPEN, RESERVED, ASSIGNED (not IN_PROGRESS or later) */}
                       {(course.status === 'OPEN' || course.status === 'RESERVED' || course.status === 'ASSIGNED') && (
                         <Button
