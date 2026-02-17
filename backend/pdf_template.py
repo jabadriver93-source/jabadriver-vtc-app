@@ -380,8 +380,11 @@ def generate_unified_pdf(
         c.drawRightString(row_right, card_y, f"+{totals['supplement_attente']:.2f} €")
         card_y -= 0.5 * cm
     
-    # Commission (only for bon de commande)
-    if show_commission and doc_type != 'facture_finale':
+    # Commission (NEVER on bon de commande client - only on internal driver views)
+    # Bon de commande = document client, donc pas de commission
+    # show_commission is only for internal driver dashboard display, not PDF bon de commande
+    if show_commission and doc_type not in ['bon', 'facture', 'facture_finale']:
+        # This block is for internal driver dashboard views only, not PDF documents
         # Separator line
         card_y -= 0.2 * cm
         c.setStrokeColor(COLORS['emerald_light'])
