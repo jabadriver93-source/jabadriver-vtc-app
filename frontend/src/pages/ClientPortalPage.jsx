@@ -118,7 +118,10 @@ export default function ClientPortalPage() {
   const fetchWaitingInfo = useCallback(async () => {
     if (!reservation?.id) return;
     try {
-      const res = await fetch(`${API_URL}/api/driver/ride/${reservation.id}/waiting-info?token=${reservation.id}`);
+      const res = await fetch(`${API_URL}/api/driver/ride/${reservation.id}/waiting-info?token=${reservation.id}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-store' }
+      });
       if (res.ok) {
         const data = await res.json();
         setWaitingInfo(data);
@@ -128,14 +131,15 @@ export default function ClientPortalPage() {
     }
   }, [reservation?.id]);
 
-  // Poll waiting info every 30 seconds when DRIVER_ARRIVED
+  // Poll waiting info every 30 seconds when DRIVER_ARRIVED (use current_status)
   useEffect(() => {
-    if (reservation?.status === 'DRIVER_ARRIVED') {
+    const currentStatus = reservation?.current_status || reservation?.status;
+    if (currentStatus === 'DRIVER_ARRIVED') {
       fetchWaitingInfo();
       const interval = setInterval(fetchWaitingInfo, 30000);
       return () => clearInterval(interval);
     }
-  }, [reservation?.status, fetchWaitingInfo]);
+  }, [reservation?.current_status, reservation?.status, fetchWaitingInfo]);
 
   // Handle client presence
   const handlePresenceClick = async () => {
