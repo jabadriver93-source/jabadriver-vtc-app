@@ -74,7 +74,7 @@ export default function DriverLoginPage() {
       toast.success('Connexion réussie');
       
       // Redirect to original destination or default dashboard
-      const destination = redirectUrl || '/driver/courses';
+      const destination = getPostLoginRedirect(searchParams);
       console.log('[AUTH] Login success, redirecting to:', destination);
       navigate(destination);
     } catch (err) {

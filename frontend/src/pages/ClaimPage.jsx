@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MapPin, Clock, Euro, User, Phone, AlertCircle, CheckCircle2, Timer, CreditCard } from 'lucide-react';
+import { buildLoginRedirectUrl } from '@/lib/authRedirect';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL;
 
