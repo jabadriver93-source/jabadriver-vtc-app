@@ -262,6 +262,13 @@ class SupplementsUpdate(BaseModel):
     supplement_attente_minutes: Optional[int] = None
 
 # ============================================
+# MODELS - DRIVER ARRIVAL
+# ============================================
+class DriverArrivalRequest(BaseModel):
+    lat: float = Field(..., description="Driver's GPS latitude")
+    lng: float = Field(..., description="Driver's GPS longitude")
+
+# ============================================
 # MODELS - COMMISSION PAYMENTS
 # ============================================
 class CommissionPayment(BaseModel):
