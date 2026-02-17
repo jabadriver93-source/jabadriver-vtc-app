@@ -74,9 +74,9 @@ export default function ClaimPage() {
   const handleReserve = async () => {
     const driverToken = localStorage.getItem('driver_token');
     if (!driverToken) {
-      // Save current URL and redirect to login
-      sessionStorage.setItem('claim_redirect', `/claim/${token}`);
-      navigate('/driver/login');
+      // Redirect to login with current URL as redirect parameter
+      const currentPath = `/claim/${token}`;
+      navigate(buildLoginRedirectUrl(currentPath));
       return;
     }
     
@@ -105,7 +105,9 @@ export default function ClaimPage() {
   const handlePay = async () => {
     const driverToken = localStorage.getItem('driver_token');
     if (!driverToken) {
-      navigate('/driver/login');
+      // Redirect to login with current URL as redirect parameter
+      const currentPath = `/claim/${token}`;
+      navigate(buildLoginRedirectUrl(currentPath));
       return;
     }
     
