@@ -3022,9 +3022,10 @@ async def start_ride(ride_id: str, token: Optional[str] = Query(None, descriptio
                 "idempotent": True
             }
     
-    # Check current status - must be ASSIGNED for a fresh start
-    if current_status != CourseStatusEnum.ASSIGNED:
-        logger.warning(f"[RIDE-START] ⚠️ Invalid status for start | ride={ride_id[:8]} | current_status={current_status} | expected=ASSIGNED")
+    # Check current status - must be ASSIGNED or DRIVER_ARRIVED for a fresh start
+    valid_start_statuses = [CourseStatusEnum.ASSIGNED, CourseStatusEnum.DRIVER_ARRIVED]
+    if current_status not in valid_start_statuses:
+        logger.warning(f"[RIDE-START] ⚠️ Invalid status for start | ride={ride_id[:8]} | current_status={current_status} | expected=ASSIGNED or DRIVER_ARRIVED")
         if current_status == CourseStatusEnum.DRIVER_COMPLETED:
             return JSONResponse(
                 status_code=409,
@@ -3032,7 +3033,7 @@ async def start_ride(ride_id: str, token: Optional[str] = Query(None, descriptio
                     "error": "already_completed",
                     "detail": "La course est déjà terminée par le chauffeur",
                     "current_status": current_status,
-                    "expected_status": "ASSIGNED",
+                    "expected_status": "ASSIGNED or DRIVER_ARRIVED",
                     "ride_id": ride_id[:8]
                 }
             )
@@ -3043,7 +3044,17 @@ async def start_ride(ride_id: str, token: Optional[str] = Query(None, descriptio
                     "error": "already_done",
                     "detail": "Cette course est définitivement clôturée",
                     "current_status": current_status,
-                    "expected_status": "ASSIGNED",
+                    "expected_status": "ASSIGNED or DRIVER_ARRIVED",
+                    "ride_id": ride_id[:8]
+                }
+            )
+        elif current_status == CourseStatusEnum.NO_SHOW:
+            return JSONResponse(
+                status_code=409,
+                content={
+                    "error": "no_show",
+                    "detail": "Client déclaré absent - course annulée",
+                    "current_status": current_status,
                     "ride_id": ride_id[:8]
                 }
             )
@@ -3054,25 +3065,40 @@ async def start_ride(ride_id: str, token: Optional[str] = Query(None, descriptio
                     "error": "invalid_status",
                     "detail": f"Impossible de démarrer: statut actuel = {current_status}",
                     "current_status": current_status,
-                    "expected_status": "ASSIGNED",
+                    "expected_status": "ASSIGNED or DRIVER_ARRIVED",
                     "ride_id": ride_id[:8]
                 }
             )
     
+    # Calculate waiting time if starting from DRIVER_ARRIVED
+    waiting_update = {}
+    if current_status == CourseStatusEnum.DRIVER_ARRIVED and course.get("arrival_time"):
+        started_at = datetime.now(timezone.utc).isoformat()
+        waiting_info = calculate_waiting_price(course.get("arrival_time"), started_at)
+        waiting_update = {
+            "waiting_minutes": waiting_info["waiting_minutes"],
+            "waiting_billable_minutes": waiting_info["waiting_billable_minutes"],
+            "waiting_price": waiting_info["waiting_price"]
+        }
+        logger.info(f"[RIDE-START] ⏱️ Waiting calculated | ride={ride_id[:8]} | minutes={waiting_info['waiting_minutes']} | billable={waiting_info['waiting_billable_minutes']} | price={waiting_info['waiting_price']}€")
+    
     # Update status to IN_PROGRESS with audit fields
     started_at = datetime.now(timezone.utc).isoformat()
-    logger.info(f"[RIDE-START] 🔄 Attempting atomic update | ride={ride_id[:8]} | new_status=IN_PROGRESS | started_at={started_at}")
+    logger.info(f"[RIDE-START] 🔄 Attempting atomic update | ride={ride_id[:8]} | from_status={current_status} | new_status=IN_PROGRESS | started_at={started_at}")
+    
+    update_fields = {
+        "status": CourseStatusEnum.IN_PROGRESS,
+        "started_at": started_at,
+        "started_by_driver_id": assigned_driver_id,
+        **waiting_update
+    }
     
     update_result = await db.courses.update_one(
         {
             "id": ride_id,
-            "status": CourseStatusEnum.ASSIGNED,  # Atomic check - prevent race condition
+            "status": current_status,  # Atomic check - prevent race condition (supports both ASSIGNED and DRIVER_ARRIVED)
         },
-        {"$set": {
-            "status": CourseStatusEnum.IN_PROGRESS,
-            "started_at": started_at,
-            "started_by_driver_id": assigned_driver_id
-        }}
+        {"$set": update_fields}
     )
     
     # Verify update was successful (race condition protection)
