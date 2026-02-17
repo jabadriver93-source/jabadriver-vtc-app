@@ -606,3 +606,74 @@ new window.google.maps.places.Autocomplete(inputRef.current, {
 ```
 REACT_APP_GOOGLE_MAPS_API_KEY=AIzaSy...
 ```
+
+
+
+---
+
+## Recent Updates [2026-12-17]
+
+### 26. Correction Complète du Flux Client Portal ✅ [2026-12-17]
+
+**Objectif** : Corriger les bugs majeurs du portail client (`/my-booking/{token}`) pour assurer un affichage cohérent du statut de course et un suivi chauffeur fonctionnel.
+
+**Problèmes Corrigés :**
+
+1. **Bug Lien Email "Suivre mon chauffeur"** :
+   - **Problème** : L'email d'arrivée chauffeur utilisait `course.id` (UUID) au lieu du `client_portal_token`, causant une erreur 404.
+   - **Fix** : La fonction `send_driver_arrived_to_client()` récupère maintenant le `client_portal_token` de la réservation liée.
+   - **Fichier** : `/app/backend/subcontracting.py`
+
+2. **Bug Statut Client Incorrect** :
+   - **Problème** : Le client voyait "En cours" alors que la course était terminée (statut `reservation.status` au lieu du vrai statut course).
+   - **Fix** : L'endpoint `/api/client-portal/{token}` retourne maintenant `current_status` (statut réel de la ride) et `display_status` (texte traduit).
+   - **Fichier** : `/app/backend/server.py`
+
+3. **Mapping Statuts pour Display** :
+   ```
+   ASSIGNED → "En attente chauffeur"
+   DRIVER_ARRIVED → "Chauffeur arrivé"
+   IN_PROGRESS → "En cours"
+   DRIVER_COMPLETED / DONE → "Terminée"
+   NO_SHOW → "Client absent"
+   CANCELLED_* → "Annulée"
+   ```
+
+4. **Cache Safari** :
+   - **Fix** : Header `Cache-Control: no-store, no-cache, must-revalidate` ajouté sur l'endpoint client-portal.
+   - **Frontend** : Cache-busting avec `?_t=${Date.now()}` et `cache: 'no-store'` sur les fetch.
+
+5. **Section "Suivre mon chauffeur"** :
+   - **Nouveau** : Bouton bleu "🗺️ Suivre mon chauffeur" visible quand `status = DRIVER_ARRIVED` et coordonnées GPS disponibles.
+   - **Action** : Ouvre Google Maps avec les coordonnées d'arrivée du chauffeur (`arrival_lat`, `arrival_lng`).
+
+6. **Informations Chauffeur Enrichies** :
+   - **Nouveau** : `assigned_driver_phone` retourné par l'API.
+   - **UI** : Numéro de téléphone cliquable sous le nom du chauffeur.
+
+**Nouveaux Champs Retournés par `/api/client-portal/{token}`** :
+```json
+{
+  "current_status": "DRIVER_ARRIVED",    // Statut réel de la course
+  "display_status": "Chauffeur arrivé",  // Texte traduit
+  "assigned_driver_phone": "0698765432", // Téléphone chauffeur
+  "arrival_time": "2026-02-17T21:56:57", // Heure d'arrivée
+  "arrival_lat": 48.8795,                // GPS chauffeur
+  "arrival_lng": 2.3553,
+  "client_present_time": null,           // Présence client
+  "waiting_minutes": 0,
+  "waiting_price": 0.0
+}
+```
+
+**Fichiers Modifiés** :
+- `/app/backend/server.py` : Endpoint `/api/client-portal/{token}` enrichi
+- `/app/backend/subcontracting.py` : Email d'arrivée avec bon token
+- `/app/frontend/src/pages/ClientPortalPage.jsx` : UI avec `realStatus`, bouton suivi, badge dynamique
+
+**Non-Régression Confirmée** :
+- ✅ Portail modification client fonctionne
+- ✅ Bouton "Je suis présent" fonctionne
+- ✅ Emails existants non impactés
+- ✅ Workflow chauffeur non impacté
+
