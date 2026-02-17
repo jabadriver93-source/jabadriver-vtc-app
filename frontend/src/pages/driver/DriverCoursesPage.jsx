@@ -52,7 +52,8 @@ export default function DriverCoursesPage() {
     const info = localStorage.getItem('driver_info');
     
     if (!token) {
-      navigate('/driver/login');
+      const currentPath = window.location.pathname;
+      navigate(`/driver/login?redirect=${encodeURIComponent(currentPath)}`);
       return;
     }
     
@@ -84,7 +85,8 @@ export default function DriverCoursesPage() {
       if (res.status === 401 || res.status === 403) {
         localStorage.removeItem('driver_token');
         localStorage.removeItem('driver_info');
-        navigate('/driver/login');
+        const currentPath = window.location.pathname;
+        navigate(`/driver/login?redirect=${encodeURIComponent(currentPath)}`);
         return;
       }
       
