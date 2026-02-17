@@ -4584,7 +4584,14 @@ Jabadriver intervient uniquement en qualité d'intermédiaire technique et n'est
 www.jabadriver.fr"""
 
 def generate_driver_bon_commande_pdf(course: dict, driver: dict):
-    """Generate bon de commande with driver's company info (émetteur = chauffeur)"""
+    """Generate bon de commande with unified HTML template (matches frontend exactly)"""
+    from pdf_template import generate_unified_pdf
+    buffer = generate_unified_pdf(course, driver, doc_type='bon', show_commission=True)
+    return buffer.read()
+
+
+def _generate_driver_bon_commande_pdf_legacy(course: dict, driver: dict):
+    """LEGACY: Generate bon de commande with driver's company info (émetteur = chauffeur) - DEPRECATED"""
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
     width, height = A4
