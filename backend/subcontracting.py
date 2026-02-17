@@ -2594,37 +2594,73 @@ async def end_ride(ride_id: str, token: Optional[str] = Query(None, description=
         logger.warning(f"[RIDE-SECURITY] 🚫 Driver {authenticated_driver_id[:8]} tried to end ride {ride_id[:8]} assigned to {assigned_driver_id[:8]}")
         raise HTTPException(status_code=403, detail="Vous n'êtes pas assigné à cette course")
     
-    # ANTI-DOUBLE-ACTION: Check if already ended via ended_at field
+    # Log full context for debugging production issues
+    current_status = course.get("status")
+    logger.info(f"[RIDE-END] 📍 Request | ride_id={ride_id[:8]} | current_status={current_status} | assigned_driver={assigned_driver_id[:8]} | auth_driver={authenticated_driver_id[:8]} | auth_method={auth_method} | ended_at={course.get('ended_at') or 'None'}")
+    
+    # IDEMPOTENT END: If already DRIVER_COMPLETED or DONE, return 200 OK (not 409)
+    # This prevents Safari double-fetch issues and improves UX
+    if current_status == CourseStatusEnum.DRIVER_COMPLETED:
+        existing_end = course.get("ended_at")
+        logger.info(f"[RIDE-END] ✅ IDEMPOTENT - Course {ride_id[:8]} already DRIVER_COMPLETED since {existing_end} - returning 200 OK")
+        return {
+            "success": True,
+            "message": "Course déjà terminée",
+            "status": CourseStatusEnum.DRIVER_COMPLETED,
+            "ended_at": existing_end,
+            "idempotent": True  # Flag to indicate this was already ended
+        }
+    
+    if current_status == CourseStatusEnum.DONE:
+        existing_end = course.get("ended_at")
+        logger.info(f"[RIDE-END] ✅ IDEMPOTENT - Course {ride_id[:8]} already DONE (confirmed by client) since {existing_end} - returning 200 OK")
+        return {
+            "success": True,
+            "message": "Course déjà clôturée et confirmée par le client",
+            "status": CourseStatusEnum.DONE,
+            "ended_at": existing_end,
+            "idempotent": True
+        }
+    
+    # Check if already ended via ended_at field (belt-and-suspenders check)
     if course.get("ended_at"):
         existing_end = course.get("ended_at")
-        logger.warning(f"[RIDE-SECURITY] 🔄 Double-end attempt on ride {ride_id[:8]} - already ended at {existing_end}")
-        return JSONResponse(
-            status_code=409,
-            content={
-                "detail": "Cette course a déjà été terminée",
-                "current_status": course.get("status"),
-                "ended_at": course.get("ended_at")
+        logger.warning(f"[RIDE-END] 🔄 Course has ended_at but status={current_status} | ride={ride_id[:8]} | ended_at={existing_end}")
+        # Return idempotent response if status is compatible
+        if current_status in [CourseStatusEnum.DRIVER_COMPLETED, CourseStatusEnum.DONE]:
+            return {
+                "success": True,
+                "message": "Course déjà terminée",
+                "status": current_status,
+                "ended_at": existing_end,
+                "idempotent": True
             }
-        )
     
-    # Check current status - must be IN_PROGRESS
-    current_status = course.get("status")
+    # Check current status - must be IN_PROGRESS for a fresh end
     if current_status != CourseStatusEnum.IN_PROGRESS:
-        logger.warning(f"[RIDE-SECURITY] ⚠️ End attempt on ride {ride_id[:8]} with invalid status: {current_status}")
+        logger.warning(f"[RIDE-END] ⚠️ Invalid status for end | ride={ride_id[:8]} | current_status={current_status} | expected=IN_PROGRESS")
         if current_status == CourseStatusEnum.ASSIGNED:
-            raise HTTPException(status_code=400, detail="Vous devez d'abord démarrer la course")
-        elif current_status == CourseStatusEnum.DRIVER_COMPLETED:
             return JSONResponse(
                 status_code=409,
-                content={"detail": "La course est déjà terminée par le chauffeur", "current_status": current_status}
-            )
-        elif current_status == CourseStatusEnum.DONE:
-            return JSONResponse(
-                status_code=409,
-                content={"detail": "Cette course est définitivement clôturée", "current_status": current_status}
+                content={
+                    "error": "not_started",
+                    "detail": "Vous devez d'abord démarrer la course",
+                    "current_status": current_status,
+                    "expected_status": "IN_PROGRESS",
+                    "ride_id": ride_id[:8]
+                }
             )
         else:
-            raise HTTPException(status_code=400, detail=f"Impossible de terminer: statut actuel = {current_status}")
+            return JSONResponse(
+                status_code=409,
+                content={
+                    "error": "invalid_status",
+                    "detail": f"Impossible de terminer: statut actuel = {current_status}",
+                    "current_status": current_status,
+                    "expected_status": "IN_PROGRESS",
+                    "ride_id": ride_id[:8]
+                }
+            )
     
     # Generate client confirmation token
     client_confirmation_token = secrets.token_urlsafe(32)
