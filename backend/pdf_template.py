@@ -333,7 +333,9 @@ def generate_unified_pdf(
     y -= details_height + 0.6 * cm
     
     # === FINANCIAL SUMMARY CARD (green themed) ===
-    fin_height = 4.5 * cm if show_commission and doc_type != 'facture_finale' else 3.5 * cm
+    # Commission NEVER shown on bon de commande (client document), facture, or facture_finale
+    show_commission_in_pdf = show_commission and doc_type not in ['bon', 'facture', 'facture_finale']
+    fin_height = 4.5 * cm if show_commission_in_pdf else 3.5 * cm
     if totals['has_supplements']:
         fin_height += 0.8 * cm  # Extra space for supplement rows
     
