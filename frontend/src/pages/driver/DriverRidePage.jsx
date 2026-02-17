@@ -966,45 +966,151 @@ export default function DriverRidePage() {
         </div>
       )}
 
+      {/* Waiting Info Card - Only shown when DRIVER_ARRIVED */}
+      {ride?.status === 'DRIVER_ARRIVED' && (
+        <div className="fixed left-0 right-0 p-4 bg-gradient-to-t from-gray-950 via-gray-950/95 to-transparent z-40"
+          style={{ bottom: 'calc(180px + env(safe-area-inset-bottom, 0px))' }}
+        >
+          <div className="max-w-lg mx-auto">
+            <Card className="bg-orange-500/10 border-orange-500/30">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-orange-400" />
+                    <span className="text-orange-400 font-semibold">En attente du client</span>
+                  </div>
+                  {ride?.arrival_time && (
+                    <span className="text-orange-300 text-sm">
+                      Arrivé à {new Date(ride.arrival_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  )}
+                </div>
+                
+                {waitingInfo && (
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 text-sm">Attente totale</span>
+                      <span className="text-white font-mono text-lg">{waitingInfo.waiting_minutes || 0} min</span>
+                    </div>
+                    
+                    {!waitingInfo.is_billable ? (
+                      <div className="bg-green-500/20 text-green-400 px-3 py-2 rounded-lg text-sm text-center">
+                        ⏱️ Gratuit encore {waitingInfo.free_minutes_remaining || 0} min
+                      </div>
+                    ) : (
+                      <div className="bg-orange-500/20 text-orange-400 px-3 py-2 rounded-lg text-sm">
+                        <div className="flex justify-between items-center">
+                          <span>Facturable</span>
+                          <span className="font-bold">{(waitingInfo.waiting_price || 0).toFixed(2)} € (1€/min)</span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <p className="text-gray-500 text-xs text-center">
+                      5 min gratuites, puis 1€/min (max 20€)
+                    </p>
+                  </div>
+                )}
+
+                {ride?.client_present_time && (
+                  <div className="mt-3 bg-green-500/20 text-green-400 px-3 py-2 rounded-lg text-sm text-center">
+                    ✅ Client présent depuis {new Date(ride.client_present_time).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
+
       {/* Fixed Bottom Action Button - positioned above Emergent banner */}
-      {(ride?.status === 'ASSIGNED' || ride?.status === 'IN_PROGRESS') && (
+      {(ride?.status === 'ASSIGNED' || ride?.status === 'DRIVER_ARRIVED' || ride?.status === 'IN_PROGRESS') && (
         <div 
           className="fixed left-0 right-0 p-4 bg-gradient-to-t from-gray-950 via-gray-950 to-transparent pt-8 z-50"
           style={{ bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}
         >
-          <div className="max-w-lg mx-auto">
+          <div className="max-w-lg mx-auto space-y-3">
+            {/* ASSIGNED: Show "Je suis arrivé" button */}
             {ride?.status === 'ASSIGNED' && (
-              <Button
-                onClick={handleStartRide}
-                disabled={actionLoading || isActionDisabled}
-                className={`w-full h-14 font-bold text-lg rounded-xl shadow-lg transition-all duration-200 ${
-                  actionSuccess === 'started' 
-                    ? 'bg-green-500 text-white shadow-green-500/20' 
-                    : isActionDisabled 
+              <>
+                <Button
+                  onClick={handleArrive}
+                  disabled={arriveLoading || isActionDisabled}
+                  className={`w-full h-14 font-bold text-lg rounded-xl shadow-lg transition-all duration-200 ${
+                    isActionDisabled 
                       ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
-                      : 'bg-amber-500 hover:bg-amber-600 text-black shadow-amber-500/20'
-                }`}
-                data-testid="start-ride-btn"
-              >
-                {actionLoading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                    Démarrage en cours...
-                  </>
-                ) : actionSuccess === 'started' ? (
-                  <>
-                    <CheckCircle className="w-5 h-5 mr-2" />
-                    Course démarrée !
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-5 h-5 mr-2" />
-                    Démarrer la course
-                  </>
+                      : 'bg-sky-500 hover:bg-sky-600 text-white shadow-sky-500/20'
+                  }`}
+                  data-testid="arrive-btn"
+                >
+                  {arriveLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                      Localisation en cours...
+                    </>
+                  ) : (
+                    <>
+                      <Car className="w-5 h-5 mr-2" />
+                      🚗 Je suis arrivé
+                    </>
+                  )}
+                </Button>
+                {gpsError && (
+                  <p className="text-red-400 text-sm text-center">{gpsError}</p>
                 )}
-              </Button>
+              </>
             )}
             
+            {/* DRIVER_ARRIVED: Show "Démarrer la course" + optionally "Client absent" */}
+            {ride?.status === 'DRIVER_ARRIVED' && (
+              <>
+                <Button
+                  onClick={handleStartRide}
+                  disabled={actionLoading || isActionDisabled}
+                  className={`w-full h-14 font-bold text-lg rounded-xl shadow-lg transition-all duration-200 ${
+                    actionSuccess === 'started' 
+                      ? 'bg-green-500 text-white shadow-green-500/20' 
+                      : isActionDisabled 
+                        ? 'bg-gray-600 text-gray-400 cursor-not-allowed' 
+                        : 'bg-amber-500 hover:bg-amber-600 text-black shadow-amber-500/20'
+                  }`}
+                  data-testid="start-ride-btn"
+                >
+                  {actionLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                      Démarrage en cours...
+                    </>
+                  ) : actionSuccess === 'started' ? (
+                    <>
+                      <CheckCircle className="w-5 h-5 mr-2" />
+                      Course démarrée !
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-5 h-5 mr-2" />
+                      Démarrer la course
+                    </>
+                  )}
+                </Button>
+                
+                {/* No-show button after 20 min */}
+                {waitingInfo?.can_declare_no_show && (
+                  <Button
+                    onClick={handleNoShow}
+                    disabled={actionLoading || isActionDisabled}
+                    variant="outline"
+                    className="w-full h-12 border-red-500/50 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                    data-testid="no-show-btn"
+                  >
+                    <AlertTriangle className="w-4 h-4 mr-2" />
+                    Client absent (+ 20 min)
+                  </Button>
+                )}
+              </>
+            )}
+            
+            {/* IN_PROGRESS: Show "Terminer la course" */}
             {ride?.status === 'IN_PROGRESS' && (
               <Button
                 onClick={handleEndRide}
