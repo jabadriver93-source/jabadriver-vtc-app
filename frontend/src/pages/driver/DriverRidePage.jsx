@@ -901,29 +901,6 @@ export default function DriverRidePage() {
           </div>
         </div>
       )}
-
-      {/* Completed State Message - positioned above Emergent banner */}
-      {(ride?.status === 'DRIVER_COMPLETED' || ride?.status === 'DONE') && (
-        <div 
-          className="fixed left-0 right-0 p-4 bg-gradient-to-t from-gray-950 via-gray-950 to-transparent pt-8 z-50"
-          style={{ bottom: 'calc(80px + env(safe-area-inset-bottom, 0px))' }}
-        >
-          <div className="max-w-lg mx-auto">
-            <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 text-center">
-              <CheckCircle className="w-8 h-8 text-green-400 mx-auto mb-2" />
-              <p className="text-green-400 font-semibold">
-                {ride?.status === 'DRIVER_COMPLETED' ? 'Course terminée' : 'Course clôturée'}
-              </p>
-              <p className="text-gray-400 text-sm mt-1">
-                {ride?.status === 'DRIVER_COMPLETED' 
-                  ? 'En attente de confirmation client' 
-                  : 'Merci pour cette course !'
-                }
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
