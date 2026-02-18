@@ -844,29 +844,14 @@ export default function BookingPage() {
           </div>
         </section>
 
-        {/* Bottom Badges */}
+        {/* Bottom Badges - Using official asset */}
         <section className="px-4 pb-24 sm:pb-16">
-          <div className="max-w-2xl mx-auto">
-            <div className="flex flex-wrap justify-center gap-3">
-              <div className="badge-premium">
-                <div className="badge-icon-premium">
-                  <Clock className="w-4 h-4" />
-                </div>
-                <span>Disponible 24/7</span>
-              </div>
-              <div className="badge-premium">
-                <div className="badge-icon-premium">
-                  <CheckCircle className="w-4 h-4" />
-                </div>
-                <span>Chauffeurs vérifiés</span>
-              </div>
-              <div className="badge-premium">
-                <div className="badge-icon-premium">
-                  <Headphones className="w-4 h-4" />
-                </div>
-                <span>Support tel</span>
-              </div>
-            </div>
+          <div className="max-w-2xl mx-auto flex justify-center">
+            <img 
+              src={ASSETS.bottomBadges} 
+              alt="Disponible 24/7 - Chauffeurs vérifiés - Support tel" 
+              className="w-full max-w-xl h-auto"
+            />
           </div>
         </section>
 
