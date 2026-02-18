@@ -634,7 +634,7 @@ export default function AdminSubcontractingPage() {
                 </CardContent>
               </Card>
             ) : (
-              courses.filter(c => showTestRides || !c.is_test).map((course) => (
+              courses.filter(c => showTestRides ? c.is_test : !c.is_test).map((course) => (
                 <Card key={course.id} className={`bg-slate-800/50 border-slate-700 ${course.is_test ? 'ring-2 ring-orange-500/50' : ''}`} data-testid={`admin-course-${course.id}`}>
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-3">
