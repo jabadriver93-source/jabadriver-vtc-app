@@ -7,6 +7,9 @@
  * - PDF bon de commande (backend generation)
  * - PDF facture (backend generation)
  * 
+ * IMPORTANT: All pricing now comes from backend via calculate_course_totals()
+ * Commission = 10% of BASE PRICE only (not final total)
+ * 
  * @module DriverDocumentTemplate
  */
 
@@ -14,26 +17,46 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Euro, MapPin, Clock, User, FileText, Building2 } from 'lucide-react';
 
 /**
- * Calculate total with supplements
+ * Calculate total with supplements (legacy fallback)
+ * Prefer using course.totals from API when available
  */
 export function calculateTotalWithSupplements(course) {
   if (!course) return 0;
   
+  // Use API-calculated values if available (Single Source of Truth)
+  if (course.totals?.final_total_eur !== undefined) {
+    return course.totals.final_total_eur;
+  }
+  if (course.price_with_supplements !== undefined) {
+    return course.price_with_supplements;
+  }
+  
+  // Fallback calculation for old courses
   const basePrice = course.price_base || course.price_total || 0;
   const peage = course.supplement_peage || 0;
   const parking = course.supplement_parking || 0;
-  const attente = course.supplement_attente || (course.supplement_attente_minutes || 0) * 0.5;
+  const attente = course.supplement_attente_amount || course.waiting_fee_eur || course.waiting_price || 0;
   
   return basePrice + peage + parking + attente;
 }
 
 /**
  * Calculate driver net gain (total - commission)
+ * IMPORTANT: Commission = 10% of BASE PRICE only
  */
 export function calculateDriverNet(course) {
+  // Use API-calculated values if available (Single Source of Truth)
+  if (course?.totals?.net_driver_eur !== undefined) {
+    return course.totals.net_driver_eur;
+  }
+  if (course?.net_driver !== undefined) {
+    return course.net_driver;
+  }
+  
+  // Fallback: commission on BASE price only
   const total = calculateTotalWithSupplements(course);
-  const commissionRate = 0.10; // 10%
-  const commission = total * commissionRate;
+  const basePrice = course?.price_base || course?.price_total || 0;
+  const commission = basePrice * 0.10; // 10% of BASE only
   return total - commission;
 }
 
@@ -57,20 +80,28 @@ function formatDate(dateStr) {
 /**
  * CourseFinancialSummary - Financial breakdown for a course
  * Used in both portail and token page
+ * 
+ * Uses pre-calculated values from API when available (Single Source of Truth)
+ * COMMISSION = 10% of base price ONLY
  */
 export function CourseFinancialSummary({ course, showCommission = true, compact = false }) {
   if (!course) return null;
   
-  const basePrice = course.price_base || course.price_total || 0;
-  const peage = course.supplement_peage || 0;
-  const parking = course.supplement_parking || 0;
-  const attenteMinutes = course.supplement_attente_minutes || 0;
-  const attenteAmount = course.supplement_attente || attenteMinutes * 0.5;
-  const total = calculateTotalWithSupplements(course);
-  const commission = total * 0.10;
-  const driverNet = total - commission;
+  // Use API-provided totals (Single Source of Truth) when available
+  const totals = course.totals || {};
   
-  const hasSupplements = peage > 0 || parking > 0 || attenteMinutes > 0;
+  const basePrice = totals.base_price_eur ?? course.price_base ?? course.price_total ?? 0;
+  const peage = totals.extras_peage_eur ?? course.supplement_peage ?? 0;
+  const parking = totals.extras_parking_eur ?? course.supplement_parking ?? 0;
+  const attenteBillableMinutes = totals.waiting_billable_minutes ?? course.supplement_attente_minutes ?? 0;
+  const attenteAmount = totals.waiting_fee_eur ?? course.supplement_attente_amount ?? course.waiting_price ?? 0;
+  const total = totals.final_total_eur ?? course.price_with_supplements ?? calculateTotalWithSupplements(course);
+  
+  // COMMISSION: 10% of BASE price ONLY (never on final total)
+  const commission = totals.commission_base_eur ?? course.commission_amount ?? (basePrice * 0.10);
+  const driverNet = totals.net_driver_eur ?? course.net_driver ?? (total - commission);
+  
+  const hasSupplements = peage > 0 || parking > 0 || attenteBillableMinutes > 0;
   
   if (compact) {
     return (
