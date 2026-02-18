@@ -1002,6 +1002,17 @@ export default function BookingPage() {
           background: #030B1A;
           color: white;
         }
+        
+        /* Floating car animation */
+        .car-float {
+          animation: carFloat 4s ease-in-out infinite;
+          filter: drop-shadow(0 10px 30px rgba(0, 182, 255, 0.3));
+        }
+        
+        @keyframes carFloat {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
       `}</style>
     </div>
   );
