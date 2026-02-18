@@ -609,13 +609,15 @@ export default function AdminSubcontractingPage() {
         {/* Courses Tab */}
         {activeTab === 'courses' && (
           <div className="space-y-4">
-            {courses.filter(c => showTestRides || !c.is_test).length === 0 ? (
+            {courses.filter(c => showTestRides ? c.is_test : !c.is_test).length === 0 ? (
               <Card className="bg-slate-800/50 border-slate-700">
                 <CardContent className="py-12 text-center">
                   <p className="text-slate-400">
-                    {courses.length === 0 
-                      ? "Aucune course sous-traitée" 
-                      : "Aucune course à afficher (courses test masquées)"
+                    {showTestRides 
+                      ? "Aucune course test" 
+                      : courses.length === 0 
+                        ? "Aucune course sous-traitée" 
+                        : "Aucune course normale à afficher"
                     }
                   </p>
                   {!showTestRides && courses.some(c => c.is_test) && (
