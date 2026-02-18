@@ -39,16 +39,31 @@ def get_logo_base64() -> str:
 
 
 def calculate_totals(course: dict) -> dict:
-    """Calculate all financial values for a course"""
+    """
+    Calculate all financial values for a course.
+    
+    IMPORTANT: Commission = 10% of BASE PRICE ONLY (not final total)
+    This is the Single Source of Truth for PDF generation.
+    
+    Uses persisted values when available (from backend calculate_course_totals).
+    """
     price_base = course.get('price_base') or course.get('price_total', 0) or 0
     supplement_peage = course.get('supplement_peage', 0) or 0
     supplement_parking = course.get('supplement_parking', 0) or 0
-    supplement_attente_minutes = course.get('supplement_attente_minutes', 0) or 0
-    supplement_attente = course.get('supplement_attente', 0) or supplement_attente_minutes * 0.5
+    
+    # Use persisted waiting values when available
+    supplement_attente_minutes = course.get('waiting_billable_minutes') or course.get('supplement_attente_minutes', 0) or 0
+    supplement_attente = course.get('waiting_price') or course.get('supplement_attente_amount') or course.get('supplement_attente', 0) or 0
+    
+    # If waiting_price is 0 but billable minutes > 0, calculate (1€/min)
+    if supplement_attente == 0 and supplement_attente_minutes > 0:
+        supplement_attente = float(supplement_attente_minutes)  # 1€/min
     
     total = price_base + supplement_peage + supplement_parking + supplement_attente
+    
+    # COMMISSION: 10% of BASE PRICE ONLY (never on final total)
     commission_rate = 0.10
-    commission = total * commission_rate
+    commission = round(price_base * commission_rate, 2)  # BASE price, not total
     driver_net = total - commission
     
     return {
@@ -58,9 +73,9 @@ def calculate_totals(course: dict) -> dict:
         "supplement_attente_minutes": supplement_attente_minutes,
         "supplement_attente": supplement_attente,
         "total": total,
-        "commission": commission,
+        "commission": commission,  # 10% of base only
         "driver_net": driver_net,
-        "has_supplements": supplement_peage > 0 or supplement_parking > 0 or supplement_attente_minutes > 0
+        "has_supplements": supplement_peage > 0 or supplement_parking > 0 or supplement_attente > 0
     }
 
 
