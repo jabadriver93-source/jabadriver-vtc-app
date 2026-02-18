@@ -41,6 +41,7 @@ export default function AdminDashboard() {
   const [courseDateFilter, setCourseDateFilter] = useState("");
   const [createdDateFilter, setCreatedDateFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [courseTypeFilter, setCourseTypeFilter] = useState(""); // New filter: "" = all, "subcontracted" = sous-traitées, "direct" = non sous-traitées
   const [updatingId, setUpdatingId] = useState(null);
   const [invoiceModalReservation, setInvoiceModalReservation] = useState(null);
   const [showTestReservations, setShowTestReservations] = useState(false); // Filter: default OFF = hide test
