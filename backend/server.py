@@ -2449,6 +2449,11 @@ async def danger_reset_preview(password: str = Query(...)):
             "activity_logs": "Tous les logs d'activité"
         }
     }
+    
+    if reason:
+        result["reason"] = reason
+    
+    return result
 
 @api_router.post("/admin/danger/reset-all")
 async def danger_reset_all(data: DangerResetConfirm):
