@@ -1,69 +1,78 @@
 <analysis>**original_problem_statement:**
-L'utilisateur a demandé plusieurs évolutions majeures pour l'application .
-1.  **Correction du Flux de Redirection (Terminé):** Un chauffeur non connecté qui accède à une URL de course (ex: ) doit être redirigé vers cette même URL après s'être authentifié, et non vers le tableau de bord général.
-2.  **Implémentation du Chauffeur Arrivé et Compteur d'Attente (Terminé):**
-    *   Ajouter un nouveau statut de course .
-    *   Permettre au chauffeur de signaler son arrivée via un bouton Je suis arrivé, conditionné par une vérification de proximité GPS (< 200m de l'adresse de prise en charge).
-    *   Déclencher un compteur d'attente automatique et un système de facturation (5 min gratuites, puis 1€/min plafonné à 20€).
-    *   Informer le client par email et sur sa page de suivi de l'arrivée du chauffeur et de l'attente en cours.
-    *   Permettre au client de signaler sa présence.
-    *   Permettre au chauffeur de signaler un client absent (no-show) après 20 minutes d'attente.
-    *   Assurer la compatibilité avec le flux de course existant (START/END).
-3.  **Amélioration du Formulaire Admin (Terminé):**
-    *   Activer la géocodification pour stocker les coordonnées GPS (, ) lors de la création d'une course.
-    *   Ajouter l'autocomplétion d'adresses Google Places dans le formulaire de création de course de l'administrateur pour faciliter la saisie et la capture des coordonnées.
+L'utilisateur a demandé une série d'améliorations et de corrections de bugs pour le tableau de bord d'administration afin d'améliorer la visibilité financière et la cohérence des données.
 
 **PRODUCT REQUIREMENTS:**
-Le détail des exigences pour la fonctionnalité Chauffeur Arrivé a été fourni dans un document détaillé par l'utilisateur, incluant les statuts, la logique métier, les modifications d'interface, les notifications email, et les règles de facturation de l'attente.
+1.  **Amélioration du Dashboard Admin :**
+    *   Ajouter un filtre pour Type de course : Toutes, Sous-traitées uniquement, Non sous-traitées uniquement.
+    *   Afficher le prix **final total** (base + suppléments) dans la liste des courses, et non plus seulement le prix de base.
+    *   Afficher des statistiques de chiffre d'affaires en haut de la page, avec une répartition entre les courses directes (Jabadriver) et les courses sous-traitées.
+2.  **Correction des Incohérences de Prix et de Commission :**
+    *   Le prix final, la commission et les gains du chauffeur étaient incohérents entre le portail chauffeur, le tableau de bord admin et les factures PDF.
+    *   La commission était parfois calculée sur le prix final au lieu du prix de base.
+    *   L'arrondi des minutes d'attente était inconsistent.
+3.  **Correction du flux Client Présent :**
+    *   Le bouton Je suis présent du client était non fonctionnel.
+    *   Le chauffeur n'était pas notifié et ne pouvait pas localiser le client.
+4.  **Correction de la Génération de Documents Admin :**
+    *   Pour les courses sous-traitées, les boutons Bon de commande et Facture dans le dashboard admin généraient des documents au nom de Jabadriver au lieu du nom du chauffeur.
 
 **User's preferred language**: Français
 
 **what currently exists?**
-L'application est une plateforme full-stack (React/FastAPI/MongoDB) de gestion de courses VTC.
-- Le bug de redirection post-login a été corrigé en utilisant  et les paramètres d'URL pour un flux robuste.
-- Une nouvelle fonctionnalité majeure Chauffeur Arrivé a été implémentée. Elle inclut de nouveaux statuts (), de nouveaux endpoints API (, , , ), et des mises à jour des interfaces chauffeur et client pour gérer le nouveau flux.
-- Le système de facturation de l'attente est automatisé et calculé côté backend.
-- La validation par GPS de l'arrivée du chauffeur est fonctionnelle. Les coordonnées de prise en charge sont maintenant stockées dans la base de données lors de la création de la course.
-- Le formulaire de création de course dans le panel admin a été amélioré avec l'autocomplétion d'adresses Google Places pour simplifier la saisie et garantir la présence des coordonnées GPS.
+L'application est une plateforme VTC full-stack (React/FastAPI/MongoDB).
+- Les flux de redirection et Chauffeur Arrivé sont fonctionnels.
+- **Source Unique de Vérité (Single Source of Truth) :** Une logique de calcul financier centralisée a été implémentée dans le backend () pour garantir la cohérence des prix, des suppléments (comme l'attente) et de la commission sur toutes les interfaces (portail chauffeur, admin, PDF).
+- **Règle de Commission Corrigée :** La commission de la plateforme (10%) est maintenant calculée de manière stricte sur le **prix de base** uniquement.
+- **Flux Client Présent Corrigé :** Le bouton client est fonctionnel, notifie le chauffeur, et un bouton Localiser client apparaît sur l'interface du chauffeur.
+- **Génération de Documents Corrigée :** Le dashboard admin génère désormais des factures et bons de commande au nom du chauffeur pour les courses sous-traitées.
+- **Dashboard Admin Amélioré :** Le dashboard principal inclut désormais des filtres par type de course (directe/sous-traitée), des statistiques de revenus agrégés et un affichage clair du prix final (base + suppléments) pour chaque course.
 
 **Last working item**:
-- Last item agent was working: Implémentation de l'autocomplétion Google Places dans le formulaire de création de course de l'interface d'administration.
-- Status: USER VERIFICATION PENDING
-- Agent Testing Done: Y (Vérifié avec des captures d'écran que l'interface affiche les suggestions Google. La sauvegarde des coordonnées a été validée via des tests .)
-- Which testing method agent to use? NA (La fonctionnalité est terminée et a été testée manuellement. L'utilisateur peut la valider visuellement.)
+- Last item agent was working: Implémentation des filtres par type de course et des statistiques de revenus sur le . L'agent a ajouté un filtre, des cartes de statistiques en haut de la page et a mis à jour l'affichage des prix des courses pour refléter le total final.
+- Status: TESTING PENDING
+- Agent Testing Done: N (L'agent a lancé l'agent de test à la toute fin de la session, mais n'a pas encore reçu ni analysé les résultats).
+- Which testing method agent to use? L'agent a déjà appelé . Le prochain agent doit analyser le rapport généré.
 - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-Aucun problème en cours. Toutes les tâches de la session ont été complétées.
+- **Issue 1 (P0): Analyse du rapport de test pour le Dashboard Admin**
+  - **Description:** L'agent a terminé l'implémentation des filtres et des statistiques sur le Dashboard Admin et a appelé l'agent de test. La première action doit être d'examiner le rapport de test () pour identifier et corriger les éventuels bugs.
+  - **Status:** NOT STARTED
 
 **In progress Task List**:
-Aucune tâche en cours.
+Aucune tâche n'est en cours de codage. Le travail attend la validation des tests.
 
 **Upcoming and Future Tasks**
 **Upcoming Tasks:**
 *   **P0: Implémenter un système de bonus / parrainage pour les chauffeurs.**
 
 **Future Tasks:**
-*   **P1:** Dashboard de statistiques pour l'administrateur.
-*   **P2:** Notifications push pour les chauffeurs.
-*   **P2:** Chat en temps réel entre client et chauffeur.
-*   **P2:** Améliorations du dashboard de statistiques.
+*   **P1:** Créer un dashboard de statistiques dédié et plus détaillé pour l'administrateur.
+*   **P2:** Implémenter les notifications push pour les chauffeurs.
+*   **P2:** Mettre en place un chat en temps réel entre le client et le chauffeur.
 
 **Completed work in this session**
-- **Correction du Flux de Redirection Post-Login:**
-  - Le flux de redirection pour les liens profonds (ex: ) a été corrigé. Les fichiers  et  ont été modifiés pour utiliser une logique robuste basée sur  et les paramètres d'URL.
-- **Implémentation Complète du Système Chauffeur Arrivé:**
-  - **Backend ():** Ajout du statut , des champs de BDD correspondants, et des endpoints pour gérer l'arrivée (), la présence client (), le no-show (), et le polling d'informations (). La logique de facturation de l'attente et la validation GPS ont été implémentées.
-  - **Frontend Chauffeur ():** Ajout du bouton Je suis arrivé avec récupération de la géolocalisation HTML5, affichage du statut d'arrivée et du compteur d'attente.
-  - **Frontend Client ():** Ajout de l'affichage du statut d'arrivée, du compteur d'attente, et du bouton Je suis présent.
-- **Activation de la Géocodification et Validation GPS:**
-  - **Backend ():** Les coordonnées (, ) sont maintenant stockées pour chaque course. La validation de la distance (< 200m) est active sur l'endpoint .
-  - **Frontend Admin ():** Ajout d'un bouton Calculer la distance qui récupère les coordonnées via l'API Google.
-- **Amélioration du Formulaire Admin avec Google Places:**
-  - **Frontend Admin ():** Les champs d'adresse de départ et d'arrivée bénéficient maintenant de l'autocomplétion Google Places, comme sur le formulaire client.
+- **Flux Client & Suivi Chauffeur Fiabilisé :**
+    - Correction du lien Suivre mon chauffeur dans les emails, qui pointe désormais vers la page .
+    - Correction de l'affichage du statut de la course sur le portail client pour refléter le statut réel de la  associée.
+    - Enrichissement de l'API du portail client pour fournir toutes les données nécessaires au suivi.
+- **Logique Financière Unifiée (Single Source of Truth) :**
+    - Création d'une fonction centrale  dans  pour calculer et persister le prix de base, les suppléments (attente), le prix final, la commission et le gain chauffeur.
+    - Correction de la règle de commission pour qu'elle s'applique **uniquement sur le prix de base**.
+    - Correction du calcul du temps d'attente pour utiliser un arrondi au plafond ().
+    - Mise à jour de toutes les interfaces (portail chauffeur, admin, factures PDF) pour utiliser cette source de données unique, éliminant les incohérences.
+- **Correction du Flux Client Présent :**
+    - Implémentation d'un nouvel endpoint  pour que le client puisse signaler sa présence de manière fiable.
+    - Ajout du bouton Localiser client sur l'interface du chauffeur.
+- **Correction du Dashboard Admin Classique :**
+    - Le dashboard affiche maintenant le **prix final** pour les courses sous-traitées.
+    - Les boutons de génération de PDF (Bon de commande, Facture) génèrent désormais des documents au nom du chauffeur pour les courses sous-traitées via de nouveaux endpoints admin dédiés.
+- **Amélioration du Dashboard Admin (Filtres & Stats) :**
+    - Ajout d'un filtre pour Type de course (Toutes / Mes courses / Sous-traitées).
+    - Ajout de statistiques de chiffre d'affaires en haut de la page, avec une répartition entre les revenus directs et ceux des courses sous-traitées.
 
 **Earlier issues found/mentioned but not fixed**
-- **Issue 1:** Incohérence de l'icône PWA sur . (Problème de basse priorité, non abordé).
+- **Issue 1:** Incohérence de l'icône PWA sur la page . C'est un problème visuel de basse priorité qui n'a pas été traité.
 
 **Known issue recurrence from previous fork**
 - Non applicable.
@@ -72,57 +81,56 @@ Aucune tâche en cours.
 
 
 **Key Technical Concepts**
-- **Backend:** FastAPI, , MongoDB. Logique d'état complexe (finite state machine pour les statuts de course). Calcul de distance Haversine pour la validation GPS.
-- **Frontend:** React, , , . Utilisation de la géolocalisation HTML5 (). Intégration de  pour l'autocomplétion d'adresses.
+- **Backend:** FastAPI, Pydantic (gestion des champs optionnels),  pour les calculs financiers, création d'endpoints admin distincts pour contourner l'authentification chauffeur, centralisation de la logique métier dans une fonction Single Source of Truth.
+- **Frontend:** React (, , ), gestion d'état pour les filtres, rendu conditionnel avancé, communication API, formatage de devises ().
 
 **key DB schema**
-- ** collection:**
-  -  (nouvelle valeur: )
-  -  (NOUVEAU)
-  -  (NOUVEAU)
-  -  (NOUVEAU)
-  -  (NOUVEAU)
-  -  (NOUVEAU)
-  -  (NOUVEAU)
-  -  (NOUVEAU)
-  -  (NOUVEAU)
-  -  (NOUVEAU)
+- ** collection:** Les champs , , ,  sont maintenant calculés et persistés de manière fiable.
+- ** collection:** Le champ  dans le modèle Pydantic a été rendu optionnel. Le champ  a été ajouté au modèle Pydantic pour être exposé à l'API.
 
 **All files of reference**
-*   **/app/backend/subcontracting.py**: Fichier central pour toute la nouvelle logique backend (statuts, endpoints, calculs).
-*   **/app/frontend/src/pages/driver/DriverRidePage.jsx**: Interface du chauffeur pour le nouveau flux d'arrivée.
-*   **/app/frontend/src/pages/ClientPortalPage.jsx**: Interface du client pour suivre l'arrivée et l'attente.
-*   **/app/frontend/src/pages/admin/AdminSubcontractingPage.jsx**: Formulaire de création de course avec géocodification et autocomplétion.
-*   **/app/frontend/src/pages/driver/DriverLoginPage.jsx**: Corrigé pour la redirection.
-*   **/app/frontend/src/pages/ClaimPage.jsx**: Corrigé pour la redirection.
+- **/app/backend/subcontracting.py**: Cœur de la logique métier et financière.
+- **/app/backend/server.py**: Contient les endpoints pour le dashboard admin et le portail client.
+- **/app/frontend/src/pages/AdminDashboard.jsx**: Interface admin principale avec les nouveaux filtres et statistiques.
+- **/app/frontend/src/pages/ClientPortalPage.jsx**: Interface de suivi pour le client.
+- **/app/frontend/src/pages/driver/DriverRidePage.jsx**: Interface du chauffeur pour la gestion de la course.
+- **/app/backend/pdf_template.py**: Logique de génération des factures PDF.
 
 **Areas that need refactoring**:
-- Le composant  est devenu très volumineux et gère à la fois l'affichage de la liste des courses et la logique du modal de création/édition. Il pourrait être divisé en sous-composants (ex: ).
+- ** et :** Ces fichiers sont devenus très volumineux. La logique pourrait être scindée en plusieurs modules basés sur la responsabilité (ex: , , ).
+- **:** Contient une logique de filtrage et de calcul de statistiques qui pourrait être extraite dans des hooks React personnalisés (ex: , ) pour améliorer la lisibilité.
 
 **key api endpoints**
-- : (NOUVEAU) Pour que le chauffeur signale son arrivée.
-- : (NOUVEAU) Pour que le client signale sa présence.
-- : (NOUVEAU) Pour que le chauffeur signale un client absent.
-- : (NOUVEAU) Pour poller les informations d'attente.
-- : (Modifié) Accepte maintenant  et .
-- : (Modifié) Retourne maintenant les coordonnées GPS en plus de la distance et du prix.
+- **Nouveaux Endpoints :**
+  - 
+  - 
+  - 
+- **Endpoints Modifiés :**
+  - 
+  - 
+  - 
+  - 
 
 **Critical Info for New Agent**
-- **Flux Arrivée Chauffeur:** Familiarisez-vous bien avec le nouveau flux de statut  ->  -> . Il a un impact sur plusieurs parties de l'application et introduit une logique de facturation de l'attente.
-- **Validation GPS:** La validation de la distance est active et stricte (< 200m). Elle dépend des coordonnées  et  qui doivent être présentes dans la BDD pour les nouvelles courses. L'autocomplétion sur le formulaire admin vise à garantir cela.
-- **Prochaine Tâche:** La prochaine tâche prioritaire (P0) est l'implémentation d'un système de bonus/parrainage.
+- **Priorité n°1 :** Votre première action doit être d'analyser le rapport de l'agent de test qui a été lancé à la fin de la session précédente pour valider les modifications du Dashboard Admin.
+- **Source de Vérité Financière :** Toute modification liée aux prix doit impérativement passer par la fonction  dans  et les champs persistés sur l'objet  pour maintenir la cohérence. Ne recalculez jamais les totaux ou la commission côté frontend.
+- **Règle de Commission :** La commission est de 10% sur le  **uniquement**. Ne la calculez jamais sur le .
 
 **documents and test reports created in this job**
-- 
-- 
--  (mis à jour plusieurs fois)
+-  (mis à jour à chaque fin de tâche)
+- Plusieurs rapports de test ont été générés dans . Le dernier en date est celui qui doit être analysé.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **(LATEST) User Confirmation:** Confirme vouloir ajouter l'autocomplétion Google Places au formulaire admin. (Terminé)
-2.  **User Request:** Demande d'activer la géocodification et la validation GPS pour le bouton Je suis arrivé. (Terminé)
-3.  **User Request:** Fournit un cahier des charges très détaillé pour la fonctionnalité Chauffeur arrivé + compteur d’attente. (Terminé)
-4.  **User Request:** Mentionne l'importance de gérer le rate limiting de l'API Resend pour les emails.
-5.  **User Confirmation:** Donne le feu vert pour corriger le flux de redirection en priorité. (Terminé)
+1.  **(LATEST)** User asks to improve the Admin Dashboard with financial filters and total price display. (DONE, PENDING TESTING)
+2.  User acknowledges completion of the previous task.
+3.  User asks to continue.
+4.  User provides a detailed report of price and commission inconsistencies across the entire app and requests a Single Source of Truth. (DONE)
+5.  User confirms the previous fix is good.
+6.  User reports that the Je suis présent button is broken and asks for several related fixes, including injecting waiting fees into the invoice. (DONE)
+7.  User confirms all tests passed for the previous fix.
+8.  User asks to finish the task.
+9.  User acknowledges the fix for the client portal status.
+10. User confirms tests have passed for the client portal fix.
 
 **Project Health Check:**
 - **Broken:** Aucun.
@@ -134,7 +142,7 @@ Aucune tâche en cours.
 - **Google Maps API:** Utilisée pour le calcul de routes, la géocodification, et l'autocomplétion d'adresses.
 
 **Testing status**
-- Testing agent used after significant changes: YES. L'agent a été utilisé avec succès pour valider le flux de redirection et le nouveau système d'arrivée du chauffeur.
+- Testing agent used after significant changes: YES. Utilisé pour chaque étape majeure de correction de bugs.
 - Troubleshoot agent used after agent stuck in loop: NO
 - Test files created: []
 - Known regressions: Aucune.
@@ -144,4 +152,4 @@ Aucune tâche en cours.
 - **Driver:**  / 
 
 **What agent forgot to execute**
-L'agent a suivi toutes les instructions de manière exhaustive. Il n'y a pas de tâches oubliées.</analysis>
+L'agent a traité toutes les demandes de l'utilisateur de manière exhaustive. La seule étape restante est de vérifier le résultat de la dernière exécution de l'agent de test.</analysis>

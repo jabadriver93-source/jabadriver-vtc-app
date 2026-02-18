@@ -27,7 +27,7 @@
     "test_token": "VYGIP4_TxdLZODDSxI7rvtSQR3DQ63tJOLawViPbAn0",
     "driver_email": "chauffeur1@test.com",
     "driver_password": "test123",
-    "api_url": "https://gps-validation.preview.emergentagent.com"
+    "api_url": "https://admin-analytics-v2.preview.emergentagent.com"
   },
   "seed_data_creation": "Used existing test ride data",
   "retest_needed": false,

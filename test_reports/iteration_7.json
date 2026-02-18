@@ -25,7 +25,7 @@
   "test_credentials": {
     "test_ride_id": "318325c9-7f05-43f6-b8f5-aa2583609e25",
     "test_token": "VYGIP4_TxdLZODDSxI7rvtSQR3DQ63tJOLawViPbAn0",
-    "api_url": "https://gps-validation.preview.emergentagent.com"
+    "api_url": "https://admin-analytics-v2.preview.emergentagent.com"
   },
   "seed_data_creation": "Used existing test ride data",
   "retest_needed": false,
@@ -88,7 +88,7 @@
   "unified_design_verification": {
     "frontend_logo": {
       "location": "/app/frontend/public/jabadriver_logo.png",
-      "served_at": "https://gps-validation.preview.emergentagent.com/jabadriver_logo.png",
+      "served_at": "https://admin-analytics-v2.preview.emergentagent.com/jabadriver_logo.png",
       "http_status": "200",
       "content_type": "image/png"
     },
