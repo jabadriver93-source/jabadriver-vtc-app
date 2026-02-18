@@ -572,7 +572,7 @@ export default function AdminSubcontractingPage() {
             onClick={() => setActiveTab('courses')}
             className={activeTab === 'courses' ? 'bg-sky-600' : 'border-slate-600 text-slate-300'}
           >
-            Courses ({courses.filter(c => showTestRides || !c.is_test).length})
+            Courses ({courses.filter(c => showTestRides ? c.is_test : !c.is_test).length})
           </Button>
           <Button
             variant={activeTab === 'drivers' ? 'default' : 'outline'}
