@@ -458,28 +458,64 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                   
-                  {/* Subcontracting Info Row */}
+                  {/* Subcontracting Info Row - Show price breakdown */}
                   {(() => {
                     const subInfo = getSubcontractingInfo(reservation);
-                    if (subInfo && (subInfo.status === 'ASSIGNED' || subInfo.commission_paid)) {
+                    if (subInfo && (subInfo.status === 'ASSIGNED' || subInfo.commission_paid || subInfo.assigned_driver_id)) {
+                      const totals = subInfo.totals || {};
+                      const hasExtras = (totals.waiting_fee_eur > 0) || (totals.extras_total_eur > 0);
+                      
                       return (
-                        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex items-center gap-4 text-sm">
-                            <span className="text-amber-400 font-medium flex items-center gap-1">
-                              <Truck className="w-4 h-4" />
-                              Sous-traitée
-                            </span>
-                            {subInfo.assigned_driver && (
-                              <span className="text-white/70">
-                                → {subInfo.assigned_driver.company_name} ({subInfo.assigned_driver.name})
+                        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex items-center gap-4 text-sm">
+                              <span className="text-amber-400 font-medium flex items-center gap-1">
+                                <Truck className="w-4 h-4" />
+                                Sous-traitée
                               </span>
-                            )}
-                            {subInfo.commission_paid && (
-                              <span className="text-green-400 text-xs">
-                                ✓ Commission {subInfo.commission_amount?.toFixed(2)}€ payée
-                              </span>
-                            )}
+                              {subInfo.assigned_driver && (
+                                <span className="text-white/70">
+                                  → {subInfo.assigned_driver.company_name} ({subInfo.assigned_driver.name})
+                                </span>
+                              )}
+                              {subInfo.commission_paid && (
+                                <span className="text-green-400 text-xs">
+                                  ✓ Commission {(totals.commission_base_eur || subInfo.commission_amount)?.toFixed(2)}€ payée
+                                </span>
+                              )}
+                            </div>
                           </div>
+                          
+                          {/* Price breakdown for subcontracted course */}
+                          {totals.base_price_eur !== undefined && (
+                            <div className="mt-2 pt-2 border-t border-amber-500/20 flex flex-wrap items-center gap-4 text-xs">
+                              <span className="text-white/60">
+                                Base: <span className="text-white font-medium">{totals.base_price_eur?.toFixed(2)}€</span>
+                              </span>
+                              {hasExtras && (
+                                <>
+                                  {totals.waiting_fee_eur > 0 && (
+                                    <span className="text-amber-400">
+                                      + Attente ({totals.waiting_billable_minutes}min): {totals.waiting_fee_eur?.toFixed(2)}€
+                                    </span>
+                                  )}
+                                  {totals.extras_peage_eur > 0 && (
+                                    <span className="text-amber-400">
+                                      + Péage: {totals.extras_peage_eur?.toFixed(2)}€
+                                    </span>
+                                  )}
+                                  {totals.extras_parking_eur > 0 && (
+                                    <span className="text-amber-400">
+                                      + Parking: {totals.extras_parking_eur?.toFixed(2)}€
+                                    </span>
+                                  )}
+                                </>
+                              )}
+                              <span className="text-sky-400 font-semibold">
+                                = Total: {totals.final_total_eur?.toFixed(2)}€
+                              </span>
+                            </div>
+                          )}
                         </div>
                       );
                     }
