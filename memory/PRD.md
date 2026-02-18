@@ -459,21 +459,33 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 
 ---
 
-### 28. Correction Filtre "Afficher tests / Masquer tests" ✅ [2026-12-18]
+### 29. Unification Mode TEST Dashboard ↔ Sous-traitance ✅ [2026-12-18]
 
-**Problème** : Le bouton "Afficher tests" dans le portail sous-traitance affichait TOUTES les courses au lieu de filtrer uniquement les courses test.
+**Problème** : Le mode TEST n'était pas synchronisé entre le Dashboard (reservations) et la Sous-traitance (courses). Toggle d'un côté ne se reflétait pas de l'autre.
 
-**Cause** : La logique `showTestRides || !c.is_test` retournait toujours `true` quand `showTestRides=true`.
+**Solution implémentée** :
 
-**Correction** : Changement de la logique de filtrage en `showTestRides ? c.is_test : !c.is_test`
+1. **Filtre unifié** : Même logique `showTest ? item.is_test : !item.is_test` dans les deux pages
+   - "Masquer tests" (défaut) = affiche SEULEMENT les normaux
+   - "Afficher tests" = affiche SEULEMENT les tests
 
-**Comportement corrigé** :
-- **Mode par défaut** (Masquer tests) : Affiche uniquement les courses normales (`is_test=false`) → 39 courses
-- **Mode Afficher tests** : Affiche uniquement les courses test (`is_test=true`) → 7 courses
+2. **Synchronisation bidirectionnelle** :
+   - Toggle Dashboard → met à jour `is_test` sur la réservation ET la course liée
+   - Toggle Sous-traitance → met à jour `is_test` sur la course ET les réservations liées
 
-**Fichier modifié** : `/app/frontend/src/pages/admin/AdminSubcontractingPage.jsx` (lignes 575, 612, 637)
+3. **Compteurs cohérents** :
+   - Dashboard : compte les réservations test (actuellement 1)
+   - Sous-traitance : compte les courses test (actuellement 7)
 
-**Tests : 100% (iteration_17.json)**
+**Fichiers modifiés** :
+- `/app/frontend/src/pages/AdminDashboard.jsx` : filtre corrigé (lignes 47, 148-159)
+- `/app/backend/server.py` : toggle_test_reservation avec sync (ligne 1217)
+- `/app/backend/subcontracting.py` : admin_toggle_test_course avec sync (ligne 5661)
+
+**Tests : 100% (iteration_18.json)**
+- 11/11 tests backend passés
+- Sync vérifié : reservation 003c1efb ↔ course 511f5e99
+- Aucune régression sur commission/pricing
 
 ---
 
