@@ -127,6 +127,8 @@ def calculate_waiting_price(arrival_time_str: str, end_time_str: Optional[str] =
     - 5-25 minutes: 1€/minute
     - Maximum billable: 20 minutes = 20€
     
+    IMPORTANT: Uses ceil() for minutes - any started minute counts.
+    
     Args:
         arrival_time_str: ISO timestamp when driver arrived
         end_time_str: ISO timestamp when ride started (or now if not provided)
@@ -142,16 +144,17 @@ def calculate_waiting_price(arrival_time_str: str, end_time_str: Optional[str] =
         else:
             end_time = datetime.now(timezone.utc)
         
-        # Total waiting duration in minutes
+        # Total waiting duration in minutes - USE CEIL (any started minute counts)
         waiting_duration = end_time - arrival_time
-        waiting_minutes = max(0, int(waiting_duration.total_seconds() / 60))
+        waiting_seconds = max(0, waiting_duration.total_seconds())
+        waiting_minutes = math.ceil(waiting_seconds / 60) if waiting_seconds > 0 else 0
         
         # Billable minutes (after 5 min grace, max 20)
         billable_minutes = max(0, waiting_minutes - WAITING_FREE_MINUTES)
         billable_minutes = min(billable_minutes, WAITING_MAX_BILLABLE_MINUTES)
         
         # Price calculation (1€/min, max 20€)
-        waiting_price = billable_minutes * WAITING_PRICE_PER_MINUTE
+        waiting_price = float(billable_minutes * WAITING_PRICE_PER_MINUTE)
         
         return {
             "waiting_minutes": waiting_minutes,
