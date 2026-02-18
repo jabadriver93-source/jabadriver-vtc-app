@@ -450,9 +450,11 @@ export default function AdminDashboard() {
               <p className="text-white/40">
                 {reservations.length === 0 
                   ? "Aucune réservation trouvée" 
-                  : courseTypeFilter 
-                    ? `Aucune course ${courseTypeFilter === 'subcontracted' ? 'sous-traitée' : 'directe'} trouvée`
-                    : "Aucune réservation à afficher (réservations test masquées)"
+                  : showTestReservations
+                    ? "Aucune réservation test trouvée"
+                    : courseTypeFilter 
+                      ? `Aucune course ${courseTypeFilter === 'subcontracted' ? 'sous-traitée' : 'directe'} trouvée`
+                      : "Aucune réservation normale à afficher"
                 }
               </p>
               {!showTestReservations && testReservationsCount > 0 && (
