@@ -525,16 +525,6 @@ export default function AdminDashboard() {
                           </div>
                         );
                       })()}
-                                  <span className="text-[10px] ml-1">✈️</span>
-                                </span>
-                              ) : (
-                                <span>{Math.round(reservation.final_price || reservation.estimated_price)}€</span>
-                              )}
-                            </div>
-                          );
-                        }
-                        return null;
-                      })()}
                       {/* Status Badge */}
                       <span className={`${getStatusStyle(reservation.status)} text-xs font-semibold px-3 py-1.5 rounded-full`}>
                         {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
