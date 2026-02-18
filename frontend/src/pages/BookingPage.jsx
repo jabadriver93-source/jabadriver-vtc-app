@@ -518,7 +518,7 @@ export default function BookingPage() {
             {/* Logo Hero */}
             <div className="mb-6 animate-fade-up">
               <img 
-                src={LOGO_URL}
+                src={ASSETS.logo}
                 alt="JABADRIVER"
                 className="h-20 sm:h-28 w-auto mx-auto hero-logo-pulse"
               />
