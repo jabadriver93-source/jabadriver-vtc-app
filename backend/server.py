@@ -1111,13 +1111,21 @@ async def create_reservation(input: ReservationCreate, request: Request):
     
     return reservation_obj
 
-@api_router.get("/reservations", response_model=List[Reservation])
+@api_router.get("/reservations")
 async def get_reservations(
     date: Optional[str] = Query(None, description="Filter by course date (YYYY-MM-DD)"),
     created_date: Optional[str] = Query(None, description="Filter by creation date (YYYY-MM-DD)"),
     search: Optional[str] = Query(None),
-    status: Optional[str] = Query(None)
+    status: Optional[str] = Query(None),
+    course_type: Optional[str] = Query(None, description="Filter: 'subcontracted' or 'direct'")
 ):
+    """
+    Get all reservations with optional financial data for dashboard.
+    
+    Returns enriched data including:
+    - is_subcontracted: boolean
+    - financial_data: { final_price_eur, base_price_eur, supplements_eur, commission_eur, driver_revenue_eur }
+    """
     query = {}
     
     # Filter by course date
@@ -1140,7 +1148,48 @@ async def get_reservations(
         ]
     
     reservations = await db.reservations.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
-    return reservations
+    
+    # Enrich with financial data if subcontracted
+    enriched_reservations = []
+    for res in reservations:
+        res_dict = dict(res)
+        
+        # Check if subcontracted
+        is_subcontracted = False
+        financial_data = None
+        
+        if res.get("subcontracting_course_id"):
+            # Import calculate_course_totals from subcontracting
+            from subcontracting import calculate_course_totals
+            
+            course = await db.courses.find_one(
+                {"id": res["subcontracting_course_id"]},
+                {"_id": 0}
+            )
+            if course:
+                is_subcontracted = bool(course.get("assigned_driver_id"))
+                totals = calculate_course_totals(course)
+                financial_data = {
+                    "final_price_eur": totals["final_total_eur"],
+                    "base_price_eur": totals["base_price_eur"],
+                    "supplements_eur": totals["waiting_fee_eur"] + totals["extras_total_eur"],
+                    "commission_eur": totals["commission_base_eur"],
+                    "driver_revenue_eur": totals["net_driver_eur"]
+                }
+        
+        res_dict["is_subcontracted"] = is_subcontracted
+        res_dict["financial_data"] = financial_data
+        
+        # Apply course_type filter if specified
+        if course_type:
+            if course_type == "subcontracted" and not is_subcontracted:
+                continue
+            if course_type == "direct" and is_subcontracted:
+                continue
+        
+        enriched_reservations.append(res_dict)
+    
+    return enriched_reservations
 
 @api_router.get("/reservations/{reservation_id}", response_model=Reservation)
 async def get_reservation(reservation_id: str):
