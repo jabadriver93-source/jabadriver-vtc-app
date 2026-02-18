@@ -178,9 +178,9 @@ export function CourseFinancialSummary({ course, showCommission = true, compact 
             </div>
           )}
           
-          {attenteMinutes > 0 && (
+          {attenteBillableMinutes > 0 && (
             <div className="flex justify-between items-center text-sm">
-              <span className="text-gray-400">Attente ({attenteMinutes}min)</span>
+              <span className="text-gray-400">Attente ({attenteBillableMinutes}min)</span>
               <span className="text-amber-400">+{attenteAmount.toFixed(2)}€</span>
             </div>
           )}
