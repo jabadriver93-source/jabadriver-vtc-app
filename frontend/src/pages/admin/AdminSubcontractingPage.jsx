@@ -74,7 +74,7 @@ export default function AdminSubcontractingPage() {
   const [drivers, setDrivers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showTestRides, setShowTestRides] = useState(false); // Filter: default OFF = hide test rides
+  const [showTestRides, setShowTestRides] = useState(false); // Filter: false = show normal courses, true = show ONLY test courses
   const [emailTestLoading, setEmailTestLoading] = useState(null); // courseId being tested
   const [commissionInvoiceLoading, setCommissionInvoiceLoading] = useState(null); // courseId being downloaded
   const [newCourse, setNewCourse] = useState({
