@@ -443,10 +443,36 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 - ✅ Message "Client confirmé" au lieu de "En attente de confirmation"
 - ✅ Tests 100% (iteration_14.json)
 
+### Correction Prix/Commission - Single Source of Truth ✅ [2026-12-18]
+**Problèmes corrigés:**
+- ❌ AVANT: Commission = 10% du total final (INCORRECT)
+- ✅ APRÈS: Commission = 10% du prix de BASE uniquement
+
+**Règles métier implémentées:**
+1. `final_total = base_price + waiting_fee + extras`
+2. `commission = 10% × base_price` (jamais sur total)
+3. `waiting_minutes = ceil(seconds/60)` (toute minute entamée compte)
+
+**Exemple validé:**
+- Base: 54€, Attente 1min: 1€, Final: 55€
+- Commission: 5.40€ (10% de 54€, PAS 5.50€)
+- Net chauffeur: 49.60€
+
+**Single Source of Truth:**
+- Fonction `calculate_course_totals()` dans subcontracting.py
+- Tous les écrans et PDFs utilisent ces valeurs
+
+**Fichiers modifiés:**
+- `/app/backend/subcontracting.py`: calculate_course_totals(), calculate_waiting_price() avec ceil()
+- `/app/backend/pdf_template.py`: calculate_totals() commission = base × 10%
+- `/app/frontend/src/components/driver/DriverDocumentTemplate.jsx`: utilise totals API
+- `/app/frontend/src/pages/admin/AdminSubcontractingPage.jsx`: affiche totals
+
 **Nouveaux Endpoints:**
 - `POST /api/client-portal/{token}/client-present` : Client signale sa présence
 
 **Nouveaux Champs Retournés par `/api/driver/ride/{id}`:**
+- `totals`: Objet complet avec base_price_eur, final_total_eur, commission_base_eur, net_driver_eur
 - `confirmed_at`: Timestamp de confirmation client
 - `client_present`, `client_present_time`, `client_lat`, `client_lng`
 
