@@ -25,6 +25,7 @@ export default function AdminLoginPage() {
       const response = await axios.post(`${API}/admin/login`, { password });
       if (response.data.success) {
         sessionStorage.setItem("adminAuth", "true");
+        sessionStorage.setItem("adminPassword", password); // Store for danger zone
         toast.success("Connexion réussie");
         navigate("/admin/dashboard");
       }
