@@ -189,6 +189,69 @@ def get_realtime_waiting_info(arrival_time_str: str) -> dict:
         "price_per_minute": WAITING_PRICE_PER_MINUTE
     }
 
+
+def calculate_course_totals(course: dict) -> dict:
+    """
+    SINGLE SOURCE OF TRUTH for course pricing.
+    
+    All screens and PDFs must use these calculated values:
+    - base_price_eur: Original course price (price_total)
+    - waiting_fee_eur: Waiting fee (after 5 min free, 1€/min, max 20€)
+    - extras_total_eur: Other supplements (péage, parking)
+    - final_total_eur: Total price client pays (base + waiting + extras)
+    - commission_base_eur: Platform commission (10% of BASE PRICE ONLY, not final total)
+    - net_driver_eur: What driver receives (final_total - commission)
+    
+    IMPORTANT RULES:
+    1. Commission = 10% of base_price ONLY (never on waiting/extras)
+    2. Minutes use ceil() - any started minute counts
+    3. All amounts rounded to 2 decimals
+    """
+    # Base price (original price_total)
+    base_price = float(course.get("price_total", 0) or 0)
+    
+    # Waiting fee - use persisted value if available, else calculate
+    if course.get("waiting_price") is not None:
+        waiting_fee = float(course.get("waiting_price", 0))
+    elif course.get("supplement_attente_amount") is not None:
+        waiting_fee = float(course.get("supplement_attente_amount", 0))
+    else:
+        waiting_fee = 0.0
+    
+    # Waiting minutes - use persisted value
+    waiting_minutes = int(course.get("waiting_minutes", 0) or course.get("supplement_attente_minutes", 0) or 0)
+    waiting_billable_minutes = int(course.get("waiting_billable_minutes", 0) or max(0, waiting_minutes - WAITING_FREE_MINUTES))
+    waiting_billable_minutes = min(waiting_billable_minutes, WAITING_MAX_BILLABLE_MINUTES)
+    
+    # Other extras (péage, parking)
+    extras_peage = float(course.get("supplement_peage", 0) or 0)
+    extras_parking = float(course.get("supplement_parking", 0) or 0)
+    extras_total = extras_peage + extras_parking
+    
+    # Final total (what client pays)
+    final_total = base_price + waiting_fee + extras_total
+    
+    # COMMISSION: 10% of BASE PRICE ONLY (never on final_total)
+    commission_rate = float(course.get("commission_rate", COMMISSION_RATE) or COMMISSION_RATE)
+    commission_base = round(base_price * commission_rate, 2)
+    
+    # Net driver earnings (final total minus commission)
+    net_driver = round(final_total - commission_base, 2)
+    
+    return {
+        "base_price_eur": round(base_price, 2),
+        "waiting_minutes": waiting_minutes,
+        "waiting_billable_minutes": waiting_billable_minutes,
+        "waiting_fee_eur": round(waiting_fee, 2),
+        "extras_peage_eur": round(extras_peage, 2),
+        "extras_parking_eur": round(extras_parking, 2),
+        "extras_total_eur": round(extras_total, 2),
+        "final_total_eur": round(final_total, 2),
+        "commission_rate": commission_rate,
+        "commission_base_eur": commission_base,
+        "net_driver_eur": net_driver
+    }
+
 # ============================================
 # MODELS - CHAUFFEURS
 # ============================================
