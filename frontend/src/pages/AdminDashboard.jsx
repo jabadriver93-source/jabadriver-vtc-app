@@ -92,14 +92,29 @@ export default function AdminDashboard() {
 
   /**
    * Calculate financial data for a reservation
+   * Uses pre-calculated financial_data from API if available (Single Source of Truth)
    * Returns: is_subcontracted, final_price_eur, base_price_eur, supplements_eur, commission_eur, driver_revenue_eur
    */
   const getFinancialData = (reservation) => {
+    // Priority 1: Use API-provided financial_data (Single Source of Truth)
+    if (reservation.financial_data) {
+      return {
+        is_subcontracted: reservation.is_subcontracted,
+        base_price_eur: reservation.financial_data.base_price_eur,
+        supplements_eur: reservation.financial_data.supplements_eur,
+        final_price_eur: reservation.financial_data.final_price_eur,
+        commission_eur: reservation.financial_data.commission_eur,
+        driver_revenue_eur: reservation.financial_data.driver_revenue_eur,
+        subInfo: getSubcontractingInfo(reservation)
+      };
+    }
+    
+    // Priority 2: Calculate from subcontracting course data
     const subInfo = getSubcontractingInfo(reservation);
     const totals = subInfo?.totals || {};
     
     // Determine if subcontracted
-    const isSubcontracted = !!(subInfo?.assigned_driver_id || reservation.subcontracting_course_id);
+    const isSubcontracted = reservation.is_subcontracted || !!(subInfo?.assigned_driver_id || reservation.subcontracting_course_id);
     
     // Calculate prices
     let basePriceEur = totals.base_price_eur ?? reservation.base_price ?? reservation.estimated_price ?? 0;
