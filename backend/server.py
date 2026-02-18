@@ -1216,7 +1216,8 @@ async def update_reservation_status(reservation_id: str, update: StatusUpdate):
 
 @api_router.post("/reservations/{reservation_id}/toggle-test")
 async def toggle_test_reservation(reservation_id: str):
-    """Toggle the is_test flag on a reservation. Test reservations are excluded from revenue stats."""
+    """Toggle the is_test flag on a reservation. Test reservations are excluded from revenue stats.
+    Also syncs the flag to the linked subcontracting course if exists."""
     reservation = await db.reservations.find_one({"id": reservation_id}, {"_id": 0})
     if not reservation:
         raise HTTPException(status_code=404, detail="Réservation non trouvée")
@@ -1231,10 +1232,21 @@ async def toggle_test_reservation(reservation_id: str):
     
     logger.info(f"[ADMIN] Reservation {reservation_id[:8]} is_test toggled to {new_is_test}")
     
+    # SYNC: Also update the linked subcontracting course if exists
+    course_id = reservation.get("subcontracting_course_id")
+    if course_id:
+        result = await db.courses.update_one(
+            {"id": course_id},
+            {"$set": {"is_test": new_is_test}}
+        )
+        if result.modified_count > 0:
+            logger.info(f"[ADMIN] Synced is_test={new_is_test} to linked course {course_id[:8]}")
+    
     return {
         "message": f"Réservation marquée comme {'test' if new_is_test else 'production'}",
         "is_test": new_is_test,
-        "reservation_id": reservation_id
+        "reservation_id": reservation_id,
+        "synced_course_id": course_id
     }
 
 @api_router.patch("/reservations/{reservation_id}/airport-surcharge")
