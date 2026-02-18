@@ -2982,14 +2982,8 @@ async def get_driver_ride(ride_id: str, token: Optional[str] = Query(None, descr
             {"_id": 0, "password_hash": 0}
         )
     
-    # Calculate price with supplements
-    price_base = course.get("price_total", 0)
-    supplement_total = (
-        course.get("supplement_peage", 0) +
-        course.get("supplement_parking", 0) +
-        course.get("supplement_attente_amount", 0)
-    )
-    price_with_supplements = course.get("price_with_supplements") or (price_base + supplement_total)
+    # Use SINGLE SOURCE OF TRUTH for all pricing
+    totals = calculate_course_totals(course)
     
     return {
         "id": course.get("id"),
@@ -3004,13 +2998,17 @@ async def get_driver_ride(ride_id: str, token: Optional[str] = Query(None, descr
         "time": course.get("time"),
         "distance_km": course.get("distance_km"),
         "duration_min": course.get("duration_min"),
-        "price_total": price_base,
-        "price_with_supplements": price_with_supplements,
-        "supplement_peage": course.get("supplement_peage", 0),
-        "supplement_parking": course.get("supplement_parking", 0),
-        "supplement_attente_minutes": course.get("supplement_attente_minutes", 0),
-        "supplement_attente_amount": course.get("supplement_attente_amount", 0),
-        "commission_amount": course.get("commission_amount", 0),
+        # Pricing from SINGLE SOURCE OF TRUTH
+        "price_total": totals["base_price_eur"],
+        "price_with_supplements": totals["final_total_eur"],
+        "supplement_peage": totals["extras_peage_eur"],
+        "supplement_parking": totals["extras_parking_eur"],
+        "supplement_attente_minutes": totals["waiting_billable_minutes"],
+        "supplement_attente_amount": totals["waiting_fee_eur"],
+        "commission_amount": totals["commission_base_eur"],  # 10% of BASE only
+        "net_driver": totals["net_driver_eur"],
+        # Full totals object for frontend
+        "totals": totals,
         "notes": course.get("notes"),
         "invoice_status": course.get("invoice_status"),
         "invoice_number": course.get("invoice_number"),
@@ -3029,9 +3027,9 @@ async def get_driver_ride(ride_id: str, token: Optional[str] = Query(None, descr
         "arrival_lat": course.get("arrival_lat"),
         "arrival_lng": course.get("arrival_lng"),
         # Waiting info
-        "waiting_minutes": course.get("waiting_minutes", 0),
-        "waiting_billable_minutes": course.get("waiting_billable_minutes", 0),
-        "waiting_price": course.get("waiting_price", 0),
+        "waiting_minutes": totals["waiting_minutes"],
+        "waiting_billable_minutes": totals["waiting_billable_minutes"],
+        "waiting_price": totals["waiting_fee_eur"],
         "driver": {
             "id": driver.get("id") if driver else None,
             "name": driver.get("name") if driver else None,
