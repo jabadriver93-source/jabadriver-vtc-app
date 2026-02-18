@@ -1,0 +1,88 @@
+{
+  "summary": "Tested the 'Afficher tests / Masquer tests' filter in Admin Subcontracting Portal. All 6 requested features verified working correctly. Filter logic properly implements: showTestRides ? c.is_test : !c.is_test",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/test_reports/iteration_17.json"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Filter logic correctly changed from 'showTestRides || !c.is_test' to 'showTestRides ? c.is_test : !c.is_test'",
+    "Lines 575, 612, 637 all use the same correct ternary filter logic",
+    "Badge counter correctly shows 7 test courses",
+    "Button text correctly toggles between 'Afficher tests' and 'Masquer tests'"
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100%",
+    "frontend": "100%"
+  },
+  "test_credentials": {
+    "admin_password": "admin123"
+  },
+  "seed_data_creation": "Used existing test data - 46 total courses (7 test, 39 normal)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Filter functionality for test/normal courses verified working. Button data-testid='toggle-show-test-rides'. API returns 46 courses with is_test boolean field.",
+  "features_verified": {
+    "1_default_state_shows_normal_courses": {
+      "status": "VERIFIED",
+      "expected": "39 normal courses (is_test=false)",
+      "actual": "Courses tab shows '(39)', 39 course cards displayed",
+      "button_text": "Afficher tests",
+      "badge": "7"
+    },
+    "2_after_click_shows_only_test_courses": {
+      "status": "VERIFIED",
+      "expected": "7 test courses (is_test=true)",
+      "actual": "Courses tab shows '(7)', 7 course cards displayed",
+      "all_have_test_badge": true,
+      "price_shows_test_indicator": true
+    },
+    "3_button_text_changes_correctly": {
+      "status": "VERIFIED",
+      "default": "Afficher tests",
+      "after_click": "Masquer tests",
+      "after_second_click": "Afficher tests"
+    },
+    "4_badge_counter_shows_test_count": {
+      "status": "VERIFIED",
+      "count": 7,
+      "always_visible": true
+    },
+    "5_courses_tab_counter_updates": {
+      "status": "VERIFIED",
+      "default": "Courses (39)",
+      "after_toggle": "Courses (7)"
+    },
+    "6_no_impact_on_course_data": {
+      "status": "VERIFIED",
+      "price_intact": true,
+      "commission_intact": true,
+      "commission_is_10_percent_of_base": true
+    }
+  },
+  "api_verification": {
+    "GET /api/admin/subcontracting/courses": {
+      "status_code": 200,
+      "total_count": 46,
+      "test_courses": 7,
+      "normal_courses": 39,
+      "has_is_test_field": true
+    }
+  },
+  "test_evidence": {
+    "screenshots": [
+      ".screenshots/filter_default_state.png - Shows 39 normal courses",
+      ".screenshots/filter_test_state.png - Shows 7 test courses with TEST badges"
+    ],
+    "filter_logic_verified": "showTestRides ? c.is_test : !c.is_test works correctly at lines 575, 612, 637"
+  }
+}
