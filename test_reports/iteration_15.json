@@ -1,0 +1,109 @@
+{
+  "summary": "All 8 requested features verified working correctly for Admin Dashboard pricing display and driver document generation for subcontracted courses.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_driver_documents.py",
+    "/app/test_reports/pytest/pytest_driver_documents.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Commission correctly calculated as 10% of BASE PRICE (54€ = 5.40€), not final total (55€)",
+    "Final price 55€ displayed with '+sup.' indicator on price badge",
+    "Subcontracting info row shows breakdown: Base: 54.00€ + Attente (1min): 1.00€ = Total: 55.00€",
+    "Driver document buttons correctly show '(chauffeur)' for subcontracted courses",
+    "Non-subcontracted reservations correctly show standard 'Bon de commande' and 'Facture' buttons",
+    "PDF endpoints return valid PDFs (verified %PDF header and correct Content-Type)"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_driver_documents.py"
+  ],
+  "success_rate": {
+    "backend": "100% (6 passed, 1 skipped)",
+    "frontend": "100% (all UI elements verified)"
+  },
+  "test_credentials": {
+    "admin_password": "admin123",
+    "test_course_id": "3ceb496c-9d39-4ab9-a4d8-42cfc9e67029",
+    "test_driver": {
+      "company_name": "VTC Express",
+      "name": "Jean Dupont"
+    }
+  },
+  "seed_data_creation": "Used existing test course 'Test Pricing' (3ceb496c)",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All admin dashboard pricing and driver document features verified. Test course 3ceb496c has base_price=54€, waiting_fee=1€, final_total=55€, commission=5.40€ (10% of base only). PDF endpoints at /api/admin/subcontracting/courses/{id}/driver-bon-commande-pdf and driver-invoice-pdf working correctly.",
+  "features_verified": {
+    "1_final_price_display": {
+      "status": "VERIFIED",
+      "display": "55€ +sup.",
+      "location": "Price badge on reservation card"
+    },
+    "2_price_breakdown_display": {
+      "status": "VERIFIED",
+      "display": "Base: 54.00€ + Attente (1min): 1.00€ = Total: 55.00€",
+      "location": "Subcontracting info row"
+    },
+    "3_bdc_chauffeur_button": {
+      "status": "VERIFIED",
+      "button_text": "BDC (chauffeur)",
+      "visibility": "Visible only for subcontracted courses"
+    },
+    "4_facture_chauffeur_button": {
+      "status": "VERIFIED",
+      "button_text": "Facture (chauffeur)",
+      "visibility": "Visible only for subcontracted courses"
+    },
+    "5_driver_bdc_pdf_endpoint": {
+      "status": "VERIFIED",
+      "endpoint": "GET /api/admin/subcontracting/courses/{id}/driver-bon-commande-pdf",
+      "response": "application/pdf"
+    },
+    "6_driver_invoice_pdf_endpoint": {
+      "status": "VERIFIED",
+      "endpoint": "GET /api/admin/subcontracting/courses/{id}/driver-invoice-pdf",
+      "response": "application/pdf"
+    },
+    "7_commission_calculation": {
+      "status": "VERIFIED",
+      "formula": "10% of BASE price (54€ = 5.40€)",
+      "not_final_total": "Correctly NOT 10% of 55€"
+    },
+    "8_non_subcontracted_buttons": {
+      "status": "VERIFIED",
+      "buttons": ["Bon de commande", "Facture"],
+      "note": "Standard buttons without (chauffeur) for normal reservations"
+    }
+  },
+  "api_verification": {
+    "GET /api/admin/subcontracting/courses": {
+      "status_code": 200,
+      "totals_returned": true,
+      "fields_verified": ["base_price_eur", "waiting_fee_eur", "final_total_eur", "commission_base_eur"]
+    },
+    "GET /api/admin/subcontracting/courses/{id}/driver-bon-commande-pdf": {
+      "status_code": 200,
+      "content_type": "application/pdf",
+      "pdf_valid": true
+    },
+    "GET /api/admin/subcontracting/courses/{id}/driver-invoice-pdf": {
+      "status_code": 200,
+      "content_type": "application/pdf",
+      "pdf_valid": true
+    }
+  },
+  "expected_vs_actual": {
+    "base_price": {"expected": 54, "actual": 54, "match": true},
+    "waiting_fee": {"expected": 1, "actual": 1, "match": true},
+    "final_total": {"expected": 55, "actual": 55, "match": true},
+    "commission": {"expected": 5.40, "actual": 5.40, "match": true}
+  }
+}
