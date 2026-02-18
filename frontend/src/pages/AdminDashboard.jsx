@@ -378,37 +378,47 @@ export default function AdminDashboard() {
       {/* Main Content */}
       <main className="px-5 py-6">
         <div className="max-w-6xl mx-auto">
-          {/* Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+          {/* Stats - Using calculated summaryStats */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3 mb-6">
             <div className="card-dark p-4">
               <p className="text-xs text-white/40 mb-1 uppercase tracking-wider">Total</p>
               <p className="text-2xl font-bold text-white" data-testid="stat-total">
-                {filteredReservations.length}
+                {summaryStats.total}
               </p>
             </div>
             <div className="card-dark p-4">
               <p className="text-xs text-white/40 mb-1 uppercase tracking-wider">Nouvelles</p>
               <p className="text-2xl font-bold text-[#7dd3fc]" data-testid="stat-new">
-                {filteredReservations.filter(r => r.status === "nouvelle").length}
+                {summaryStats.nouvelles}
               </p>
             </div>
             <div className="card-dark p-4">
               <p className="text-xs text-white/40 mb-1 uppercase tracking-wider">Confirmées</p>
               <p className="text-2xl font-bold text-emerald-500" data-testid="stat-confirmed">
-                {filteredReservations.filter(r => r.status === "confirmée").length}
+                {summaryStats.confirmees}
               </p>
             </div>
             <div className="card-dark p-4">
               <p className="text-xs text-white/40 mb-1 uppercase tracking-wider">Effectuées</p>
               <p className="text-2xl font-bold text-slate-400" data-testid="stat-done">
-                {filteredReservations.filter(r => r.status === "effectuée").length}
+                {summaryStats.effectuees}
               </p>
             </div>
-            <div className="card-dark p-4 col-span-2 sm:col-span-1 bg-gradient-to-br from-[#7dd3fc]/20 to-transparent">
-              <p className="text-xs text-[#7dd3fc]/70 mb-1 uppercase tracking-wider">CA Estimé</p>
+            {/* CA Total with breakdown */}
+            <div className="card-dark p-4 col-span-2 bg-gradient-to-br from-[#7dd3fc]/20 to-transparent">
+              <p className="text-xs text-[#7dd3fc]/70 mb-1 uppercase tracking-wider">CA Total</p>
               <p className="text-2xl font-bold text-[#7dd3fc]" data-testid="stat-revenue">
-                {Math.round(totalRevenue)}€
+                {Math.round(summaryStats.totalRevenue)}€
               </p>
+              {/* Revenue breakdown */}
+              <div className="flex gap-3 mt-2 text-[10px]">
+                <span className="text-emerald-400" title="Mes courses directes">
+                  🏠 {Math.round(summaryStats.directRevenue)}€
+                </span>
+                <span className="text-amber-400" title="Courses sous-traitées">
+                  🚚 {Math.round(summaryStats.subcontractedRevenue)}€
+                </span>
+              </div>
             </div>
           </div>
 
@@ -423,7 +433,9 @@ export default function AdminDashboard() {
               <p className="text-white/40">
                 {reservations.length === 0 
                   ? "Aucune réservation trouvée" 
-                  : "Aucune réservation à afficher (réservations test masquées)"
+                  : courseTypeFilter 
+                    ? `Aucune course ${courseTypeFilter === 'subcontracted' ? 'sous-traitée' : 'directe'} trouvée`
+                    : "Aucune réservation à afficher (réservations test masquées)"
                 }
               </p>
               {!showTestReservations && testReservationsCount > 0 && (
