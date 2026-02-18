@@ -2363,6 +2363,147 @@ async def update_admin_notes(reservation_id: str, notes: str):
     return {"message": "Notes internes mises à jour"}
 
 # ============================================
+# DANGER ZONE - TEST DATA RESET
+# ============================================
+ALLOW_DANGER_RESET = os.environ.get('ALLOW_DANGER_RESET', 'false').lower() == 'true'
+
+class DangerResetConfirm(BaseModel):
+    confirm: str
+    password: str
+
+@api_router.get("/admin/danger/reset-preview")
+async def danger_reset_preview(password: str = Query(...)):
+    """Preview what will be deleted - shows counts per collection.
+    Requires admin password.
+    """
+    if password != ADMIN_PASSWORD:
+        raise HTTPException(status_code=401, detail="Mot de passe incorrect")
+    
+    # Get counts for all collections that will be deleted
+    counts = {
+        "reservations": await db.reservations.count_documents({}),
+        "courses": await db.courses.count_documents({}),
+        "commission_payments": await db.commission_payments.count_documents({}),
+        "claim_tokens": await db.claim_tokens.count_documents({}),
+        "activity_logs": await db.activity_logs.count_documents({}),
+    }
+    
+    # Count what will be preserved
+    preserved = {
+        "drivers": await db.drivers.count_documents({})
+    }
+    
+    total_to_delete = sum(counts.values())
+    
+    return {
+        "warning": "⚠️ DANGER ZONE - Cette action supprimera TOUTES les données de test",
+        "enabled": ALLOW_DANGER_RESET,
+        "to_delete": counts,
+        "total_documents_to_delete": total_to_delete,
+        "preserved": preserved,
+        "confirmation_required": "RESET-ALL-TEST",
+        "collections_info": {
+            "reservations": "Toutes les réservations clients",
+            "courses": "Toutes les courses sous-traitées",
+            "commission_payments": "Tous les paiements de commission Stripe",
+            "claim_tokens": "Tous les tokens de réclamation chauffeur",
+            "activity_logs": "Tous les logs d'activité"
+        }
+    }
+
+@api_router.post("/admin/danger/reset-all")
+async def danger_reset_all(data: DangerResetConfirm):
+    """Execute the full reset of all test data.
+    Requires:
+    - ALLOW_DANGER_RESET=true in environment
+    - Admin password
+    - Exact confirmation text: RESET-ALL-TEST
+    """
+    # Security checks
+    if data.password != ADMIN_PASSWORD:
+        raise HTTPException(status_code=401, detail="Mot de passe incorrect")
+    
+    if not ALLOW_DANGER_RESET:
+        raise HTTPException(
+            status_code=403, 
+            detail="Danger reset disabled. Set ALLOW_DANGER_RESET=true in environment to enable."
+        )
+    
+    if data.confirm != "RESET-ALL-TEST":
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Confirmation incorrecte. Attendu: 'RESET-ALL-TEST', reçu: '{data.confirm}'"
+        )
+    
+    logger.warning("=" * 80)
+    logger.warning("[DANGER ZONE] 🧨 RESET ALL TEST DATA INITIATED")
+    logger.warning("=" * 80)
+    
+    deleted_counts = {}
+    
+    try:
+        # Order matters: delete dependent objects first, then main objects
+        
+        # 1. Delete commission payments (depends on courses)
+        result = await db.commission_payments.delete_many({})
+        deleted_counts["commission_payments"] = result.deleted_count
+        logger.warning(f"[DANGER ZONE] Deleted {result.deleted_count} commission_payments")
+        
+        # 2. Delete activity logs
+        result = await db.activity_logs.delete_many({})
+        deleted_counts["activity_logs"] = result.deleted_count
+        logger.warning(f"[DANGER ZONE] Deleted {result.deleted_count} activity_logs")
+        
+        # 3. Delete claim tokens
+        result = await db.claim_tokens.delete_many({})
+        deleted_counts["claim_tokens"] = result.deleted_count
+        logger.warning(f"[DANGER ZONE] Deleted {result.deleted_count} claim_tokens")
+        
+        # 4. Delete courses (subcontracting)
+        result = await db.courses.delete_many({})
+        deleted_counts["courses"] = result.deleted_count
+        logger.warning(f"[DANGER ZONE] Deleted {result.deleted_count} courses")
+        
+        # 5. Delete reservations (main data)
+        result = await db.reservations.delete_many({})
+        deleted_counts["reservations"] = result.deleted_count
+        logger.warning(f"[DANGER ZONE] Deleted {result.deleted_count} reservations")
+        
+        total_deleted = sum(deleted_counts.values())
+        
+        logger.warning("=" * 80)
+        logger.warning(f"[DANGER ZONE] ✅ RESET COMPLETE - Total deleted: {total_deleted} documents")
+        logger.warning("=" * 80)
+        
+        # Get remaining counts (should be 0 for deleted collections)
+        remaining = {
+            "reservations": await db.reservations.count_documents({}),
+            "courses": await db.courses.count_documents({}),
+            "commission_payments": await db.commission_payments.count_documents({}),
+            "claim_tokens": await db.claim_tokens.count_documents({}),
+            "activity_logs": await db.activity_logs.count_documents({}),
+        }
+        
+        # Preserved counts
+        preserved = {
+            "drivers": await db.drivers.count_documents({})
+        }
+        
+        return {
+            "success": True,
+            "message": "🧨 RESET COMPLET - Toutes les données de test ont été supprimées",
+            "deleted": deleted_counts,
+            "total_deleted": total_deleted,
+            "remaining": remaining,
+            "preserved": preserved,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        
+    except Exception as e:
+        logger.error(f"[DANGER ZONE] ❌ RESET FAILED: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Erreur lors du reset: {str(e)}")
+
+# ============================================
 # SUBCONTRACTING MODULE
 # ============================================
 from subcontracting import (
