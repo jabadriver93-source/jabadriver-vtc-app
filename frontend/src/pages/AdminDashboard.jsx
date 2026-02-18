@@ -636,10 +636,10 @@ export default function AdminDashboard() {
                       const isSubcontracted = subInfo?.assigned_driver_id;
                       
                       if (isSubcontracted) {
-                        // Subcontracted: Use driver document endpoint (driver -> client)
+                        // Subcontracted: Use admin driver document endpoint (driver -> client)
                         return (
                           <button
-                            onClick={() => window.open(`${API}/driver/courses/${subInfo.id}/bon-commande-pdf`, '_blank')}
+                            onClick={() => window.open(`${API}/admin/subcontracting/courses/${subInfo.id}/driver-bon-commande-pdf`, '_blank')}
                             className="action-btn bg-purple-500/20 text-purple-400 hover:bg-purple-500/30"
                             data-testid={`bon-commande-btn-${reservation.id}`}
                             title="Document au nom du chauffeur"
@@ -668,10 +668,10 @@ export default function AdminDashboard() {
                       const isSubcontracted = subInfo?.assigned_driver_id;
                       
                       if (isSubcontracted) {
-                        // Subcontracted: Show driver invoice (driver -> client)
+                        // Subcontracted: Use admin driver invoice endpoint (driver -> client)
                         return (
                           <button
-                            onClick={() => window.open(`${API}/driver/courses/${subInfo.id}/invoice-pdf`, '_blank')}
+                            onClick={() => window.open(`${API}/admin/subcontracting/courses/${subInfo.id}/driver-invoice-pdf`, '_blank')}
                             className="action-btn bg-amber-500/20 text-amber-400 hover:bg-amber-500/30"
                             data-testid={`invoice-btn-${reservation.id}`}
                             title="Facture au nom du chauffeur"
