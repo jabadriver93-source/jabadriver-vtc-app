@@ -2366,10 +2366,40 @@ async def update_admin_notes(reservation_id: str, notes: str):
 # DANGER ZONE - TEST DATA RESET
 # ============================================
 ALLOW_DANGER_RESET = os.environ.get('ALLOW_DANGER_RESET', 'false').lower() == 'true'
+ALLOW_DANGER_RESET_RAW = os.environ.get('ALLOW_DANGER_RESET', '(not set)')
+
+# Log at startup
+logger.info("=" * 60)
+logger.info(f"[DANGER] ALLOW_DANGER_RESET={ALLOW_DANGER_RESET_RAW} (parsed: {ALLOW_DANGER_RESET})")
+logger.info("=" * 60)
 
 class DangerResetConfirm(BaseModel):
     confirm: str
     password: str
+
+@api_router.get("/admin/danger/status")
+async def danger_status(password: str = Query(...)):
+    """Check if danger reset is enabled and why.
+    Requires admin password.
+    """
+    if password != ADMIN_PASSWORD:
+        raise HTTPException(status_code=401, detail="Mot de passe incorrect")
+    
+    raw_value = os.environ.get('ALLOW_DANGER_RESET', None)
+    
+    if raw_value is None:
+        reason = "Variable ALLOW_DANGER_RESET absente"
+    elif raw_value.lower() != 'true':
+        reason = f"Variable ALLOW_DANGER_RESET='{raw_value}' (doit être 'true')"
+    else:
+        reason = "Variable ALLOW_DANGER_RESET=true"
+    
+    return {
+        "enabled": ALLOW_DANGER_RESET,
+        "reason": reason,
+        "raw_value": raw_value,
+        "parsed_value": ALLOW_DANGER_RESET
+    }
 
 @api_router.get("/admin/danger/reset-preview")
 async def danger_reset_preview(password: str = Query(...)):
@@ -2378,6 +2408,15 @@ async def danger_reset_preview(password: str = Query(...)):
     """
     if password != ADMIN_PASSWORD:
         raise HTTPException(status_code=401, detail="Mot de passe incorrect")
+    
+    # Determine reason if disabled
+    raw_value = os.environ.get('ALLOW_DANGER_RESET', None)
+    if raw_value is None:
+        reason = "Variable ALLOW_DANGER_RESET absente"
+    elif raw_value.lower() != 'true':
+        reason = f"Variable ALLOW_DANGER_RESET='{raw_value}'"
+    else:
+        reason = None
     
     # Get counts for all collections that will be deleted
     counts = {
@@ -2395,8 +2434,8 @@ async def danger_reset_preview(password: str = Query(...)):
     
     total_to_delete = sum(counts.values())
     
-    return {
-        "warning": "⚠️ DANGER ZONE - Cette action supprimera TOUTES les données de test",
+    result = {
+        "warning": "DANGER ZONE - Cette action supprimera TOUTES les données de test",
         "enabled": ALLOW_DANGER_RESET,
         "to_delete": counts,
         "total_documents_to_delete": total_to_delete,
