@@ -90,6 +90,76 @@ export default function AdminDashboard() {
     );
   };
 
+  /**
+   * Calculate financial data for a reservation
+   * Returns: is_subcontracted, final_price_eur, base_price_eur, supplements_eur, commission_eur, driver_revenue_eur
+   */
+  const getFinancialData = (reservation) => {
+    const subInfo = getSubcontractingInfo(reservation);
+    const totals = subInfo?.totals || {};
+    
+    // Determine if subcontracted
+    const isSubcontracted = !!(subInfo?.assigned_driver_id || reservation.subcontracting_course_id);
+    
+    // Calculate prices
+    let basePriceEur = totals.base_price_eur ?? reservation.base_price ?? reservation.estimated_price ?? 0;
+    let supplementsEur = (totals.waiting_fee_eur ?? 0) + (totals.extras_total_eur ?? 0);
+    
+    // If no totals from subcontracting, check if reservation has airport surcharge
+    if (!subInfo && reservation.airport_surcharge) {
+      supplementsEur += reservation.airport_surcharge;
+    }
+    
+    let finalPriceEur = totals.final_total_eur ?? reservation.final_price ?? (basePriceEur + supplementsEur);
+    
+    // Commission = 10% of BASE price only (never on supplements)
+    const commissionEur = totals.commission_base_eur ?? (basePriceEur * 0.10);
+    
+    // Driver revenue = final price - commission
+    const driverRevenueEur = totals.net_driver_eur ?? (finalPriceEur - commissionEur);
+    
+    return {
+      is_subcontracted: isSubcontracted,
+      base_price_eur: basePriceEur,
+      supplements_eur: supplementsEur,
+      final_price_eur: finalPriceEur,
+      commission_eur: commissionEur,
+      driver_revenue_eur: driverRevenueEur,
+      subInfo
+    };
+  };
+
+  // Filter reservations by course type
+  const filteredReservations = reservations.filter(r => {
+    // First apply test filter
+    if (!showTestReservations && r.is_test) return false;
+    
+    // Then apply course type filter
+    if (courseTypeFilter) {
+      const { is_subcontracted } = getFinancialData(r);
+      if (courseTypeFilter === "subcontracted" && !is_subcontracted) return false;
+      if (courseTypeFilter === "direct" && is_subcontracted) return false;
+    }
+    
+    return true;
+  });
+
+  // Calculate summary stats from filtered reservations
+  const summaryStats = {
+    total: filteredReservations.length,
+    nouvelles: filteredReservations.filter(r => r.status === "nouvelle").length,
+    confirmees: filteredReservations.filter(r => r.status === "confirmée").length,
+    effectuees: filteredReservations.filter(r => r.status === "effectuée").length,
+    totalRevenue: filteredReservations.reduce((sum, r) => {
+      const { final_price_eur } = getFinancialData(r);
+      return sum + (final_price_eur || 0);
+    }, 0),
+    directRevenue: filteredReservations.filter(r => !getFinancialData(r).is_subcontracted)
+      .reduce((sum, r) => sum + (getFinancialData(r).final_price_eur || 0), 0),
+    subcontractedRevenue: filteredReservations.filter(r => getFinancialData(r).is_subcontracted)
+      .reduce((sum, r) => sum + (getFinancialData(r).final_price_eur || 0), 0)
+  };
+
   useEffect(() => {
     fetchReservations();
   }, [fetchReservations]);
