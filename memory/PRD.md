@@ -489,6 +489,33 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 
 ---
 
+### 30. Danger Zone - Reset Total Données Test ✅ [2026-12-18]
+
+**Objectif** : Permettre à l'admin de supprimer toutes les données de test en une action sécurisée.
+
+**Fonctionnalités** :
+- Page `/admin/danger` avec preview des données à supprimer
+- Bouton "Danger" rouge dans le header Dashboard
+- Confirmation obligatoire `RESET-ALL-TEST`
+- Variable d'environnement `ALLOW_DANGER_RESET=true` requise
+
+**Suppression en cascade** :
+1. commission_payments
+2. activity_logs
+3. claim_tokens
+4. courses
+5. reservations
+
+**Préservé** : drivers, configuration, templates
+
+**Endpoints** :
+- `GET /api/admin/danger/reset-preview`
+- `POST /api/admin/danger/reset-all`
+
+**Tests : 100% (iteration_19.json)** - 15/15 backend
+
+---
+
 ### P0 - Prochaine Priorité
 - ⏳ **Système de Bonus / Parrainage Chauffeurs**: À implémenter
 
