@@ -462,6 +462,23 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 - Fonction `calculate_course_totals()` dans subcontracting.py
 - Tous les écrans et PDFs utilisent ces valeurs
 
+### Correction Admin Dashboard Classique ✅ [2026-12-18]
+**Problèmes corrigés:**
+1. ❌ AVANT: Prix carte = prix de base (54€ même avec suppléments)
+   ✅ APRÈS: Prix carte = prix final (55€) avec indicateur "+sup."
+   
+2. ❌ AVANT: BDC/Facture toujours au nom Jabadriver
+   ✅ APRÈS: BDC/Facture au nom du chauffeur si cours sous-traitée
+
+**Fonctionnalités ajoutées:**
+- Détail prix sur carte: "Base: 54€ + Attente (1min): 1€ = Total: 55€"
+- Boutons conditionnels: "BDC (chauffeur)" / "Facture (chauffeur)"
+- Nouveaux endpoints admin:
+  - `GET /api/admin/subcontracting/courses/{id}/driver-bon-commande-pdf`
+  - `GET /api/admin/subcontracting/courses/{id}/driver-invoice-pdf`
+
+**Tests: 100% (iteration_15.json)**
+
 **Fichiers modifiés:**
 - `/app/backend/subcontracting.py`: calculate_course_totals(), calculate_waiting_price() avec ceil()
 - `/app/backend/pdf_template.py`: calculate_totals() commission = base × 10%
