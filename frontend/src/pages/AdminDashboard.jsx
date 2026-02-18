@@ -146,8 +146,10 @@ export default function AdminDashboard() {
 
   // Filter reservations by course type
   const filteredReservations = reservations.filter(r => {
-    // First apply test filter
-    if (!showTestReservations && r.is_test) return false;
+    // First apply test filter - same logic as Subcontracting page
+    // showTestReservations=false: show only normal (is_test=false)
+    // showTestReservations=true: show only test (is_test=true)
+    if (showTestReservations ? !r.is_test : r.is_test) return false;
     
     // Then apply course type filter
     if (courseTypeFilter) {
