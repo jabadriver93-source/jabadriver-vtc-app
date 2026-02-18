@@ -710,17 +710,24 @@ def generate_platform_commission_invoice(
     row_left = margin_left + 0.4 * cm
     row_right = width - margin_right - 0.4 * cm
     
-    # Course total
+    # Course base price (commission is calculated on this)
     c.setFont("Helvetica", 9)
     c.setFillColor(COLORS['text_secondary'])
-    c.drawString(row_left, card_y, "Montant total course TTC")
+    c.drawString(row_left, card_y, "Prix de base course")
     c.setFillColor(COLORS['text_primary'])
-    c.drawRightString(row_right, card_y, f"{totals['total']:.2f} €")
+    c.drawRightString(row_right, card_y, f"{totals['price_base']:.2f} €")
     card_y -= 0.5 * cm
     
-    # Commission rate
+    # Show final total if different from base
+    if totals['total'] != totals['price_base']:
+        c.setFillColor(COLORS['text_muted'])
+        c.drawString(row_left, card_y, "Total avec suppléments")
+        c.drawRightString(row_right, card_y, f"{totals['total']:.2f} €")
+        card_y -= 0.5 * cm
+    
+    # Commission rate - clarify it's on base
     c.setFillColor(COLORS['text_secondary'])
-    c.drawString(row_left, card_y, "Taux commission plateforme")
+    c.drawString(row_left, card_y, "Commission plateforme (10% du prix de base)")
     c.setFillColor(COLORS['text_primary'])
     c.drawRightString(row_right, card_y, "10%")
     card_y -= 0.6 * cm
