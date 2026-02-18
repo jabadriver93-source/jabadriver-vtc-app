@@ -174,7 +174,7 @@ class Reservation(BaseModel):
     
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
-    phone: str
+    phone: Optional[str] = None  # Made optional for backwards compatibility
     email: Optional[str] = None
     pickup_address: str
     dropoff_address: str
