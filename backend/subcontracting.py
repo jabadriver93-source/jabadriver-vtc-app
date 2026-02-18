@@ -3196,24 +3196,20 @@ async def start_ride(ride_id: str, token: Optional[str] = Query(None, descriptio
         }
         
         # Recalculate price_with_supplements to include waiting fee
-        current_price = course.get("price_total", 0)
+        base_price = course.get("price_total", 0)
         current_supplements = (
             course.get("supplement_peage", 0) +
             course.get("supplement_parking", 0)
         )
-        new_price_with_supplements = current_price + current_supplements + waiting_info["waiting_price"]
+        new_price_with_supplements = base_price + current_supplements + waiting_info["waiting_price"]
         waiting_update["price_with_supplements"] = new_price_with_supplements
         
-        # Recalculate commission if needed (using driver's commission rate)
-        if course.get("assigned_driver_id"):
-            driver_for_commission = await db.drivers.find_one(
-                {"id": course["assigned_driver_id"]},
-                {"commission_rate": 1}
-            )
-            commission_rate = driver_for_commission.get("commission_rate", 0.15) if driver_for_commission else 0.15
-            waiting_update["commission_amount"] = new_price_with_supplements * commission_rate
+        # COMMISSION: 10% of BASE PRICE ONLY (never on final_total or price_with_supplements)
+        commission_rate = course.get("commission_rate", COMMISSION_RATE)
+        commission_base = round(base_price * commission_rate, 2)
+        waiting_update["commission_amount"] = commission_base
         
-        logger.info(f"[RIDE-START] ⏱️ Waiting calculated | ride={ride_id[:8]} | minutes={waiting_info['waiting_minutes']} | billable={waiting_info['waiting_billable_minutes']} | price={waiting_info['waiting_price']}€ | new_total={new_price_with_supplements}€")
+        logger.info(f"[RIDE-START] ⏱️ Waiting calculated | ride={ride_id[:8]} | minutes={waiting_info['waiting_minutes']} | billable={waiting_info['waiting_billable_minutes']} | fee={waiting_info['waiting_price']}€ | base={base_price}€ | final={new_price_with_supplements}€ | commission(10% base)={commission_base}€")
     
     # Update status to IN_PROGRESS with audit fields
     started_at = datetime.now(timezone.utc).isoformat()
