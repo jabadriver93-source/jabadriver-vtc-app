@@ -9,7 +9,18 @@ import {
 import axios from "axios";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-const LOGO_URL = "/ui_pack/logo_original.png";
+
+// Official assets from UI pack
+const ASSETS = {
+  logo: "/ui_pack/logo_original.png",
+  tilePonctualite: "/ui_pack/tile_punctualite.png",
+  tileConfort: "/ui_pack/tile_confort.png",
+  tilePrixClair: "/ui_pack/tile_prix_clair.png",
+  bottomBadges: "/ui_pack/bottom_badges.png",
+  car: "/ui_pack/car.png",
+  reference: "/ui_pack/reference_full.png"
+};
+
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 // Pricing constants
