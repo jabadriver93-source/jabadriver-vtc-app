@@ -459,6 +459,24 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 
 ---
 
+### 28. Correction Filtre "Afficher tests / Masquer tests" ✅ [2026-12-18]
+
+**Problème** : Le bouton "Afficher tests" dans le portail sous-traitance affichait TOUTES les courses au lieu de filtrer uniquement les courses test.
+
+**Cause** : La logique `showTestRides || !c.is_test` retournait toujours `true` quand `showTestRides=true`.
+
+**Correction** : Changement de la logique de filtrage en `showTestRides ? c.is_test : !c.is_test`
+
+**Comportement corrigé** :
+- **Mode par défaut** (Masquer tests) : Affiche uniquement les courses normales (`is_test=false`) → 39 courses
+- **Mode Afficher tests** : Affiche uniquement les courses test (`is_test=true`) → 7 courses
+
+**Fichier modifié** : `/app/frontend/src/pages/admin/AdminSubcontractingPage.jsx` (lignes 575, 612, 637)
+
+**Tests : 100% (iteration_17.json)**
+
+---
+
 ### P0 - Prochaine Priorité
 - ⏳ **Système de Bonus / Parrainage Chauffeurs**: À implémenter
 
