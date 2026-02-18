@@ -5144,6 +5144,104 @@ async def admin_get_platform_commission_invoice(course_id: str):
     )
 
 
+@admin_subcontracting_router.get("/courses/{course_id}/driver-bon-commande-pdf")
+async def admin_get_driver_bon_commande(course_id: str):
+    """
+    Generate Bon de Commande PDF for a subcontracted course (Driver → Client).
+    
+    This is the BDC from the assigned driver to the client.
+    Used by admin dashboard when viewing a subcontracted reservation.
+    
+    Admin only endpoint (no driver auth required).
+    """
+    logger.info(f"[ADMIN-DRIVER-BDC] Generating driver BDC for course {course_id[:8]}")
+    
+    # Find course
+    course = await db.courses.find_one({"id": course_id}, {"_id": 0})
+    if not course:
+        course = await db.courses.find_one({"id": {"$regex": f"^{course_id}", "$options": "i"}}, {"_id": 0})
+    
+    if not course:
+        logger.error(f"[ADMIN-DRIVER-BDC] Course not found: {course_id}")
+        raise HTTPException(status_code=404, detail=f"Course not found: {course_id}")
+    
+    # Get driver info
+    driver_id = course.get("assigned_driver_id")
+    if not driver_id:
+        raise HTTPException(status_code=400, detail="Course non sous-traitée - pas de chauffeur assigné")
+    
+    driver = await db.drivers.find_one({"id": driver_id}, {"_id": 0, "password_hash": 0})
+    if not driver:
+        raise HTTPException(status_code=404, detail="Chauffeur non trouvé")
+    
+    # Generate PDF with driver as issuer
+    from pdf_template import generate_driver_bon_commande_pdf
+    pdf_bytes = generate_driver_bon_commande_pdf(course, driver)
+    
+    course_id_short = course.get('id', 'XXX')[:8].upper()
+    logger.info(f"[ADMIN-DRIVER-BDC] ✅ Generated driver BDC for {driver.get('company_name', driver.get('name'))} → {course.get('client_name')}")
+    
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=bdc_chauffeur_{course_id_short}.pdf"}
+    )
+
+
+@admin_subcontracting_router.get("/courses/{course_id}/driver-invoice-pdf")
+async def admin_get_driver_invoice(course_id: str):
+    """
+    Generate Invoice PDF for a subcontracted course (Driver → Client).
+    
+    This is the invoice from the assigned driver to the client.
+    Used by admin dashboard when viewing a subcontracted reservation.
+    Uses the final price (base + supplements).
+    
+    Admin only endpoint (no driver auth required).
+    """
+    logger.info(f"[ADMIN-DRIVER-INVOICE] Generating driver invoice for course {course_id[:8]}")
+    
+    # Find course
+    course = await db.courses.find_one({"id": course_id}, {"_id": 0})
+    if not course:
+        course = await db.courses.find_one({"id": {"$regex": f"^{course_id}", "$options": "i"}}, {"_id": 0})
+    
+    if not course:
+        logger.error(f"[ADMIN-DRIVER-INVOICE] Course not found: {course_id}")
+        raise HTTPException(status_code=404, detail=f"Course not found: {course_id}")
+    
+    # Get driver info
+    driver_id = course.get("assigned_driver_id")
+    if not driver_id:
+        raise HTTPException(status_code=400, detail="Course non sous-traitée - pas de chauffeur assigné")
+    
+    driver = await db.drivers.find_one({"id": driver_id}, {"_id": 0, "password_hash": 0})
+    if not driver:
+        raise HTTPException(status_code=404, detail="Chauffeur non trouvé")
+    
+    # Get or generate invoice number
+    if course.get("invoice_status") == "ISSUED" and course.get("invoice_number"):
+        invoice_number = course["invoice_number"]
+        invoice_date = course.get("invoice_date", datetime.now().strftime("%d/%m/%Y"))
+    else:
+        # Show draft preview
+        course_id_short = course.get('id', 'XXX')[:8].upper()
+        invoice_number = f"BROUILLON-{course_id_short}"
+        invoice_date = datetime.now().strftime("%d/%m/%Y")
+    
+    # Generate PDF with driver as issuer
+    from pdf_template import generate_driver_invoice_pdf
+    pdf_bytes = generate_driver_invoice_pdf(course, driver, invoice_number, invoice_date)
+    
+    logger.info(f"[ADMIN-DRIVER-INVOICE] ✅ Generated driver invoice {invoice_number} for {driver.get('company_name', driver.get('name'))} → {course.get('client_name')}")
+    
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename=facture_chauffeur_{invoice_number}.pdf"}
+    )
+
+
 # ============================================
 # ADMIN ROUTES - COURSES MANAGEMENT
 # ============================================
