@@ -878,6 +878,15 @@ export default function BookingPage() {
             )}
           </button>
         </div>
+
+        {/* Floating Car Visual - Using official asset */}
+        <div className="hidden lg:block fixed bottom-8 right-8 z-30 pointer-events-none">
+          <img 
+            src={ASSETS.car} 
+            alt="Voiture VTC" 
+            className="w-64 h-auto car-float opacity-80"
+          />
+        </div>
       </div>
 
       {/* WhatsApp Floating Button */}
