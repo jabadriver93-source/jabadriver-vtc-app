@@ -426,6 +426,39 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 
 ## Updated Backlog [2026-12-17]
 
+### 27. Amélioration Dashboard Admin - Filtres & Stats ✅ [2026-12-18]
+
+**Objectif** : Améliorer le dashboard admin avec des filtres par type de course et des statistiques financières agrégées.
+
+**Fonctionnalités implémentées :**
+
+1. **Filtre "Type de course"** :
+   - Options : "Type de course" (toutes) / "🏠 Mes courses" (directes) / "🚚 Sous-traitées"
+   - `data-testid="course-type-filter"`
+   - Filtrage côté API avec paramètre `course_type`
+
+2. **Statistiques CA en haut de page** :
+   - Total CA avec répartition : 🏠 Direct + 🚚 Sous-traitées
+   - Exemple : "🏠 1878€ + 🚚 265€ = 2143€"
+
+3. **Badge prix avec indicateur type** :
+   - Courses sous-traitées : Badge orange (bg-amber-400) avec emoji 🚚 et "+sup."
+   - Courses directes : Badge bleu (bg-[#7dd3fc])
+
+4. **API enrichie `/api/reservations`** :
+   - Nouveau champ `is_subcontracted` (boolean)
+   - Nouveau objet `financial_data` : 
+     - `final_price_eur`, `base_price_eur`, `supplements_eur`
+     - `commission_eur`, `driver_revenue_eur`
+
+**Tests : 100% (iteration_16.json)**
+
+**Fichiers modifiés :**
+- `/app/frontend/src/pages/AdminDashboard.jsx`
+- `/app/backend/server.py`
+
+---
+
 ### P0 - Prochaine Priorité
 - ⏳ **Système de Bonus / Parrainage Chauffeurs**: À implémenter
 
