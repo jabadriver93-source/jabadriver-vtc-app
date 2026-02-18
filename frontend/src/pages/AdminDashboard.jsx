@@ -594,29 +594,73 @@ export default function AdminDashboard() {
                       Itinéraire
                     </button>
 
-                    {/* Bon de commande Button */}
-                    <button
-                      onClick={() => window.open(`${API}/reservations/${reservation.id}/bon-commande-pdf`, '_blank')}
-                      className="action-btn bg-purple-500/20 text-purple-400 hover:bg-purple-500/30"
-                      data-testid={`bon-commande-btn-${reservation.id}`}
-                    >
-                      <FileCheck className="w-4 h-4" />
-                      Bon de commande
-                    </button>
+                    {/* Bon de commande Button - Different endpoint for subcontracted courses */}
+                    {(() => {
+                      const subInfo = getSubcontractingInfo(reservation);
+                      const isSubcontracted = subInfo?.assigned_driver_id;
+                      
+                      if (isSubcontracted) {
+                        // Subcontracted: Use driver document endpoint (driver -> client)
+                        return (
+                          <button
+                            onClick={() => window.open(`${API}/driver/courses/${subInfo.id}/bon-commande-pdf`, '_blank')}
+                            className="action-btn bg-purple-500/20 text-purple-400 hover:bg-purple-500/30"
+                            data-testid={`bon-commande-btn-${reservation.id}`}
+                            title="Document au nom du chauffeur"
+                          >
+                            <FileCheck className="w-4 h-4" />
+                            BDC (chauffeur)
+                          </button>
+                        );
+                      }
+                      // Not subcontracted: Use Jabadriver document
+                      return (
+                        <button
+                          onClick={() => window.open(`${API}/reservations/${reservation.id}/bon-commande-pdf`, '_blank')}
+                          className="action-btn bg-purple-500/20 text-purple-400 hover:bg-purple-500/30"
+                          data-testid={`bon-commande-btn-${reservation.id}`}
+                        >
+                          <FileCheck className="w-4 h-4" />
+                          Bon de commande
+                        </button>
+                      );
+                    })()}
 
-                    {/* Invoice Button */}
-                    <button
-                      onClick={() => setInvoiceModalReservation(reservation)}
-                      className={`action-btn ${
-                        reservation.invoice_generated 
-                          ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30' 
-                          : 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
-                      }`}
-                      data-testid={`invoice-btn-${reservation.id}`}
-                    >
-                      <FileText className="w-4 h-4" />
-                      {reservation.invoice_generated ? 'Voir facture' : 'Facture'}
-                    </button>
+                    {/* Invoice Button - Different endpoint for subcontracted courses */}
+                    {(() => {
+                      const subInfo = getSubcontractingInfo(reservation);
+                      const isSubcontracted = subInfo?.assigned_driver_id;
+                      
+                      if (isSubcontracted) {
+                        // Subcontracted: Show driver invoice (driver -> client)
+                        return (
+                          <button
+                            onClick={() => window.open(`${API}/driver/courses/${subInfo.id}/invoice-pdf`, '_blank')}
+                            className="action-btn bg-amber-500/20 text-amber-400 hover:bg-amber-500/30"
+                            data-testid={`invoice-btn-${reservation.id}`}
+                            title="Facture au nom du chauffeur"
+                          >
+                            <FileText className="w-4 h-4" />
+                            Facture (chauffeur)
+                          </button>
+                        );
+                      }
+                      // Not subcontracted: Use Jabadriver invoice modal
+                      return (
+                        <button
+                          onClick={() => setInvoiceModalReservation(reservation)}
+                          className={`action-btn ${
+                            reservation.invoice_generated 
+                              ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30' 
+                              : 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30'
+                          }`}
+                          data-testid={`invoice-btn-${reservation.id}`}
+                        >
+                          <FileText className="w-4 h-4" />
+                          {reservation.invoice_generated ? 'Voir facture' : 'Facture'}
+                        </button>
+                      );
+                    })()}
                     
                     {/* Test Toggle Button */}
                     <button
