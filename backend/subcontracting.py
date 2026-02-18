@@ -5174,8 +5174,7 @@ async def admin_get_driver_bon_commande(course_id: str):
     if not driver:
         raise HTTPException(status_code=404, detail="Chauffeur non trouvé")
     
-    # Generate PDF with driver as issuer
-    from pdf_template import generate_driver_bon_commande_pdf
+    # Generate PDF with driver as issuer (function defined in this file)
     pdf_bytes = generate_driver_bon_commande_pdf(course, driver)
     
     course_id_short = course.get('id', 'XXX')[:8].upper()
@@ -5229,8 +5228,7 @@ async def admin_get_driver_invoice(course_id: str):
         invoice_number = f"BROUILLON-{course_id_short}"
         invoice_date = datetime.now().strftime("%d/%m/%Y")
     
-    # Generate PDF with driver as issuer
-    from pdf_template import generate_driver_invoice_pdf
+    # Generate PDF with driver as issuer (function defined in this file)
     pdf_bytes = generate_driver_invoice_pdf(course, driver, invoice_number, invoice_date)
     
     logger.info(f"[ADMIN-DRIVER-INVOICE] ✅ Generated driver invoice {invoice_number} for {driver.get('company_name', driver.get('name'))} → {course.get('client_name')}")
