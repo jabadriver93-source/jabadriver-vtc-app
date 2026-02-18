@@ -339,6 +339,18 @@ export default function AdminDashboard() {
               ))}
             </select>
 
+            {/* Course Type Filter - Subcontracted vs Direct */}
+            <select
+              value={courseTypeFilter}
+              onChange={(e) => setCourseTypeFilter(e.target.value)}
+              className="filter-input-admin w-full sm:w-auto"
+              data-testid="course-type-filter"
+            >
+              <option value="">Type de course</option>
+              <option value="direct">🏠 Mes courses</option>
+              <option value="subcontracted">🚚 Sous-traitées</option>
+            </select>
+
             <button
               onClick={handleExport}
               className="export-btn"
