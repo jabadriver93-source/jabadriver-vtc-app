@@ -124,9 +124,9 @@ export function CourseFinancialSummary({ course, showCommission = true, compact 
                 <span className="text-amber-400">+{parking.toFixed(2)}€</span>
               </div>
             )}
-            {attenteMinutes > 0 && (
+            {attenteBillableMinutes > 0 && (
               <div className="flex justify-between items-center text-sm mt-1">
-                <span className="text-slate-400">Attente ({attenteMinutes}min)</span>
+                <span className="text-slate-400">Attente ({attenteBillableMinutes}min)</span>
                 <span className="text-amber-400">+{attenteAmount.toFixed(2)}€</span>
               </div>
             )}
