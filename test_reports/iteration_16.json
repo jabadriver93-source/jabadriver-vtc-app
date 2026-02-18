@@ -1,0 +1,109 @@
+{
+  "summary": "Tested Admin Dashboard filter 'Type de course' and financial_data features. All 8 requested features verified working correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_admin_dashboard_filters.py",
+    "/app/test_reports/pytest/pytest_admin_filters.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "API GET /api/reservations correctly returns is_subcontracted and financial_data fields",
+    "Filter course_type=subcontracted returns only courses with assigned_driver_id",
+    "Filter course_type=direct returns only non-subcontracted courses",
+    "Commission correctly calculated as 10% of BASE price (54€ = 5.40€), not final total",
+    "CA Total stats show breakdown: 🏠 1878€ (direct) + 🚚 265€ (subcontracted) = 2143€"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_admin_dashboard_filters.py"
+  ],
+  "success_rate": {
+    "backend": "100% (7 passed)",
+    "frontend": "100% (all UI elements verified)"
+  },
+  "test_credentials": {
+    "admin_password": "admin123"
+  },
+  "seed_data_creation": "Used existing test data",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All admin dashboard filter and financial data features verified. course-type-filter has data-testid and 3 options: '', 'direct', 'subcontracted'. API returns is_subcontracted boolean and financial_data object for all reservations.",
+  "features_verified": {
+    "1_filtre_type_course_visible": {
+      "status": "VERIFIED",
+      "data_testid": "course-type-filter",
+      "options": ["Type de course (default)", "🏠 Mes courses", "🚚 Sous-traitées"]
+    },
+    "2_filtre_soustraitees_only_assigned": {
+      "status": "VERIFIED",
+      "count": 4,
+      "verified": "All 4 courses have assigned_driver_id (is_subcontracted=true)"
+    },
+    "3_filtre_mescourses_only_direct": {
+      "status": "VERIFIED",
+      "count": 35,
+      "verified": "All 35 courses have is_subcontracted=false"
+    },
+    "4_stats_ca_breakdown": {
+      "status": "VERIFIED",
+      "total": "2143€",
+      "direct": "🏠 1878€",
+      "subcontracted": "🚚 265€"
+    },
+    "5_badge_prix_orange_emoji": {
+      "status": "VERIFIED",
+      "css_class": "bg-amber-400",
+      "emoji": "🚚",
+      "example": "55€+sup.🚚"
+    },
+    "6_badge_prix_bleu_direct": {
+      "status": "VERIFIED",
+      "css_class": "bg-[#7dd3fc]",
+      "example": "95€ (no emoji)"
+    },
+    "7_api_returns_is_subcontracted": {
+      "status": "VERIFIED",
+      "field": "is_subcontracted",
+      "type": "boolean"
+    },
+    "8_financial_data_structure": {
+      "status": "VERIFIED",
+      "fields": ["final_price_eur", "base_price_eur", "supplements_eur", "commission_eur", "driver_revenue_eur"],
+      "example": {
+        "reservation": "Test Pricing (Sous-traitée)",
+        "final_price_eur": 55.0,
+        "base_price_eur": 54.0,
+        "supplements_eur": 1.0,
+        "commission_eur": 5.4,
+        "driver_revenue_eur": 49.6
+      }
+    }
+  },
+  "api_verification": {
+    "GET /api/reservations": {
+      "status_code": 200,
+      "total_count": 40,
+      "subcontracted_count": 4,
+      "direct_count": 36,
+      "has_is_subcontracted": true,
+      "has_financial_data": true
+    },
+    "GET /api/reservations?course_type=subcontracted": {
+      "status_code": 200,
+      "count": 4,
+      "all_subcontracted": true
+    },
+    "GET /api/reservations?course_type=direct": {
+      "status_code": 200,
+      "count": 35,
+      "all_direct": true
+    }
+  }
+}
