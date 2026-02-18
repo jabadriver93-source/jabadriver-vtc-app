@@ -4,42 +4,31 @@ import { toast } from "sonner";
 import { 
   MapPin, Users, Briefcase, MessageSquare, 
   Phone, Mail, Loader2, Clock, CheckCircle,
-  User, Euro
+  User, Euro, Shield, Headphones
 } from "lucide-react";
 import axios from "axios";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 // Official assets from UI pack
 const ASSETS = {
   logo: "/ui_pack/logo_original.png",
-  tilePonctualite: "/ui_pack/tile_punctualite.png",
-  tileConfort: "/ui_pack/tile_confort.png",
-  tilePrixClair: "/ui_pack/tile_prix_clair.png",
-  bottomBadges: "/ui_pack/bottom_badges.png",
   car: "/ui_pack/car.png",
-  reference: "/ui_pack/reference_full.png"
 };
-
-const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 // Pricing constants
 const PRICE_PER_KM = 1.50;
 const PRICE_PER_MIN = 0.50;
 const MIN_PRICE = 10;
-
-// Booking delay requirement (in hours)
 const MIN_BOOKING_DELAY_HOURS = 6;
-
-// French phone validation regex
 const PHONE_REGEX = /^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/;
 
-// Track if Google Maps script is loaded
+// Google Maps loading
 let googleMapsLoaded = false;
 let googleMapsLoading = false;
 let mapsReadyCallbacks = [];
 
-// Global function to notify when maps is ready
 const notifyMapsReady = () => {
   googleMapsLoaded = true;
   googleMapsLoading = false;
@@ -47,137 +36,34 @@ const notifyMapsReady = () => {
   mapsReadyCallbacks = [];
 };
 
-// Load Google Maps once
 const loadGoogleMapsScript = () => {
   return new Promise((resolve) => {
     if (googleMapsLoaded && window.google?.maps?.places) {
       resolve();
       return;
     }
-
     if (googleMapsLoading) {
       mapsReadyCallbacks.push(resolve);
       return;
     }
-
     if (window.google?.maps?.places) {
       googleMapsLoaded = true;
       resolve();
       return;
     }
-
     googleMapsLoading = true;
     mapsReadyCallbacks.push(resolve);
-
     const callbackName = `gmapsCallback_${Date.now()}`;
-    
     window[callbackName] = () => {
       notifyMapsReady();
       delete window[callbackName];
     };
-
     const script = document.createElement("script");
     script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&language=fr&region=FR&callback=${callbackName}`;
     script.async = true;
     script.defer = true;
-    script.onerror = () => {
-      googleMapsLoading = false;
-      console.error("Failed to load Google Maps script");
-      delete window[callbackName];
-    };
-    
     document.head.appendChild(script);
   });
-};
-
-// Premium Neon Background Component
-const PremiumBackground = () => {
-  return (
-    <div className="absolute inset-0 overflow-hidden">
-      {/* Dark gradient base */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#030B1A] via-[#020617] to-[#030B1A]" />
-      
-      {/* Animated grid */}
-      <div 
-        className="absolute inset-0 opacity-30"
-        style={{
-          backgroundImage: `
-            linear-gradient(rgba(46, 167, 255, 0.05) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(46, 167, 255, 0.05) 1px, transparent 1px)
-          `,
-          backgroundSize: '60px 60px',
-          animation: 'gridMove 25s linear infinite'
-        }}
-      />
-      
-      {/* Neon routes - animated glow paths */}
-      <svg className="absolute inset-0 w-full h-full" style={{ opacity: 0.6 }}>
-        <defs>
-          <linearGradient id="neonGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="transparent" />
-            <stop offset="50%" stopColor="#00B6FF" />
-            <stop offset="100%" stopColor="transparent" />
-          </linearGradient>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-            <feMerge>
-              <feMergeNode in="coloredBlur"/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
-          </filter>
-        </defs>
-        
-        {/* Animated route paths */}
-        <path
-          d="M-50,200 Q200,150 400,250 T800,180 T1200,280"
-          stroke="url(#neonGradient)"
-          strokeWidth="2"
-          fill="none"
-          filter="url(#glow)"
-          className="animate-route-1"
-        />
-        <path
-          d="M-50,400 Q300,350 500,450 T900,380"
-          stroke="url(#neonGradient)"
-          strokeWidth="2"
-          fill="none"
-          filter="url(#glow)"
-          className="animate-route-2"
-        />
-        <path
-          d="M100,600 Q400,550 600,650 T1100,580"
-          stroke="url(#neonGradient)"
-          strokeWidth="1.5"
-          fill="none"
-          filter="url(#glow)"
-          className="animate-route-3"
-        />
-      </svg>
-      
-      {/* Radial glow center */}
-      <div 
-        className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px]"
-        style={{
-          background: 'radial-gradient(ellipse, rgba(0, 182, 255, 0.08) 0%, transparent 70%)',
-        }}
-      />
-      
-      {/* Floating particles */}
-      <div className="particles-premium">
-        {[...Array(15)].map((_, i) => (
-          <div
-            key={i}
-            className="particle-premium"
-            style={{
-              left: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 15}s`,
-              animationDuration: `${18 + Math.random() * 12}s`,
-            }}
-          />
-        ))}
-      </div>
-    </div>
-  );
 };
 
 export default function BookingPage() {
@@ -207,48 +93,34 @@ export default function BookingPage() {
     notes: ""
   });
 
-  // Load Google Maps script manually
+  // Load Google Maps
   useEffect(() => {
-    if (!GOOGLE_MAPS_API_KEY) {
-      console.warn("Google Maps API key not configured");
-      return;
-    }
-
+    if (!GOOGLE_MAPS_API_KEY) return;
     loadGoogleMapsScript().then(() => {
-      if (window.google?.maps?.places) {
-        setMapsReady(true);
-      }
+      if (window.google?.maps?.places) setMapsReady(true);
     });
   }, []);
 
-  // Initialize Autocomplete when maps is ready
+  // Initialize Autocomplete
   useEffect(() => {
     if (!mapsReady || !window.google?.maps?.places) return;
 
     const initAutocomplete = (inputRef, autocompleteRef, fieldName) => {
       if (!inputRef.current || autocompleteRef.current) return;
-
       try {
         const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current, {
           types: ["address"],
           componentRestrictions: { country: "fr" },
           fields: ["formatted_address", "geometry", "name"]
         });
-
         autocomplete.addListener("place_changed", () => {
           const place = autocomplete.getPlace();
-          if (place && place.formatted_address) {
-            setFormData(prev => ({
-              ...prev,
-              [fieldName]: place.formatted_address
-            }));
-            if (inputRef.current) {
-              inputRef.current.value = place.formatted_address;
-            }
+          if (place?.formatted_address) {
+            setFormData(prev => ({ ...prev, [fieldName]: place.formatted_address }));
+            if (inputRef.current) inputRef.current.value = place.formatted_address;
             setTimeout(() => triggerPriceCalculation(), 200);
           }
         });
-
         autocompleteRef.current = autocomplete;
       } catch (error) {
         console.error(`Failed to init autocomplete for ${fieldName}:`, error);
@@ -274,7 +146,6 @@ export default function BookingPage() {
   const triggerPriceCalculation = useCallback(() => {
     const pickup = pickupInputRef.current?.value;
     const dropoff = dropoffInputRef.current?.value;
-    
     if (pickup && dropoff && pickup.length > 5 && dropoff.length > 5) {
       calculatePrice(pickup, dropoff);
     }
@@ -285,11 +156,8 @@ export default function BookingPage() {
       setPriceData(null);
       return;
     }
-
     if (!distanceServiceRef.current) return;
-
     setPriceLoading(true);
-
     try {
       distanceServiceRef.current.getDistanceMatrix(
         {
@@ -300,18 +168,13 @@ export default function BookingPage() {
         },
         (response, status) => {
           setPriceLoading(false);
-
-          if (status === "OK" && 
-              response?.rows?.[0]?.elements?.[0]?.status === "OK") {
-            
+          if (status === "OK" && response?.rows?.[0]?.elements?.[0]?.status === "OK") {
             const element = response.rows[0].elements[0];
             const distanceKm = element.distance.value / 1000;
             const durationMin = element.duration.value / 60;
-
             let price = (distanceKm * PRICE_PER_KM) + (durationMin * PRICE_PER_MIN);
             if (price < MIN_PRICE) price = MIN_PRICE;
             price = Math.ceil(price);
-
             setPriceData({
               distance_km: Math.round(distanceKm * 10) / 10,
               duration_min: Math.round(durationMin),
@@ -323,7 +186,6 @@ export default function BookingPage() {
         }
       );
     } catch (error) {
-      console.error("Price calculation error:", error);
       setPriceLoading(false);
       setPriceData(null);
     }
@@ -331,11 +193,7 @@ export default function BookingPage() {
 
   useEffect(() => {
     if (!mapsReady) return;
-    
-    const timer = setTimeout(() => {
-      triggerPriceCalculation();
-    }, 1000);
-
+    const timer = setTimeout(() => triggerPriceCalculation(), 1000);
     return () => clearTimeout(timer);
   }, [formData.pickup_address, formData.dropoff_address, mapsReady, triggerPriceCalculation]);
 
@@ -350,64 +208,28 @@ export default function BookingPage() {
 
   const getMinTime = (selectedDate) => {
     if (!selectedDate) return "";
-    
     const today = new Date().toISOString().split('T')[0];
-    
     if (selectedDate === today) {
       const minTime = new Date();
       minTime.setHours(minTime.getHours() + MIN_BOOKING_DELAY_HOURS);
       minTime.setMinutes(Math.ceil(minTime.getMinutes() / 15) * 15);
-      
-      const hours = String(minTime.getHours()).padStart(2, '0');
-      const minutes = String(minTime.getMinutes()).padStart(2, '0');
-      return `${hours}:${minutes}`;
+      return `${String(minTime.getHours()).padStart(2, '0')}:${String(minTime.getMinutes()).padStart(2, '0')}`;
     }
-    
     return "";
   };
 
   const isDateTimeValid = () => {
     if (!formData.date || !formData.time) return false;
-    
     const selectedDateTime = new Date(`${formData.date}T${formData.time}`);
     const minDateTime = new Date();
     minDateTime.setHours(minDateTime.getHours() + MIN_BOOKING_DELAY_HOURS);
-    
     return selectedDateTime >= minDateTime;
-  };
-
-  const autoCorrectTime = (date, time) => {
-    if (!date || !time) return time;
-    
-    const minTime = getMinTime(date);
-    if (!minTime) return time;
-    
-    if (time < minTime) {
-      return minTime;
-    }
-    return time;
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
-    if (name === "date") {
-      const correctedTime = autoCorrectTime(value, formData.time);
-      setFormData(prev => ({ 
-        ...prev, 
-        date: value,
-        time: correctedTime
-      }));
-    } else if (name === "time") {
-      const correctedTime = autoCorrectTime(formData.date, value);
-      setFormData(prev => ({ ...prev, time: correctedTime }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
-    }
-    
-    if (name === "phone") {
-      setPhoneError("");
-    }
+    setFormData(prev => ({ ...prev, [name]: value }));
+    if (name === "phone") setPhoneError("");
   };
 
   const handleSubmit = async (e) => {
@@ -429,8 +251,7 @@ export default function BookingPage() {
       return;
     }
 
-    if (!submissionData.name || !actualPickup || !actualDropoff || 
-        !submissionData.date || !submissionData.time) {
+    if (!submissionData.name || !actualPickup || !actualDropoff || !submissionData.date || !submissionData.time) {
       toast.error("Veuillez remplir tous les champs obligatoires");
       return;
     }
@@ -456,12 +277,10 @@ export default function BookingPage() {
         duration_min: priceData?.duration_min || null,
         estimated_price: priceData?.estimated_price || null
       };
-      
       const response = await axios.post(`${API}/reservations`, reservationData);
       toast.success("Réservation enregistrée !");
       navigate(`/confirmation/${response.data.id}`);
     } catch (error) {
-      console.error("Booking error:", error);
       toast.error("Erreur lors de la réservation. Veuillez réessayer.");
     } finally {
       setLoading(false);
@@ -471,547 +290,935 @@ export default function BookingPage() {
   const today = new Date().toISOString().split('T')[0];
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      {/* Premium Animated Background */}
-      <PremiumBackground />
-      
-      {/* Content Container */}
-      <div className="relative z-10">
-        
-        {/* Premium Header */}
-        <header className="fixed top-0 left-0 right-0 z-50 px-4 py-3 bg-[#030B1A]/80 backdrop-blur-xl border-b border-white/5">
-          <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#00B6FF]/50 to-transparent" />
-          
-          <div className="max-w-6xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img 
-                src={ASSETS.logo}
-                alt="JABADRIVER" 
-                className="h-10 w-auto hero-logo-glow"
-              />
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <a 
-                href="/driver/login" 
-                className="btn-gold"
-                data-testid="driver-space-link"
-              >
-                <span className="text-base">🚗</span>
-                <span className="hidden sm:inline">Chauffeur</span>
-              </a>
-              <a 
-                href="/admin" 
-                className="btn-neon"
-                data-testid="admin-link"
-              >
-                <span className="text-base">⚙️</span>
-                <span className="hidden sm:inline">Admin</span>
-              </a>
-            </div>
-          </div>
-        </header>
+    <div className="jaba-page">
+      {/* Neon Background */}
+      <div className="jaba-bg">
+        <div className="jaba-grid" />
+        <svg className="jaba-routes" viewBox="0 0 1024 1536" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <linearGradient id="routeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="transparent" />
+              <stop offset="50%" stopColor="#00B6FF" />
+              <stop offset="100%" stopColor="transparent" />
+            </linearGradient>
+            <filter id="neonGlow">
+              <feGaussianBlur stdDeviation="4" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+          <path className="route-path" d="M0,300 Q200,250 400,320 T800,280 T1024,350" />
+          <path className="route-path delay-1" d="M0,500 Q300,450 500,520 T900,480" />
+          <path className="route-path delay-2" d="M100,700 Q400,650 600,720 T1024,680" />
+          <path className="route-path delay-3" d="M0,900 Q250,850 450,920 T850,880 T1024,950" />
+        </svg>
+        <div className="jaba-glow-center" />
+      </div>
 
-        {/* Hero Section */}
-        <section className="pt-28 sm:pt-32 pb-8 px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            {/* Logo Hero */}
-            <div className="mb-6 animate-fade-up">
-              <img 
-                src={ASSETS.logo}
-                alt="JABADRIVER"
-                className="h-20 sm:h-28 w-auto mx-auto hero-logo-pulse"
-              />
-            </div>
-            
-            {/* Tagline */}
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-white mb-3 animate-fade-up animate-delay-1" style={{ fontFamily: 'Manrope, sans-serif', letterSpacing: '-0.02em' }}>
-              LA MOBILITÉ <span className="text-gradient-neon">PREMIUM</span>
-            </h1>
-            <h2 className="text-lg sm:text-xl text-white/60 font-light tracking-wider animate-fade-up animate-delay-2">
-              EN ÎLE-DE-FRANCE
-            </h2>
-            
-            {/* Signature */}
-            <p className="mt-4 text-sm text-[#00B6FF]/80 tracking-[0.3em] uppercase animate-fade-up animate-delay-3">
-              Rapide • Sûr • Élégant
-            </p>
+      {/* Header */}
+      <header className="jaba-header">
+        <div className="jaba-header-inner">
+          <img src={ASSETS.logo} alt="JABADRIVER" className="jaba-header-logo" />
+          <div className="jaba-header-buttons">
+            <a href="/driver/login" className="jaba-btn-gold" data-testid="driver-space-link">
+              <span>🚗</span> Chauffeur
+            </a>
+            <a href="/admin" className="jaba-btn-blue" data-testid="admin-link">
+              <span>⚙️</span> Admin
+            </a>
           </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="jaba-main">
+        {/* Hero Section */}
+        <section className="jaba-hero">
+          <img src={ASSETS.logo} alt="JABADRIVER" className="jaba-hero-logo" />
+          <h1 className="jaba-title">
+            Réservez votre <span className="jaba-title-accent">VTC</span>
+          </h1>
+          <p className="jaba-subtitle">Service premium, votre chauffeur privé en Île-de-France</p>
         </section>
 
-        {/* Feature Tiles - Using official assets */}
-        <section className="px-4 pb-8">
-          <div className="max-w-2xl mx-auto">
-            <div className="flex flex-wrap justify-center gap-3 animate-fade-up animate-delay-3">
-              <img 
-                src={ASSETS.tilePonctualite} 
-                alt="Ponctualité" 
-                className="h-14 sm:h-16 w-auto rounded-xl hover:scale-105 transition-transform"
-              />
-              <img 
-                src={ASSETS.tileConfort} 
-                alt="Confort" 
-                className="h-14 sm:h-16 w-auto rounded-xl hover:scale-105 transition-transform"
-              />
-              <img 
-                src={ASSETS.tilePrixClair} 
-                alt="Prix clair" 
-                className="h-14 sm:h-16 w-auto rounded-xl hover:scale-105 transition-transform"
-              />
+        {/* Feature Tiles */}
+        <section className="jaba-tiles">
+          <div className="jaba-tile">
+            <div className="jaba-tile-icon">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div className="jaba-tile-text">
+              <span className="jaba-tile-title">Ponctualité</span>
+              <span className="jaba-tile-desc">Arrivée à l'heure, toujours</span>
+            </div>
+          </div>
+          <div className="jaba-tile">
+            <div className="jaba-tile-icon">
+              <Shield className="w-5 h-5" />
+            </div>
+            <div className="jaba-tile-text">
+              <span className="jaba-tile-title">Confort</span>
+              <span className="jaba-tile-desc">Véhicules haut de gamme</span>
+            </div>
+          </div>
+          <div className="jaba-tile">
+            <div className="jaba-tile-icon">
+              <Euro className="w-5 h-5" />
+            </div>
+            <div className="jaba-tile-text">
+              <span className="jaba-tile-title">Prix clair</span>
+              <span className="jaba-tile-desc">Tarifs fixés à l'avance</span>
             </div>
           </div>
         </section>
 
         {/* Booking Form Card */}
-        <section className="px-4 pb-32 sm:pb-16">
-          <div className="max-w-lg mx-auto">
-            <form 
-              onSubmit={handleSubmit}
-              id="booking-form"
-              className="premium-form-card animate-fade-up animate-delay-4"
-              data-testid="booking-form"
-            >
-              <h3 className="form-title-premium">
-                RÉSERVEZ VOTRE VTC — EN 1 CLIC
-              </h3>
+        <section className="jaba-form-section">
+          <form onSubmit={handleSubmit} id="booking-form" className="jaba-form-card" data-testid="booking-form">
+            <h2 className="jaba-form-title">RÉSERVATION</h2>
 
-              {/* Name */}
-              <div className="mb-4">
-                <label className="block text-xs font-semibold text-white/50 mb-2 uppercase tracking-wider">
-                  Nom complet *
-                </label>
-                <div className="relative input-group-premium">
-                  <User className="input-icon-premium w-5 h-5" />
-                  <input
-                    name="name"
-                    type="text"
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="Jean Dupont"
-                    className="input-premium"
-                    data-testid="input-name"
-                    required
-                  />
-                </div>
+            {/* Name */}
+            <div className="jaba-field">
+              <label className="jaba-label">NOM COMPLET *</label>
+              <div className="jaba-input-wrap">
+                <User className="jaba-input-icon" />
+                <input
+                  name="name"
+                  type="text"
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="Jean Dupont"
+                  className="jaba-input"
+                  data-testid="input-name"
+                  required
+                />
               </div>
+            </div>
 
-              {/* Phone */}
-              <div className="mb-4">
-                <label className="block text-xs font-semibold text-white/50 mb-2 uppercase tracking-wider">
-                  Téléphone *
-                </label>
-                <div className="relative input-group-premium">
-                  <Phone className="input-icon-premium w-5 h-5" />
-                  <input
-                    name="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    placeholder="06 12 34 56 78"
-                    className={`input-premium ${phoneError ? 'border-red-500' : ''}`}
-                    data-testid="input-phone"
-                    required
-                  />
-                </div>
-                {phoneError && <p className="text-red-400 text-xs mt-1">{phoneError}</p>}
+            {/* Phone */}
+            <div className="jaba-field">
+              <label className="jaba-label">TÉLÉPHONE *</label>
+              <div className="jaba-input-wrap">
+                <Phone className="jaba-input-icon" />
+                <input
+                  name="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  placeholder="06 12 34 56 78"
+                  className={`jaba-input ${phoneError ? 'error' : ''}`}
+                  data-testid="input-phone"
+                  required
+                />
               </div>
+              {phoneError && <span className="jaba-error">{phoneError}</span>}
+            </div>
 
-              {/* Email */}
-              <div className="mb-4">
-                <label className="block text-xs font-semibold text-white/50 mb-2 uppercase tracking-wider">
-                  Email (optionnel)
-                </label>
-                <div className="relative input-group-premium">
-                  <Mail className="input-icon-premium w-5 h-5" />
-                  <input
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="jean@example.com"
-                    className="input-premium"
-                    data-testid="input-email"
-                  />
-                </div>
+            {/* Email */}
+            <div className="jaba-field">
+              <label className="jaba-label">EMAIL (OPTIONNEL)</label>
+              <div className="jaba-input-wrap">
+                <Mail className="jaba-input-icon" />
+                <input
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="jean@example.com"
+                  className="jaba-input"
+                  data-testid="input-email"
+                />
               </div>
+            </div>
 
-              {/* Pickup Address */}
-              <div className="mb-4">
-                <label className="block text-xs font-semibold text-white/50 mb-2 uppercase tracking-wider">
-                  Adresse de départ *
-                </label>
-                <div className="relative input-group-premium">
-                  <MapPin className="input-icon-premium w-5 h-5 text-emerald-400" />
-                  <input
-                    ref={pickupInputRef}
-                    name="pickup_address"
-                    type="text"
-                    defaultValue={formData.pickup_address}
-                    onChange={handleChange}
-                    placeholder="Entrez une adresse..."
-                    className="input-premium"
-                    data-testid="input-pickup"
-                    autoComplete="off"
-                    required
-                  />
-                </div>
+            {/* Pickup */}
+            <div className="jaba-field">
+              <label className="jaba-label">ADRESSE DE DÉPART *</label>
+              <div className="jaba-input-wrap">
+                <MapPin className="jaba-input-icon green" />
+                <input
+                  ref={pickupInputRef}
+                  name="pickup_address"
+                  type="text"
+                  defaultValue={formData.pickup_address}
+                  onChange={handleChange}
+                  placeholder="Entrez une adresse..."
+                  className="jaba-input"
+                  data-testid="input-pickup"
+                  autoComplete="off"
+                  required
+                />
               </div>
+            </div>
 
-              {/* Dropoff Address */}
-              <div className="mb-4">
-                <label className="block text-xs font-semibold text-white/50 mb-2 uppercase tracking-wider">
-                  Adresse d'arrivée *
-                </label>
-                <div className="relative input-group-premium">
-                  <MapPin className="input-icon-premium w-5 h-5 text-red-400" />
-                  <input
-                    ref={dropoffInputRef}
-                    name="dropoff_address"
-                    type="text"
-                    defaultValue={formData.dropoff_address}
-                    onChange={handleChange}
-                    placeholder="Entrez une adresse..."
-                    className="input-premium"
-                    data-testid="input-dropoff"
-                    autoComplete="off"
-                    required
-                  />
-                </div>
+            {/* Dropoff */}
+            <div className="jaba-field">
+              <label className="jaba-label">ADRESSE D'ARRIVÉE *</label>
+              <div className="jaba-input-wrap">
+                <MapPin className="jaba-input-icon red" />
+                <input
+                  ref={dropoffInputRef}
+                  name="dropoff_address"
+                  type="text"
+                  defaultValue={formData.dropoff_address}
+                  onChange={handleChange}
+                  placeholder="Entrez une adresse..."
+                  className="jaba-input"
+                  data-testid="input-dropoff"
+                  autoComplete="off"
+                  required
+                />
               </div>
+            </div>
 
-              {/* Price Display */}
-              <div className="price-display-premium mb-4" data-testid="price-estimation">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 bg-gradient-to-br from-[#00B6FF] to-[#2EA7FF] rounded-xl flex items-center justify-center shadow-lg shadow-[#00B6FF]/30">
-                      <Euro className="w-5 h-5 text-[#030B1A]" />
-                    </div>
-                    <div>
-                      <p className="text-white/50 text-xs font-medium uppercase tracking-wider">Prix estimé</p>
-                      {priceLoading ? (
-                        <div className="flex items-center gap-2 mt-1">
-                          <Loader2 className="w-4 h-4 text-[#00B6FF] animate-spin" />
-                          <span className="text-white/40 text-sm">Calcul...</span>
-                        </div>
-                      ) : priceData ? (
-                        <p className="price-value-premium">{priceData.estimated_price}€</p>
-                      ) : (
-                        <p className="text-white/30 text-sm mt-0.5">Entrez les adresses</p>
-                      )}
-                    </div>
-                  </div>
-                  {priceData && (
-                    <div className="text-right">
-                      <p className="text-white/40 text-xs">{priceData.distance_km} km</p>
-                      <p className="text-white/40 text-xs">{priceData.duration_min} min</p>
-                    </div>
-                  )}
-                </div>
+            {/* Price Display */}
+            <div className="jaba-price-box" data-testid="price-estimation">
+              <div className="jaba-price-icon">
+                <Euro className="w-5 h-5" />
               </div>
-
-              {/* Date & Time */}
-              <div className="flex gap-3 mb-4">
-                <div className="flex-1">
-                  <label className="block text-xs font-semibold text-white/50 mb-2 uppercase tracking-wider">
-                    Date *
-                  </label>
-                  <input
-                    name="date"
-                    type="date"
-                    value={formData.date}
-                    onChange={handleChange}
-                    min={today}
-                    className="input-premium !pl-4"
-                    data-testid="input-date"
-                    required
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-xs font-semibold text-white/50 mb-2 uppercase tracking-wider">
-                    Heure *
-                  </label>
-                  <input
-                    name="time"
-                    type="time"
-                    value={formData.time}
-                    onChange={handleChange}
-                    min={getMinTime(formData.date)}
-                    className="input-premium !pl-4"
-                    data-testid="input-time"
-                    required
-                  />
-                </div>
-              </div>
-              
-              <p className="text-xs text-white/40 mb-4 flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                Minimum {MIN_BOOKING_DELAY_HOURS}h à l'avance
-              </p>
-
-              {/* Passengers */}
-              <div className="mb-4">
-                <label className="block text-xs font-semibold text-white/50 mb-2 uppercase tracking-wider">
-                  Passagers
-                </label>
-                <div className="relative input-group-premium">
-                  <Users className="input-icon-premium w-5 h-5" />
-                  <select
-                    name="passengers"
-                    value={formData.passengers}
-                    onChange={handleChange}
-                    className="input-premium appearance-none cursor-pointer"
-                    data-testid="input-passengers"
-                  >
-                    {[1,2,3,4,5,6,7].map(n => (
-                      <option key={n} value={n}>{n} passager{n > 1 ? 's' : ''}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Luggage */}
-              <div className="mb-4">
-                <label className="block text-xs font-semibold text-white/50 mb-2 uppercase tracking-wider">
-                  Bagages (optionnel)
-                </label>
-                <div className="relative input-group-premium">
-                  <Briefcase className="input-icon-premium w-5 h-5" />
-                  <input
-                    name="luggage"
-                    type="text"
-                    value={formData.luggage}
-                    onChange={handleChange}
-                    placeholder="2 valises, 1 sac cabine"
-                    className="input-premium"
-                    data-testid="input-luggage"
-                  />
-                </div>
-              </div>
-
-              {/* Notes */}
-              <div className="mb-6">
-                <label className="block text-xs font-semibold text-white/50 mb-2 uppercase tracking-wider">
-                  Note au chauffeur (optionnel)
-                </label>
-                <div className="relative input-group-premium">
-                  <MessageSquare className="absolute left-4 top-4 w-5 h-5 text-white/40" />
-                  <textarea
-                    name="notes"
-                    value={formData.notes}
-                    onChange={handleChange}
-                    placeholder="Instructions spéciales, numéro de vol..."
-                    className="input-premium !h-24 !pt-4 resize-none"
-                    data-testid="input-notes"
-                  />
-                </div>
-              </div>
-
-              {/* CTA Button */}
-              <button
-                type="submit"
-                disabled={loading || !isDateTimeValid()}
-                className="cta-premium"
-                data-testid="submit-booking"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Réservation en cours...
-                  </>
+              <div className="jaba-price-info">
+                <span className="jaba-price-label">PRIX ESTIMÉ</span>
+                {priceLoading ? (
+                  <span className="jaba-price-loading"><Loader2 className="w-4 h-4 animate-spin" /> Calcul...</span>
+                ) : priceData ? (
+                  <span className="jaba-price-value">{priceData.estimated_price}€</span>
                 ) : (
-                  <>
-                    <CheckCircle className="w-5 h-5" />
-                    RÉSERVER MAINTENANT
-                  </>
+                  <span className="jaba-price-placeholder">Entrez les adresses</span>
                 )}
-              </button>
-
-              {/* Support Info */}
-              <div className="mt-4 text-center">
-                <p className="text-xs text-white/40">
-                  Annulation gratuite jusqu'à 1h avant
-                </p>
-                <a 
-                  href="https://wa.me/message/MQ6BTZ7KU26OM1" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 mt-2 text-xs text-[#25D366] hover:underline"
-                >
-                  Support WhatsApp
-                </a>
               </div>
-            </form>
-          </div>
+              {priceData && (
+                <div className="jaba-price-details">
+                  <span>{priceData.distance_km} km</span>
+                  <span>{priceData.duration_min} min</span>
+                </div>
+              )}
+            </div>
+
+            {/* Date & Time */}
+            <div className="jaba-row">
+              <div className="jaba-field half">
+                <label className="jaba-label">DATE *</label>
+                <input
+                  name="date"
+                  type="date"
+                  value={formData.date}
+                  onChange={handleChange}
+                  min={today}
+                  className="jaba-input"
+                  data-testid="input-date"
+                  required
+                />
+              </div>
+              <div className="jaba-field half">
+                <label className="jaba-label">HEURE *</label>
+                <input
+                  name="time"
+                  type="time"
+                  value={formData.time}
+                  onChange={handleChange}
+                  min={getMinTime(formData.date)}
+                  className="jaba-input"
+                  data-testid="input-time"
+                  required
+                />
+              </div>
+            </div>
+            <p className="jaba-hint"><Clock className="w-3 h-3" /> Minimum {MIN_BOOKING_DELAY_HOURS}h à l'avance</p>
+
+            {/* Passengers */}
+            <div className="jaba-field">
+              <label className="jaba-label">PASSAGERS</label>
+              <div className="jaba-input-wrap">
+                <Users className="jaba-input-icon" />
+                <select
+                  name="passengers"
+                  value={formData.passengers}
+                  onChange={handleChange}
+                  className="jaba-input"
+                  data-testid="input-passengers"
+                >
+                  {[1,2,3,4,5,6,7].map(n => (
+                    <option key={n} value={n}>{n} passager{n > 1 ? 's' : ''}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Luggage */}
+            <div className="jaba-field">
+              <label className="jaba-label">BAGAGES (OPTIONNEL)</label>
+              <div className="jaba-input-wrap">
+                <Briefcase className="jaba-input-icon" />
+                <input
+                  name="luggage"
+                  type="text"
+                  value={formData.luggage}
+                  onChange={handleChange}
+                  placeholder="2 valises, 1 sac cabine"
+                  className="jaba-input"
+                  data-testid="input-luggage"
+                />
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div className="jaba-field">
+              <label className="jaba-label">NOTE AU CHAUFFEUR (OPTIONNEL)</label>
+              <div className="jaba-input-wrap textarea">
+                <MessageSquare className="jaba-input-icon top" />
+                <textarea
+                  name="notes"
+                  value={formData.notes}
+                  onChange={handleChange}
+                  placeholder="Instructions spéciales, numéro de vol..."
+                  className="jaba-input textarea"
+                  data-testid="input-notes"
+                />
+              </div>
+            </div>
+
+            {/* CTA Button */}
+            <button
+              type="submit"
+              disabled={loading || !isDateTimeValid()}
+              className="jaba-cta"
+              data-testid="submit-booking"
+            >
+              {loading ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /> Réservation en cours...</>
+              ) : (
+                <><CheckCircle className="w-5 h-5" /> RÉSERVER MAINTENANT</>
+              )}
+            </button>
+
+            <p className="jaba-support-text">
+              Annulation gratuite jusqu'à 1h avant
+            </p>
+          </form>
         </section>
 
-        {/* Bottom Badges - Using official asset */}
-        <section className="px-4 pb-24 sm:pb-16">
-          <div className="max-w-2xl mx-auto flex justify-center">
-            <img 
-              src={ASSETS.bottomBadges} 
-              alt="Disponible 24/7 - Chauffeurs vérifiés - Support tel" 
-              className="w-full max-w-xl h-auto"
-            />
+        {/* Car Visual */}
+        <div className="jaba-car-container">
+          <img src={ASSETS.car} alt="Voiture VTC" className="jaba-car" />
+        </div>
+
+        {/* Bottom Badges */}
+        <section className="jaba-badges">
+          <div className="jaba-badge">
+            <div className="jaba-badge-icon">
+              <Clock className="w-4 h-4" />
+            </div>
+            <span>Disponible 24/7</span>
+          </div>
+          <div className="jaba-badge">
+            <div className="jaba-badge-icon">
+              <CheckCircle className="w-4 h-4" />
+            </div>
+            <span>Chauffeurs vérifiés</span>
+          </div>
+          <div className="jaba-badge">
+            <div className="jaba-badge-icon">
+              <Headphones className="w-4 h-4" />
+            </div>
+            <span>Support tel</span>
           </div>
         </section>
+      </main>
 
-        {/* Mobile Sticky CTA */}
-        <div className="sm:hidden fixed bottom-0 left-0 right-0 p-4 bg-[#030B1A]/95 backdrop-blur-xl border-t border-white/5 z-40">
-          <button
-            type="submit"
-            form="booking-form"
-            disabled={loading || !isDateTimeValid()}
-            onClick={handleSubmit}
-            className="cta-premium"
-            data-testid="submit-booking-mobile"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Réservation...
-              </>
-            ) : (
-              <>
-                <CheckCircle className="w-5 h-5" />
-                RÉSERVER MAINTENANT
-              </>
-            )}
-          </button>
-        </div>
-
-        {/* Floating Car Visual - Using official asset */}
-        <div className="hidden lg:block fixed bottom-8 right-8 z-30 pointer-events-none">
-          <img 
-            src={ASSETS.car} 
-            alt="Voiture VTC" 
-            className="w-64 h-auto car-float opacity-80"
-          />
-        </div>
-      </div>
-
-      {/* WhatsApp Floating Button */}
-      <a
-        href="https://wa.me/message/MQ6BTZ7KU26OM1"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="whatsapp-btn"
-        aria-label="Contact WhatsApp"
-      >
-        <svg viewBox="0 0 24 24" className="w-7 h-7 text-white fill-current">
-          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-        </svg>
-      </a>
-
-      {/* Inline Styles for animations */}
+      {/* Inline Styles */}
       <style>{`
-        @keyframes gridMove {
-          0% { transform: translate(0, 0); }
-          100% { transform: translate(60px, 60px); }
-        }
+        /* ========================================
+           JABADRIVER PREMIUM LANDING PAGE
+           ======================================== */
         
-        .hero-logo-glow {
+        .jaba-page {
+          min-height: 100vh;
+          background: #030B1A;
+          color: white;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+          position: relative;
+          overflow-x: hidden;
+        }
+
+        /* Background */
+        .jaba-bg {
+          position: fixed;
+          inset: 0;
+          z-index: 0;
+          pointer-events: none;
+        }
+
+        .jaba-grid {
+          position: absolute;
+          inset: 0;
+          background-image: 
+            linear-gradient(rgba(46, 167, 255, 0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(46, 167, 255, 0.03) 1px, transparent 1px);
+          background-size: 50px 50px;
+          opacity: 0.5;
+        }
+
+        .jaba-routes {
+          position: absolute;
+          inset: 0;
+          width: 100%;
+          height: 100%;
+          opacity: 0.6;
+        }
+
+        .route-path {
+          fill: none;
+          stroke: url(#routeGrad);
+          stroke-width: 2;
+          filter: url(#neonGlow);
+          animation: routePulse 4s ease-in-out infinite;
+        }
+
+        .route-path.delay-1 { animation-delay: 1s; }
+        .route-path.delay-2 { animation-delay: 2s; }
+        .route-path.delay-3 { animation-delay: 3s; }
+
+        @keyframes routePulse {
+          0%, 100% { opacity: 0.3; stroke-width: 1.5; }
+          50% { opacity: 0.8; stroke-width: 2.5; }
+        }
+
+        .jaba-glow-center {
+          position: absolute;
+          top: 20%;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 600px;
+          height: 400px;
+          background: radial-gradient(ellipse, rgba(0, 182, 255, 0.15) 0%, transparent 70%);
+        }
+
+        /* Header */
+        .jaba-header {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          z-index: 100;
+          padding: 12px 16px;
+          background: rgba(3, 11, 26, 0.85);
+          backdrop-filter: blur(20px);
+          border-bottom: 1px solid rgba(46, 167, 255, 0.15);
+        }
+
+        .jaba-header-inner {
+          max-width: 1200px;
+          margin: 0 auto;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .jaba-header-logo {
+          height: 40px;
+          width: auto;
           filter: drop-shadow(0 0 10px rgba(0, 182, 255, 0.3));
         }
-        
-        .hero-logo-pulse {
-          animation: logoPulse 3s ease-in-out infinite;
+
+        .jaba-header-buttons {
+          display: flex;
+          gap: 8px;
         }
-        
-        @keyframes logoPulse {
+
+        .jaba-btn-gold {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 14px;
+          background: rgba(255, 180, 0, 0.15);
+          border: 1px solid rgba(255, 180, 0, 0.4);
+          border-radius: 10px;
+          color: #FFB400;
+          font-size: 13px;
+          font-weight: 600;
+          text-decoration: none;
+          transition: all 0.3s ease;
+        }
+
+        .jaba-btn-gold:hover {
+          background: rgba(255, 180, 0, 0.25);
+          box-shadow: 0 0 20px rgba(255, 180, 0, 0.3);
+        }
+
+        .jaba-btn-blue {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 14px;
+          background: rgba(46, 167, 255, 0.15);
+          border: 1px solid rgba(46, 167, 255, 0.3);
+          border-radius: 10px;
+          color: #2EA7FF;
+          font-size: 13px;
+          font-weight: 500;
+          text-decoration: none;
+          transition: all 0.3s ease;
+        }
+
+        .jaba-btn-blue:hover {
+          background: rgba(46, 167, 255, 0.25);
+          box-shadow: 0 0 15px rgba(46, 167, 255, 0.3);
+        }
+
+        /* Main Content */
+        .jaba-main {
+          position: relative;
+          z-index: 1;
+          padding: 80px 16px 40px;
+          max-width: 600px;
+          margin: 0 auto;
+        }
+
+        /* Hero */
+        .jaba-hero {
+          text-align: center;
+          padding: 40px 0 30px;
+        }
+
+        .jaba-hero-logo {
+          height: 80px;
+          width: auto;
+          margin-bottom: 20px;
+          filter: drop-shadow(0 0 30px rgba(0, 182, 255, 0.5));
+          animation: logoBreath 3s ease-in-out infinite;
+        }
+
+        @keyframes logoBreath {
           0%, 100% { 
             filter: drop-shadow(0 0 20px rgba(0, 182, 255, 0.4));
             transform: scale(1);
           }
           50% { 
-            filter: drop-shadow(0 0 40px rgba(0, 182, 255, 0.6));
+            filter: drop-shadow(0 0 40px rgba(0, 182, 255, 0.7));
             transform: scale(1.02);
           }
         }
-        
-        .text-gradient-neon {
-          background: linear-gradient(135deg, #00B6FF 0%, #2EA7FF 100%);
+
+        .jaba-title {
+          font-size: 28px;
+          font-weight: 700;
+          margin-bottom: 8px;
+          letter-spacing: -0.02em;
+        }
+
+        .jaba-title-accent {
+          background: linear-gradient(135deg, #00B6FF, #2EA7FF);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
-          filter: drop-shadow(0 0 20px rgba(0, 182, 255, 0.5));
         }
-        
-        .animate-route-1 { animation: routeGlow 4s ease-in-out infinite; }
-        .animate-route-2 { animation: routeGlow 4s ease-in-out infinite 1.3s; }
-        .animate-route-3 { animation: routeGlow 4s ease-in-out infinite 2.6s; }
-        
-        @keyframes routeGlow {
-          0%, 100% { opacity: 0.2; stroke-width: 1.5; }
-          50% { opacity: 0.8; stroke-width: 2.5; }
+
+        .jaba-subtitle {
+          color: rgba(255, 255, 255, 0.6);
+          font-size: 14px;
         }
-        
-        .particles-premium {
+
+        /* Feature Tiles */
+        .jaba-tiles {
+          display: flex;
+          justify-content: center;
+          gap: 12px;
+          margin-bottom: 24px;
+          flex-wrap: wrap;
+        }
+
+        .jaba-tile {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 12px 16px;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 12px;
+          transition: all 0.3s ease;
+        }
+
+        .jaba-tile:hover {
+          background: rgba(46, 167, 255, 0.08);
+          border-color: rgba(46, 167, 255, 0.2);
+          transform: translateY(-2px);
+        }
+
+        .jaba-tile-icon {
+          width: 36px;
+          height: 36px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #00B6FF, #2EA7FF);
+          border-radius: 10px;
+          color: #030B1A;
+        }
+
+        .jaba-tile-text {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .jaba-tile-title {
+          font-size: 13px;
+          font-weight: 600;
+          color: white;
+        }
+
+        .jaba-tile-desc {
+          font-size: 11px;
+          color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Form Card */
+        .jaba-form-section {
+          margin-bottom: 20px;
+        }
+
+        .jaba-form-card {
+          background: rgba(255, 255, 255, 0.03);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 20px;
+          padding: 28px 24px;
+          position: relative;
+        }
+
+        .jaba-form-card::before {
+          content: '';
           position: absolute;
-          inset: 0;
-          overflow: hidden;
-          pointer-events: none;
+          top: 0;
+          left: 20px;
+          right: 20px;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(46, 167, 255, 0.5), transparent);
         }
-        
-        .particle-premium {
+
+        .jaba-form-title {
+          text-align: center;
+          font-size: 16px;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          color: white;
+          margin-bottom: 24px;
+        }
+
+        .jaba-field {
+          margin-bottom: 16px;
+        }
+
+        .jaba-field.half {
+          flex: 1;
+        }
+
+        .jaba-row {
+          display: flex;
+          gap: 12px;
+        }
+
+        .jaba-label {
+          display: block;
+          font-size: 10px;
+          font-weight: 600;
+          color: rgba(255, 255, 255, 0.5);
+          letter-spacing: 0.1em;
+          margin-bottom: 8px;
+        }
+
+        .jaba-input-wrap {
+          position: relative;
+        }
+
+        .jaba-input-wrap.textarea {
+          align-items: flex-start;
+        }
+
+        .jaba-input-icon {
           position: absolute;
-          width: 3px;
-          height: 3px;
-          background: #00B6FF;
-          border-radius: 50%;
-          filter: blur(1px);
-          opacity: 0;
-          animation: particleRise 20s linear infinite;
+          left: 14px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 18px;
+          height: 18px;
+          color: rgba(255, 255, 255, 0.4);
+          transition: color 0.3s ease;
         }
-        
-        @keyframes particleRise {
-          0% { transform: translateY(100vh); opacity: 0; }
-          10% { opacity: 0.5; }
-          90% { opacity: 0.5; }
-          100% { transform: translateY(-10vh); opacity: 0; }
+
+        .jaba-input-icon.top {
+          top: 16px;
+          transform: none;
         }
-        
-        .animate-fade-up {
-          animation: fadeInUp 0.6s ease-out forwards;
-          opacity: 0;
+
+        .jaba-input-icon.green { color: #22c55e; }
+        .jaba-input-icon.red { color: #ef4444; }
+
+        .jaba-input {
+          width: 100%;
+          height: 48px;
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 10px;
+          padding: 0 14px 0 44px;
+          font-size: 14px;
+          color: white;
+          transition: all 0.3s ease;
         }
-        
-        .animate-delay-1 { animation-delay: 0.1s; }
-        .animate-delay-2 { animation-delay: 0.2s; }
-        .animate-delay-3 { animation-delay: 0.3s; }
-        .animate-delay-4 { animation-delay: 0.4s; }
-        
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+
+        .jaba-input.textarea {
+          height: 80px;
+          padding: 14px 14px 14px 44px;
+          resize: none;
         }
-        
-        /* Input date/time dark styling */
-        .input-premium::-webkit-calendar-picker-indicator {
+
+        .jaba-input::placeholder {
+          color: rgba(255, 255, 255, 0.3);
+        }
+
+        .jaba-input:focus {
+          outline: none;
+          border-color: #2EA7FF;
+          box-shadow: 0 0 0 3px rgba(46, 167, 255, 0.15);
+          background: rgba(46, 167, 255, 0.05);
+        }
+
+        .jaba-input.error {
+          border-color: #ef4444;
+        }
+
+        .jaba-input::-webkit-calendar-picker-indicator {
           filter: invert(1);
           opacity: 0.5;
         }
-        
-        /* Select arrow */
-        .input-premium option {
-          background: #030B1A;
-          color: white;
+
+        select.jaba-input {
+          cursor: pointer;
+          appearance: none;
         }
-        
-        /* Floating car animation */
-        .car-float {
-          animation: carFloat 4s ease-in-out infinite;
-          filter: drop-shadow(0 10px 30px rgba(0, 182, 255, 0.3));
+
+        .jaba-error {
+          display: block;
+          font-size: 11px;
+          color: #ef4444;
+          margin-top: 4px;
         }
-        
+
+        .jaba-hint {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 11px;
+          color: rgba(255, 255, 255, 0.4);
+          margin-bottom: 16px;
+        }
+
+        /* Price Box */
+        .jaba-price-box {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 16px;
+          background: linear-gradient(135deg, rgba(46, 167, 255, 0.1) 0%, rgba(0, 182, 255, 0.05) 100%);
+          border: 1px solid rgba(46, 167, 255, 0.2);
+          border-radius: 14px;
+          margin-bottom: 16px;
+        }
+
+        .jaba-price-icon {
+          width: 44px;
+          height: 44px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #00B6FF, #2EA7FF);
+          border-radius: 12px;
+          color: #030B1A;
+          flex-shrink: 0;
+        }
+
+        .jaba-price-info {
+          flex: 1;
+        }
+
+        .jaba-price-label {
+          display: block;
+          font-size: 10px;
+          font-weight: 600;
+          color: rgba(255, 255, 255, 0.5);
+          letter-spacing: 0.1em;
+        }
+
+        .jaba-price-value {
+          font-size: 28px;
+          font-weight: 800;
+          background: linear-gradient(135deg, #00B6FF, #2EA7FF);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+
+        .jaba-price-loading {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
+          color: rgba(255, 255, 255, 0.5);
+        }
+
+        .jaba-price-placeholder {
+          font-size: 13px;
+          color: rgba(255, 255, 255, 0.3);
+        }
+
+        .jaba-price-details {
+          display: flex;
+          flex-direction: column;
+          font-size: 11px;
+          color: rgba(255, 255, 255, 0.4);
+          text-align: right;
+        }
+
+        /* CTA Button */
+        .jaba-cta {
+          width: 100%;
+          height: 54px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          background: linear-gradient(135deg, #00B6FF, #2EA7FF);
+          border: none;
+          border-radius: 14px;
+          color: #030B1A;
+          font-size: 15px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          position: relative;
+          overflow: hidden;
+          box-shadow: 0 8px 30px rgba(0, 182, 255, 0.3);
+          margin-top: 8px;
+        }
+
+        .jaba-cta::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+          transition: left 0.5s ease;
+        }
+
+        .jaba-cta:hover::before {
+          left: 100%;
+        }
+
+        .jaba-cta:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 12px 40px rgba(0, 182, 255, 0.4);
+        }
+
+        .jaba-cta:disabled {
+          background: rgba(255, 255, 255, 0.1);
+          color: rgba(255, 255, 255, 0.3);
+          box-shadow: none;
+          cursor: not-allowed;
+        }
+
+        .jaba-support-text {
+          text-align: center;
+          font-size: 11px;
+          color: rgba(255, 255, 255, 0.4);
+          margin-top: 12px;
+        }
+
+        /* Car Visual */
+        .jaba-car-container {
+          display: flex;
+          justify-content: center;
+          margin: -20px 0 10px;
+          pointer-events: none;
+        }
+
+        .jaba-car {
+          width: 90%;
+          max-width: 400px;
+          height: auto;
+          filter: drop-shadow(0 20px 40px rgba(0, 182, 255, 0.2));
+          animation: carFloat 5s ease-in-out infinite;
+        }
+
         @keyframes carFloat {
           0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
+          50% { transform: translateY(-8px); }
+        }
+
+        /* Bottom Badges */
+        .jaba-badges {
+          display: flex;
+          justify-content: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          padding-bottom: 20px;
+        }
+
+        .jaba-badge {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 14px;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 10px;
+          color: rgba(255, 255, 255, 0.7);
+          font-size: 12px;
+          font-weight: 500;
+        }
+
+        .jaba-badge-icon {
+          width: 28px;
+          height: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(46, 167, 255, 0.15);
+          border-radius: 8px;
+          color: #2EA7FF;
+        }
+
+        /* Responsive */
+        @media (min-width: 640px) {
+          .jaba-hero-logo {
+            height: 100px;
+          }
+          
+          .jaba-title {
+            font-size: 36px;
+          }
+          
+          .jaba-form-card {
+            padding: 36px 32px;
+          }
+        }
+
+        @media (max-width: 400px) {
+          .jaba-tiles {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          
+          .jaba-tile {
+            justify-content: center;
+          }
+          
+          .jaba-badges {
+            flex-direction: column;
+            align-items: center;
+          }
         }
       `}</style>
     </div>
