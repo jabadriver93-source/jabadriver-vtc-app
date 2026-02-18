@@ -5660,7 +5660,8 @@ async def admin_update_course_notes(course_id: str, notes: str):
 
 @admin_subcontracting_router.post("/courses/{course_id}/toggle-test")
 async def admin_toggle_test_course(course_id: str):
-    """Toggle the is_test flag on a course. Test courses are excluded from revenue/commission stats."""
+    """Toggle the is_test flag on a course. Test courses are excluded from revenue/commission stats.
+    Also syncs the flag to linked reservations."""
     course = await db.courses.find_one({"id": course_id}, {"_id": 0})
     if not course:
         raise HTTPException(status_code=404, detail="Course non trouvée")
@@ -5675,10 +5676,19 @@ async def admin_toggle_test_course(course_id: str):
     
     logger.info(f"[ADMIN] Course {course_id[:8]} is_test toggled to {new_is_test}")
     
+    # SYNC: Also update any reservation linked to this course
+    result = await db.reservations.update_many(
+        {"subcontracting_course_id": course_id},
+        {"$set": {"is_test": new_is_test}}
+    )
+    if result.modified_count > 0:
+        logger.info(f"[ADMIN] Synced is_test={new_is_test} to {result.modified_count} linked reservation(s)")
+    
     return {
         "message": f"Course marquée comme {'test' if new_is_test else 'production'}",
         "is_test": new_is_test,
-        "course_id": course_id
+        "course_id": course_id,
+        "synced_reservations_count": result.modified_count
     }
 
 # ============================================
