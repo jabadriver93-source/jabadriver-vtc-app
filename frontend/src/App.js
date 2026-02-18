@@ -13,6 +13,7 @@ import DriverProfilePage from "@/pages/driver/DriverProfilePage";
 import DriverRidePage from "@/pages/driver/DriverRidePage";
 import AdminSubcontractingPage from "@/pages/admin/AdminSubcontractingPage";
 import AdminCommissionsPage from "@/pages/admin/AdminCommissionsPage";
+import AdminDangerZone from "@/pages/admin/AdminDangerZone";
 import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
 // Client portal
 import ClientPortalPage from "@/pages/ClientPortalPage";
