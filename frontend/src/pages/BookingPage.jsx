@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { 
-  MapPin, Calendar, Users, Briefcase, MessageSquare, 
-  Phone, Mail, Loader2, Clock, CheckCircle, Shield,
-  User, Euro, Headphones
+  MapPin, Users, Briefcase, MessageSquare, 
+  Phone, Mail, Loader2, Clock, CheckCircle,
+  User, Euro
 } from "lucide-react";
 import axios from "axios";
 
