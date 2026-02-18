@@ -1,0 +1,111 @@
+{
+  "summary": "Comprehensive testing of TEST mode unification between Dashboard and Subcontracting pages. All 8 requested features verified working correctly. Filter logic unified: both pages use 'showTest ? item.is_test : !item.is_test'. Sync between Dashboard and Subcontracting toggles verified bidirectionally.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_test_mode_unification.py",
+    "/app/test_reports/pytest/test_mode_unification_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Dashboard filter logic (Line 148-159) correctly uses: showTestReservations ? !r.is_test : r.is_test (return false = filter out)",
+    "Subcontracting filter logic (Lines 575, 612, 637) correctly uses: showTestRides ? c.is_test : !c.is_test",
+    "server.py toggle_test_reservation (Line 1218) syncs to linked course via subcontracting_course_id",
+    "subcontracting.py admin_toggle_test_course (Line 5662) syncs to linked reservations via update_many",
+    "Commission calculation remains at 10% of BASE price (not affected by test mode changes)"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_test_mode_unification.py"
+  ],
+  "success_rate": {
+    "backend": "100% (11/11 tests passed)",
+    "frontend": "100% (all UI interactions verified)"
+  },
+  "test_credentials": {
+    "admin_password": "admin123"
+  },
+  "seed_data_creation": "Used existing test data - verified with API calls",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "TEST mode unification verified complete. Sync tested with reservation 003c1efb ↔ course 511f5e99. Current counts: 40 reservations (39 normal, 1 test), 46 courses (39 normal, 7 test).",
+  "features_verified": {
+    "1_dashboard_default_shows_normal": {
+      "status": "VERIFIED",
+      "expected": "39 normal reservations (is_test=false)",
+      "actual": "Total stat shows 39, button shows 'Afficher tests'",
+      "evidence": "Screenshot 01_admin_dashboard.png"
+    },
+    "2_dashboard_click_shows_only_test": {
+      "status": "VERIFIED",
+      "expected": "1 test reservation (is_test=true)",
+      "actual": "Total stat shows 1, TEST badge visible, button shows 'Masquer tests'",
+      "evidence": "Screenshot 02_dashboard_test_mode.png"
+    },
+    "3_subcontracting_default_shows_normal": {
+      "status": "VERIFIED",
+      "expected": "39 normal courses",
+      "actual": "Courses tab shows '(39)', button shows 'Afficher tests 7'",
+      "evidence": "Screenshot 03_subcontracting_page.png"
+    },
+    "4_subcontracting_click_shows_only_test": {
+      "status": "VERIFIED",
+      "expected": "7 test courses",
+      "actual": "Courses tab shows '(7)', 7 TEST badges visible, button shows 'Masquer tests 7'",
+      "evidence": "Screenshot 04_subcontracting_test_mode.png"
+    },
+    "5_sync_dashboard_to_course": {
+      "status": "VERIFIED",
+      "tested": "Reservation 003c1efb toggle → Course 511f5e99 synced",
+      "api_response": "synced_course_id returned in response"
+    },
+    "6_sync_course_to_reservation": {
+      "status": "VERIFIED",
+      "tested": "Course 511f5e99 toggle → Reservation 003c1efb synced",
+      "api_response": "synced_reservations_count: 1 returned in response"
+    },
+    "7_counters_correct_per_module": {
+      "status": "VERIFIED",
+      "dashboard_badge": "1 (test reservations count)",
+      "subcontracting_badge": "7 (test courses count)"
+    },
+    "8_no_regression_commission": {
+      "status": "VERIFIED",
+      "commission_rate": "10% of base price",
+      "calculation": "Verified in test_course_totals_calculation and test_course_has_totals_field tests"
+    }
+  },
+  "api_verification": {
+    "GET /api/reservations": {
+      "status_code": 200,
+      "total_count": 40,
+      "test_count": 1,
+      "normal_count": 39
+    },
+    "GET /api/admin/subcontracting/courses": {
+      "status_code": 200,
+      "total_count": 46,
+      "test_count": 7,
+      "normal_count": 39
+    },
+    "POST /api/reservations/{id}/toggle-test": {
+      "status_code": 200,
+      "returns": "is_test, message, synced_course_id"
+    },
+    "POST /api/admin/subcontracting/courses/{id}/toggle-test": {
+      "status_code": 200,
+      "returns": "is_test, message, synced_reservations_count"
+    }
+  },
+  "sync_test_evidence": {
+    "test_pair": "Reservation 003c1efb-0d99-483d-b21f-6da2892ddbde ↔ Course 511f5e99-99f7-4202-98fc-0edacff9576f",
+    "forward_sync": "Toggling reservation sets is_test on linked course",
+    "reverse_sync": "Toggling course sets is_test on linked reservation(s)"
+  }
+}
