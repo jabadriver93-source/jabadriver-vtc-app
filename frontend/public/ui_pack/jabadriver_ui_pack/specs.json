@@ -1,0 +1,28 @@
+{
+  "canvas": {
+    "width": 1024,
+    "height": 1536
+  },
+  "theme": {
+    "primary_blue": "#2EA7FF",
+    "neon_blue_glow": "#00B6FF",
+    "accent_gold": "#FFB400",
+    "background": "dark city + neon route map",
+    "typography": {
+      "brand": "uppercase sans (wide tracking)",
+      "tagline": "script neon"
+    }
+  },
+  "layout_notes": [
+    "Header buttons aligned top-right: Chauffeur (gold), Admin (blue).",
+    "3 feature tiles centered under hero text.",
+    "Large booking card with all fields + price badge.",
+    "Bottom badges: Disponible 24/7, Chauffeurs vérifiés, Support tel (label to adjust)."
+  ],
+  "recommended_animations": [
+    "Neon route map: slow pulsing glow + light sweep traveling along path (CSS keyframes).",
+    "Floating particles: subtle upward drift + blur (canvas or CSS pseudo-elements).",
+    "Logo: gentle breathing glow + micro parallax on emblem.",
+    "CTA button: periodic shimmer sweep + hover intensifies glow."
+  ]
+}
