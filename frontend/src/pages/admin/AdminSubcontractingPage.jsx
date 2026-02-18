@@ -658,11 +658,14 @@ export default function AdminSubcontractingPage() {
                       </div>
                       <div className="flex items-center gap-2 text-sky-400">
                         <Euro className="w-4 h-4" />
-                        {course.price_total?.toFixed(2)} €
+                        {/* Show final total (base + supplements) */}
+                        {(course.totals?.final_total_eur ?? course.price_with_supplements ?? course.price_total)?.toFixed(2)} €
                         {course.is_test && <span className="text-orange-400 text-xs">(test)</span>}
                       </div>
                       <div className="flex items-center gap-2 text-amber-400">
-                        Commission: {course.commission_amount?.toFixed(2)} €
+                        {/* Commission = 10% of BASE price only */}
+                        Commission: {(course.totals?.commission_base_eur ?? course.commission_amount)?.toFixed(2)} €
+                        <span className="text-xs text-slate-500">(10% base)</span>
                       </div>
                       <div className="flex items-center gap-2">
                         {course.commission_paid ? (
