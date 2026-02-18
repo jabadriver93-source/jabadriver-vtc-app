@@ -501,33 +501,30 @@ export default function AdminDashboard() {
                           {reservation.invoice_number}
                         </div>
                       )}
-                      {/* Price Badge with breakdown - Use subcontracting totals if available */}
+                      {/* Price Badge - Using getFinancialData for consistent pricing */}
                       {(() => {
-                        const subInfo = getSubcontractingInfo(reservation);
-                        const totals = subInfo?.totals;
+                        const { final_price_eur, base_price_eur, supplements_eur, is_subcontracted } = getFinancialData(reservation);
+                        const hasSupplements = supplements_eur > 0;
                         
-                        // If subcontracted course with totals, show final_total_eur
-                        if (totals?.final_total_eur) {
-                          const hasExtras = totals.extras_total_eur > 0 || totals.waiting_fee_eur > 0;
-                          return (
-                            <div 
-                              className="bg-[#7dd3fc] text-[#0a0a0a] font-bold px-4 py-1.5 rounded-full text-sm flex items-center gap-1.5" 
-                              data-testid={`price-${reservation.id}`}
-                              title={hasExtras ? `Base: ${totals.base_price_eur}€ + Suppléments: ${(totals.waiting_fee_eur + totals.extras_total_eur).toFixed(2)}€` : ''}
-                            >
-                              <span>{totals.final_total_eur.toFixed(0)}€</span>
-                              {hasExtras && <span className="text-[10px] ml-1 opacity-70">+sup.</span>}
-                            </div>
-                          );
-                        }
-                        
-                        // Fallback to reservation price
-                        if (reservation.final_price || reservation.estimated_price) {
-                          return (
-                            <div className="bg-[#7dd3fc] text-[#0a0a0a] font-bold px-4 py-1.5 rounded-full text-sm flex items-center gap-1.5" data-testid={`price-${reservation.id}`}>
-                              {reservation.is_airport_trip && reservation.airport_surcharge > 0 ? (
-                                <span title={`Course: ${Math.round(reservation.base_price || 0)}€ + Aéroport: ${Math.round(reservation.airport_surcharge)}€`}>
-                                  {Math.round(reservation.final_price || reservation.estimated_price)}€
+                        return (
+                          <div 
+                            className={`font-bold px-4 py-1.5 rounded-full text-sm flex items-center gap-1.5 ${
+                              is_subcontracted 
+                                ? 'bg-amber-400 text-[#0a0a0a]' 
+                                : 'bg-[#7dd3fc] text-[#0a0a0a]'
+                            }`}
+                            data-testid={`price-${reservation.id}`}
+                            title={hasSupplements 
+                              ? `Base: ${base_price_eur?.toFixed(2)}€ + Suppléments: ${supplements_eur?.toFixed(2)}€` 
+                              : `Prix: ${final_price_eur?.toFixed(2)}€`
+                            }
+                          >
+                            <span>{Math.round(final_price_eur || 0)}€</span>
+                            {hasSupplements && <span className="text-[10px] ml-1 opacity-70">+sup.</span>}
+                            {is_subcontracted && <span className="text-[10px] ml-1">🚚</span>}
+                          </div>
+                        );
+                      })()}
                                   <span className="text-[10px] ml-1">✈️</span>
                                 </span>
                               ) : (
