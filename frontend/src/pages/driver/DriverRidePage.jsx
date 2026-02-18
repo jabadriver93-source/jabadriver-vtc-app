@@ -565,7 +565,11 @@ export default function DriverRidePage() {
 
   const statusConfig = STATUS_CONFIG[ride?.status] || STATUS_CONFIG.ASSIGNED;
   const StatusIcon = statusConfig.icon;
-  const netDriver = (ride?.price_with_supplements || ride?.price_total || 0) - (ride?.commission_amount || 0);
+  
+  // Use pre-calculated values from API (Single Source of Truth)
+  // net_driver comes from backend: final_total - commission (where commission = 10% of base only)
+  const netDriver = ride?.net_driver ?? ride?.totals?.net_driver_eur ?? 
+    ((ride?.price_with_supplements || ride?.price_total || 0) - (ride?.commission_amount || 0));
 
   return (
     <div className="min-h-screen bg-gray-950" style={{ paddingBottom: '180px' }}>
