@@ -509,10 +509,31 @@ Application VTC (Jabadriver) avec un module de sous-traitance permettant aux cha
 **Préservé** : drivers, configuration, templates
 
 **Endpoints** :
+- `GET /api/admin/danger/status` - Check status with reason
 - `GET /api/admin/danger/reset-preview`
 - `POST /api/admin/danger/reset-all`
 
-**Tests : 100% (iteration_19.json)** - 15/15 backend
+**Tests : 100% (iteration_19.json, iteration_20.json)** - 15/15 backend + auth fixes
+
+---
+
+### 31. Correction Auth Danger Zone ✅ [2026-12-18]
+
+**Problème** : La page `/admin/danger` clignotait et spammait "Session expirée" car le mot de passe admin n'était pas stocké.
+
+**Corrections** :
+1. **Auth** : Le login admin stocke maintenant `sessionStorage.adminPassword` en plus de `adminAuth`
+2. **UI Session expirée** : Écran propre avec boutons "Se reconnecter" / "Retour Dashboard"
+3. **Debounce toasts** : Limite 1 toast max toutes les 2 secondes
+4. **Endpoint status** : `GET /api/admin/danger/status` retourne `enabled`, `reason`, `raw_value`
+5. **Log démarrage** : `[DANGER] ALLOW_DANGER_RESET=true (parsed: True)`
+
+**Fichiers modifiés** :
+- `/app/frontend/src/pages/AdminLoginPage.jsx` (ligne 28)
+- `/app/frontend/src/pages/admin/AdminDangerZone.jsx` (complet rewrite)
+- `/app/backend/server.py` (endpoint status, logs)
+
+**Tests : 100% (iteration_20.json)** - 9/9 backend, UI vérifiée
 
 ---
 
