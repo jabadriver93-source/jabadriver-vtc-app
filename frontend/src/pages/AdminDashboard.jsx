@@ -236,16 +236,8 @@ export default function AdminDashboard() {
     return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
   };
 
-  // Filtered reservations (excluding test if filter is OFF)
-  const filteredReservations = reservations.filter(r => showTestReservations || !r.is_test);
-  
-  // Count test reservations
+  // Count test reservations (for badge)
   const testReservationsCount = reservations.filter(r => r.is_test).length;
-
-  // Total revenue - EXCLUDE test reservations from stats
-  const totalRevenue = reservations
-    .filter(r => r.status !== "annulée" && !r.is_test && (r.final_price || r.estimated_price))
-    .reduce((sum, r) => sum + (r.final_price || r.estimated_price || 0), 0);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a]">
