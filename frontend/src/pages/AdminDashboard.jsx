@@ -278,6 +278,15 @@ export default function AdminDashboard() {
               <span className="hidden sm:inline">Sous-traitance</span>
             </button>
             <button 
+              onClick={() => navigate('/admin/danger')}
+              className="inline-flex items-center gap-1.5 px-2.5 py-2 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-lg transition-colors text-sm font-medium"
+              data-testid="danger-zone-btn"
+              title="Danger Zone - Reset données test"
+            >
+              <AlertTriangle className="w-4 h-4" />
+              <span className="hidden lg:inline">Danger</span>
+            </button>
+            <button 
               onClick={fetchReservations}
               className="p-2.5 text-white/50 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
               data-testid="refresh-btn"
