@@ -539,28 +539,25 @@ export default function BookingPage() {
           </div>
         </section>
 
-        {/* Feature Tiles */}
+        {/* Feature Tiles - Using official assets */}
         <section className="px-4 pb-8">
           <div className="max-w-2xl mx-auto">
             <div className="flex flex-wrap justify-center gap-3 animate-fade-up animate-delay-3">
-              <div className="value-tile">
-                <div className="value-icon">
-                  <Clock className="w-5 h-5" />
-                </div>
-                <span className="value-text">Ponctualité</span>
-              </div>
-              <div className="value-tile">
-                <div className="value-icon">
-                  <Shield className="w-5 h-5" />
-                </div>
-                <span className="value-text">Confort</span>
-              </div>
-              <div className="value-tile">
-                <div className="value-icon">
-                  <Euro className="w-5 h-5" />
-                </div>
-                <span className="value-text">Prix clair</span>
-              </div>
+              <img 
+                src={ASSETS.tilePonctualite} 
+                alt="Ponctualité" 
+                className="h-14 sm:h-16 w-auto rounded-xl hover:scale-105 transition-transform"
+              />
+              <img 
+                src={ASSETS.tileConfort} 
+                alt="Confort" 
+                className="h-14 sm:h-16 w-auto rounded-xl hover:scale-105 transition-transform"
+              />
+              <img 
+                src={ASSETS.tilePrixClair} 
+                alt="Prix clair" 
+                className="h-14 sm:h-16 w-auto rounded-xl hover:scale-105 transition-transform"
+              />
             </div>
           </div>
         </section>
