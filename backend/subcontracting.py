@@ -5149,14 +5149,17 @@ async def admin_get_platform_commission_invoice(course_id: str):
 # ============================================
 @admin_subcontracting_router.get("/courses")
 async def admin_get_all_courses():
-    """Get all subcontracting courses with driver info"""
+    """Get all subcontracting courses with driver info and calculated totals"""
     courses = await db.courses.find({}, {"_id": 0}).sort("created_at", -1).to_list(500)
     
-    # Enrich with driver info
+    # Enrich with driver info and calculated totals
     for course in courses:
         if course.get("assigned_driver_id"):
             driver = await db.drivers.find_one({"id": course["assigned_driver_id"]}, {"_id": 0, "password_hash": 0})
             course["assigned_driver"] = driver
+        
+        # Add calculated totals (Single Source of Truth)
+        course["totals"] = calculate_course_totals(course)
         
         # Check and update expired reservations
         await check_and_expire_reservation(course)
