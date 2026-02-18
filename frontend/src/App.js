@@ -38,6 +38,7 @@ function App() {
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/subcontracting" element={<AdminSubcontractingPage />} />
           <Route path="/admin/commissions" element={<AdminCommissionsPage />} />
+          <Route path="/admin/danger" element={<AdminDangerZone />} />
           
           {/* Driver routes */}
           <Route path="/driver/login" element={<DriverLoginPage />} />
