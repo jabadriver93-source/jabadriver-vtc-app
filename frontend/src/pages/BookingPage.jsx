@@ -10,7 +10,7 @@ import axios from "axios";
 import MapBackground from "@/components/MapBackground";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-const LOGO_HEADER_URL = "/jabadriver-logo-header.png";
+const LOGO_HEADER_URL = "/jabadriver-logo-hero.png";
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 // Pricing constants
