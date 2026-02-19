@@ -415,9 +415,12 @@ export default function BookingPage() {
       
       {/* Content */}
       <div className="hero-map-content">
-        {/* Header - Logo centered + Hamburger right */}
+        {/* Header - Logo centered + Hamburger right, perfectly aligned */}
         <header className="px-4 py-3 relative z-50">
-          <div className="max-w-5xl mx-auto flex items-center justify-center relative">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            {/* Spacer for balance */}
+            <div className="w-11"></div>
+            
             {/* Centered Logo */}
             <img 
               src={LOGO_HEADER_URL}
@@ -428,14 +431,14 @@ export default function BookingPage() {
             {/* Hamburger Menu Button - Right */}
             <button 
               onClick={() => setMenuOpen(!menuOpen)}
-              className="hamburger-btn absolute right-0"
+              className="hamburger-btn"
               aria-label="Menu"
               data-testid="hamburger-menu-btn"
             >
               {menuOpen ? (
-                <X className="w-6 h-6" />
+                <X className="w-7 h-7" />
               ) : (
-                <Menu className="w-6 h-6" />
+                <Menu className="w-7 h-7" />
               )}
             </button>
           </div>
