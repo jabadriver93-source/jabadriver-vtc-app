@@ -10,7 +10,7 @@ import requests
 import os
 import uuid
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://admin-analytics-v2.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://emergent-cleanup-3.preview.emergentagent.com')
 
 # Test credentials
 DRIVER_EMAIL = "chauffeur1@test.com"

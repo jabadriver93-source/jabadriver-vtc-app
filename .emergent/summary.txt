@@ -1,75 +1,67 @@
 <analysis>**original_problem_statement:**
-L'utilisateur a demandé une série d'améliorations et de corrections de bugs pour le tableau de bord d'administration afin d'améliorer la visibilité financière et la cohérence des données.
-
-**PRODUCT REQUIREMENTS:**
-1.  **Amélioration du Dashboard Admin :**
-    *   Ajouter un filtre pour Type de course : Toutes, Sous-traitées uniquement, Non sous-traitées uniquement.
-    *   Afficher le prix **final total** (base + suppléments) dans la liste des courses, et non plus seulement le prix de base.
-    *   Afficher des statistiques de chiffre d'affaires en haut de la page, avec une répartition entre les courses directes (Jabadriver) et les courses sous-traitées.
-2.  **Correction des Incohérences de Prix et de Commission :**
-    *   Le prix final, la commission et les gains du chauffeur étaient incohérents entre le portail chauffeur, le tableau de bord admin et les factures PDF.
-    *   La commission était parfois calculée sur le prix final au lieu du prix de base.
-    *   L'arrondi des minutes d'attente était inconsistent.
-3.  **Correction du flux Client Présent :**
-    *   Le bouton Je suis présent du client était non fonctionnel.
-    *   Le chauffeur n'était pas notifié et ne pouvait pas localiser le client.
-4.  **Correction de la Génération de Documents Admin :**
-    *   Pour les courses sous-traitées, les boutons Bon de commande et Facture dans le dashboard admin généraient des documents au nom de Jabadriver au lieu du nom du chauffeur.
+L'utilisateur a demandé une série de corrections et de nouvelles fonctionnalités pour son application VTC. Les demandes les plus récentes incluent :
+1.  **Suppression du Branding Emergent :** Supprimer complètement la bannière Made with Emergent du site sans impacter le layout.
+2.  **Refonte de la Homepage (ANNULÉE) :** L'utilisateur a demandé une refonte complète de la page d'accueil pour correspondre à un design spécifique, mais après plusieurs tentatives, a demandé d'annuler toutes les modifications et de revenir à l'état stable précédent.
+3.  **Unification du Mode Test :** Synchroniser l'état test d'une course entre le dashboard admin et le portail de sous-traitance.
+4.  **Zone de Danger pour Reset :** Créer une page admin sécurisée pour supprimer toutes les données de test (courses, réservations, paiements, etc.).
 
 **User's preferred language**: Français
 
 **what currently exists?**
 L'application est une plateforme VTC full-stack (React/FastAPI/MongoDB).
-- Les flux de redirection et Chauffeur Arrivé sont fonctionnels.
-- **Source Unique de Vérité (Single Source of Truth) :** Une logique de calcul financier centralisée a été implémentée dans le backend () pour garantir la cohérence des prix, des suppléments (comme l'attente) et de la commission sur toutes les interfaces (portail chauffeur, admin, PDF).
-- **Règle de Commission Corrigée :** La commission de la plateforme (10%) est maintenant calculée de manière stricte sur le **prix de base** uniquement.
-- **Flux Client Présent Corrigé :** Le bouton client est fonctionnel, notifie le chauffeur, et un bouton Localiser client apparaît sur l'interface du chauffeur.
-- **Génération de Documents Corrigée :** Le dashboard admin génère désormais des factures et bons de commande au nom du chauffeur pour les courses sous-traitées.
-- **Dashboard Admin Amélioré :** Le dashboard principal inclut désormais des filtres par type de course (directe/sous-traitée), des statistiques de revenus agrégés et un affichage clair du prix final (base + suppléments) pour chaque course.
+- La logique test est unifiée entre le dashboard admin () et la sous-traitance (), avec une synchronisation bidirectionnelle.
+- Une page  a été créée pour permettre la suppression de toutes les données de test. La fonctionnalité est protégée par une authentification admin et une variable d'environnement (). Les problèmes d'authentification sur cette page ont été corrigés.
+- L'environnement de prévisualisation a été stabilisé en passant le frontend en mode build de production () pour contourner les problèmes de limite de file watchers ().
+- La page d'accueil a été restaurée à sa version stable d'avant les tentatives de refonte graphique.
+- L'agent a commencé à rechercher la source de la bannière Made with Emergent en utilisant .
 
 **Last working item**:
-- Last item agent was working: Implémentation des filtres par type de course et des statistiques de revenus sur le . L'agent a ajouté un filtre, des cartes de statistiques en haut de la page et a mis à jour l'affichage des prix des courses pour refléter le total final.
-- Status: TESTING PENDING
-- Agent Testing Done: N (L'agent a lancé l'agent de test à la toute fin de la session, mais n'a pas encore reçu ni analysé les résultats).
-- Which testing method agent to use? L'agent a déjà appelé . Le prochain agent doit analyser le rapport généré.
+- Last item agent was working: Recherche de la bannière Made with Emergent dans la base de code pour la supprimer, conformément à la dernière demande de l'utilisateur. L'agent a lancé une commande  pour localiser les occurrences du mot Emergent.
+- Status: IN PROGRESS
+- Agent Testing Done: N
+- Which testing method agent to use? screenshot tool. L'agent devra prendre une capture d'écran de la page d'accueil après la suppression pour confirmer que la bannière a disparu et que la mise en page n'est pas cassée.
 - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-- **Issue 1 (P0): Analyse du rapport de test pour le Dashboard Admin**
-  - **Description:** L'agent a terminé l'implémentation des filtres et des statistiques sur le Dashboard Admin et a appelé l'agent de test. La première action doit être d'examiner le rapport de test () pour identifier et corriger les éventuels bugs.
-  - **Status:** NOT STARTED
+- **Issue 1 (P0): Suppression de la bannière Made with Emergent**
+  - **Description:** L'utilisateur souhaite que tout le branding Emergent soit supprimé du site. L'agent a commencé à investiguer.
+  - **Next debug checklist:**
+    1.  Analyser les résultats de la commande /app/frontend/src/pages/BookingPage.jsx:          /* Safe zone for mobile - avoid overlap with "Made with Emergent" badge */
+/app/frontend/src/pages/driver/DriverRidePage.jsx:      {/* Fixed Bottom Action Button - positioned above Emergent banner */}
+/app/frontend/src/pages/BookingPage_backup.jsx:          /* Safe zone for mobile - avoid overlap with "Made with Emergent" badge */.
+    2.  Identifier le fichier (probablement un composant de layout comme  ou un footer) qui injecte la bannière.
+    3.  Supprimer ou commenter le code correspondant.
+    4.  Vérifier que le build du frontend fonctionne toujours.
+    5.  Valider visuellement avec l'outil de capture d'écran que la bannière a disparu.
+  - **Why fix this issue and what will be achieved with the fix?** Pour avoir un site en marque blanche sans branding externe, ce qui est une exigence pour la production.
+  - **Status:** IN PROGRESS
+  - **Should Test frontend/backend/both after fix?** Frontend
 
 **In progress Task List**:
-Aucune tâche n'est en cours de codage. Le travail attend la validation des tests.
+Aucune.
 
 **Upcoming and Future Tasks**
 **Upcoming Tasks:**
-*   **P0: Implémenter un système de bonus / parrainage pour les chauffeurs.**
+*   **P0: Refonte UI de la Homepage (EN ATTENTE).** Cette tâche a été demandée, tentée, puis annulée par l'utilisateur. Elle reste en attente de nouvelles instructions. Il ne faut PAS y retoucher sans une nouvelle demande explicite de l'utilisateur.
+*   **P1: Implémenter un système de bonus / parrainage pour les chauffeurs.**
+*   **P2: Créer un dashboard de statistiques dédié et plus détaillé pour l'administrateur.**
 
 **Future Tasks:**
-*   **P1:** Créer un dashboard de statistiques dédié et plus détaillé pour l'administrateur.
 *   **P2:** Implémenter les notifications push pour les chauffeurs.
 *   **P2:** Mettre en place un chat en temps réel entre le client et le chauffeur.
 
 **Completed work in this session**
-- **Flux Client & Suivi Chauffeur Fiabilisé :**
-    - Correction du lien Suivre mon chauffeur dans les emails, qui pointe désormais vers la page .
-    - Correction de l'affichage du statut de la course sur le portail client pour refléter le statut réel de la  associée.
-    - Enrichissement de l'API du portail client pour fournir toutes les données nécessaires au suivi.
-- **Logique Financière Unifiée (Single Source of Truth) :**
-    - Création d'une fonction centrale  dans  pour calculer et persister le prix de base, les suppléments (attente), le prix final, la commission et le gain chauffeur.
-    - Correction de la règle de commission pour qu'elle s'applique **uniquement sur le prix de base**.
-    - Correction du calcul du temps d'attente pour utiliser un arrondi au plafond ().
-    - Mise à jour de toutes les interfaces (portail chauffeur, admin, factures PDF) pour utiliser cette source de données unique, éliminant les incohérences.
-- **Correction du Flux Client Présent :**
-    - Implémentation d'un nouvel endpoint  pour que le client puisse signaler sa présence de manière fiable.
-    - Ajout du bouton Localiser client sur l'interface du chauffeur.
-- **Correction du Dashboard Admin Classique :**
-    - Le dashboard affiche maintenant le **prix final** pour les courses sous-traitées.
-    - Les boutons de génération de PDF (Bon de commande, Facture) génèrent désormais des documents au nom du chauffeur pour les courses sous-traitées via de nouveaux endpoints admin dédiés.
-- **Amélioration du Dashboard Admin (Filtres & Stats) :**
-    - Ajout d'un filtre pour Type de course (Toutes / Mes courses / Sous-traitées).
-    - Ajout de statistiques de chiffre d'affaires en haut de la page, avec une répartition entre les revenus directs et ceux des courses sous-traitées.
+- **Homepage UI Restaurée :** Toutes les tentatives de refonte de l'interface de la page d'accueil ont été annulées, et le code a été restauré à la version stable précédente, suite à la demande de l'utilisateur.
+- **Correction et Stabilisation de la Danger Zone :**
+    - Correction d'un bug d'authentification (401) sur la page  qui empêchait son utilisation. La logique a été modifiée pour utiliser l'authentification de session au lieu d'une clé locale inexistante.
+    - Amélioration de l'UX pour afficher un message Session expirée clair au lieu d'un clignotement de page.
+    - Ajout d'un endpoint  pour vérifier l'état de la variable d'environnement .
+- **Unification du Mode Test :**
+    - Mise en place d'une synchronisation bidirectionnelle du flag  entre la collection  (Dashboard) et  (Sous-traitance).
+    - Correction du filtre Afficher/Masquer tests sur le Dashboard Admin pour qu'il filtre uniquement les courses test, au lieu de tout afficher.
+- **Stabilisation de l'Environnement de Prévisualisation :**
+    - Résolution de crashs répétitifs du frontend () en configurant le service pour utiliser un build de production (yarn run v1.22.22
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command. puis ) au lieu du serveur de développement.
 
 **Earlier issues found/mentioned but not fixed**
 - **Issue 1:** Incohérence de l'icône PWA sur la page . C'est un problème visuel de basse priorité qui n'a pas été traité.
@@ -78,72 +70,92 @@ Aucune tâche n'est en cours de codage. Le travail attend la validation des test
 - Non applicable.
 
 **Code Architecture**
-
+serve
 
 **Key Technical Concepts**
-- **Backend:** FastAPI, Pydantic (gestion des champs optionnels),  pour les calculs financiers, création d'endpoints admin distincts pour contourner l'authentification chauffeur, centralisation de la logique métier dans une fonction Single Source of Truth.
-- **Frontend:** React (, , ), gestion d'état pour les filtres, rendu conditionnel avancé, communication API, formatage de devises ().
+- **Backend:** FastAPI, Pydantic, synchronisation de données entre collections MongoDB, utilisation de variables d'environnement comme feature flags ().
+- **Frontend:** React (, , ), gestion d'état d'authentification, routage (React Router), appels API avec .
+- **DevOps:** Debugging de problèmes d'environnement de conteneur (), configuration de , passage d'un serveur de développement (hot-reload) à un service de production statique ().
 
 **key DB schema**
-- ** collection:** Les champs , , ,  sont maintenant calculés et persistés de manière fiable.
-- ** collection:** Le champ  dans le modèle Pydantic a été rendu optionnel. Le champ  a été ajouté au modèle Pydantic pour être exposé à l'API.
+- **:** Contient les réservations. Champ clé  (boolean) synchronisé avec .
+- **:** Contient les courses sous-traitées. Champ clé  (boolean) synchronisé avec .
+- Les collections suivantes sont maintenant vidées par la Danger Zone : , , , , .
 
 **All files of reference**
-- **/app/backend/subcontracting.py**: Cœur de la logique métier et financière.
-- **/app/backend/server.py**: Contient les endpoints pour le dashboard admin et le portail client.
-- **/app/frontend/src/pages/AdminDashboard.jsx**: Interface admin principale avec les nouveaux filtres et statistiques.
-- **/app/frontend/src/pages/ClientPortalPage.jsx**: Interface de suivi pour le client.
-- **/app/frontend/src/pages/driver/DriverRidePage.jsx**: Interface du chauffeur pour la gestion de la course.
-- **/app/backend/pdf_template.py**: Logique de génération des factures PDF.
+-  : Potentiel emplacement de la bannière.
+-  : Potentiel emplacement de la bannière.
+-  : Potentiel emplacement de la bannière.
 
 **Areas that need refactoring**:
-- ** et :** Ces fichiers sont devenus très volumineux. La logique pourrait être scindée en plusieurs modules basés sur la responsabilité (ex: , , ).
-- **:** Contient une logique de filtrage et de calcul de statistiques qui pourrait être extraite dans des hooks React personnalisés (ex: , ) pour améliorer la lisibilité.
+-  et  restent volumineux et pourraient être découpés en modules (, , ).
 
 **key api endpoints**
-- **Nouveaux Endpoints :**
+- **Créés:**
   - 
   - 
   - 
-- **Endpoints Modifiés :**
-  - 
-  - 
+- **Modifiés:**
   - 
   - 
 
 **Critical Info for New Agent**
-- **Priorité n°1 :** Votre première action doit être d'analyser le rapport de l'agent de test qui a été lancé à la fin de la session précédente pour valider les modifications du Dashboard Admin.
-- **Source de Vérité Financière :** Toute modification liée aux prix doit impérativement passer par la fonction  dans  et les champs persistés sur l'objet  pour maintenir la cohérence. Ne recalculez jamais les totaux ou la commission côté frontend.
-- **Règle de Commission :** La commission est de 10% sur le  **uniquement**. Ne la calculez jamais sur le .
+- **Priorité Absolue :** Votre seule tâche est de trouver et supprimer la bannière Made with Emergent. Analysez les résultats du  précédent pour localiser le code et le supprimer.
+- **Homepage Intouchable :** Ne modifiez PAS l'UI de la page d'accueil () sans une demande explicite et nouvelle de l'utilisateur. La dernière instruction était d'annuler toutes les modifications.
+- **Mode de build frontend :** Le frontend fonctionne en mode production (). Si vous modifiez des fichiers frontend, vous devrez relancer yarn run v1.22.22
+info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command. pour que les changements soient visibles. La commande est : yarn run v1.22.22
+$ craco build
+Creating an optimized production build...
+Compiled successfully.
+
+File sizes after gzip:
+
+  163.49 kB (-12 B)  build/static/js/main.23204ac7.js
+  18.5 kB            build/static/css/main.0337b9f6.css
+
+The project was built assuming it is hosted at /.
+You can control this with the homepage field in your package.json.
+
+The build folder is ready to be deployed.
+You may serve it with a static server:
+
+  yarn global add serve
+  serve -s build
+
+Find out more about deployment here:
+
+  https://cra.link/deployment
+
+Done in 22.60s..
 
 **documents and test reports created in this job**
--  (mis à jour à chaque fin de tâche)
-- Plusieurs rapports de test ont été générés dans . Le dernier en date est celui qui doit être analysé.
+- Plusieurs rapports de test dans  validant les corrections.
+-  a été mis à jour.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **(LATEST)** User asks to improve the Admin Dashboard with financial filters and total price display. (DONE, PENDING TESTING)
-2.  User acknowledges completion of the previous task.
-3.  User asks to continue.
-4.  User provides a detailed report of price and commission inconsistencies across the entire app and requests a Single Source of Truth. (DONE)
-5.  User confirms the previous fix is good.
-6.  User reports that the Je suis présent button is broken and asks for several related fixes, including injecting waiting fees into the invoice. (DONE)
-7.  User confirms all tests passed for the previous fix.
-8.  User asks to finish the task.
-9.  User acknowledges the fix for the client portal status.
-10. User confirms tests have passed for the client portal fix.
+1.  **LATEST:** User asks to completely remove the Made with Emergent banner. (IN PROGRESS)
+2.  User confirms the rollback is what they wanted.
+3.  Agent confirms the homepage has been restored to its previous stable state.
+4.  User asks to cancel all recent UI modifications and revert to the last stable deployment. (DONE)
+5.  Agent confirms the new homepage layout is responsive on mobile.
+6.  Agent provides screenshots of the new homepage implementation.
+7.  User provides new instructions, stating the homepage implementation is incorrect and must be rebuilt using ONLY the provided assets. (This attempt was then rolled back).
+8.  Agent confirms the previous version of the homepage is live and functional after replacing assets.
+9.  User sends a  message and asks to use an official asset pack instead of generated images, without changing the layout. (This attempt was also part of the final rollback).
+10. Agent confirms the new premium UI with animations is complete and functional. (This version was later rolled back).
 
 **Project Health Check:**
 - **Broken:** Aucun.
 - **Mocked:** Aucun.
 
 **3rd Party Integrations**
-- **Resend:** Pour l'envoi d'emails transactionnels.
-- **Stripe:** Pour les paiements.
-- **Google Maps API:** Utilisée pour le calcul de routes, la géocodification, et l'autocomplétion d'adresses.
+- Resend (Emails)
+- Stripe (Paiements)
+- Google Maps API
 
 **Testing status**
-- Testing agent used after significant changes: YES. Utilisé pour chaque étape majeure de correction de bugs.
-- Troubleshoot agent used after agent stuck in loop: NO
+- Testing agent used after significant changes: YES. Utilisé pour valider la Danger Zone et l'unification du mode test.
+- Troubleshoot agent used after agent stuck in loop: NO.
 - Test files created: []
 - Known regressions: Aucune.
 
@@ -152,4 +164,4 @@ Aucune tâche n'est en cours de codage. Le travail attend la validation des test
 - **Driver:**  / 
 
 **What agent forgot to execute**
-L'agent a traité toutes les demandes de l'utilisateur de manière exhaustive. La seule étape restante est de vérifier le résultat de la dernière exécution de l'agent de test.</analysis>
+L'agent a suivi toutes les instructions de l'utilisateur, y compris l'annulation et la restauration du code, qui peuvent parfois être considérées comme des pas en arrière mais étaient nécessaires. Aucune tâche demandée n'a été oubliée.</analysis>

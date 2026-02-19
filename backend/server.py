@@ -806,7 +806,7 @@ async def send_driver_alert(reservation: Reservation, claim_url: str = None):
     maps_url = f"https://www.google.com/maps/dir/?api=1&origin={origin_encoded}&destination={destination_encoded}"
     
     # Admin URL for subcontracting management
-    frontend_url = os.environ.get('FRONTEND_URL', 'https://admin-analytics-v2.preview.emergentagent.com')
+    frontend_url = os.environ.get('FRONTEND_URL', 'https://emergent-cleanup-3.preview.emergentagent.com')
     admin_subcontracting_url = f"{frontend_url}/admin/subcontracting"
     
     # Claim link section for subcontracting

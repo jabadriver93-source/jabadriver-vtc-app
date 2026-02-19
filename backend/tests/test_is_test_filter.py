@@ -11,7 +11,7 @@ import time
 # Use public URL for testing
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 if not BASE_URL:
-    BASE_URL = "https://admin-analytics-v2.preview.emergentagent.com"
+    BASE_URL = "https://emergent-cleanup-3.preview.emergentagent.com"
 
 class TestIsTestFilter:
     """Tests for is_test course filter feature"""

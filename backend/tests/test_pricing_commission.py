@@ -16,7 +16,7 @@ import requests
 import os
 import math
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://admin-analytics-v2.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://emergent-cleanup-3.preview.emergentagent.com').rstrip('/')
 
 # Test course data from requirement
 TEST_COURSE_ID = "3ceb496c-9d39-4ab9-a4d8-42cfc9e67029"
