@@ -39,14 +39,14 @@
     }
 }
 
-/* Header Logo - Centered, matching mockup size */
+/* Header Logo - Centered, +30% larger */
 .header-logo-centered {
-    height: 100px;
+    height: 130px;
     width: auto;
-    max-width: 320px;
+    max-width: 420px;
     object-fit: contain;
     filter: drop-shadow(0 2px 15px var(--brand-blue-subtle));
-    mix-blend-mode: screen;
+    mix-blend-mode: multiply;
     opacity: 0.98;
     transition: filter 0.3s ease, opacity 0.3s ease;
 }
@@ -58,15 +58,15 @@
 
 @media (min-width: 640px) {
     .header-logo-centered {
-        height: 130px;
-        max-width: 400px;
+        height: 170px;
+        max-width: 520px;
     }
 }
 
 @media (min-width: 1024px) {
     .header-logo-centered {
-        height: 150px;
-        max-width: 480px;
+        height: 195px;
+        max-width: 620px;
     }
 }
 
