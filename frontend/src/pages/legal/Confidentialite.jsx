@@ -16,7 +16,7 @@ export default function Confidentialite() {
         <h1 className="legal-title">Politique de Confidentialité</h1>
 
         <section className="legal-section">
-          <h2>Responsable</h2>
+          <h2>Responsable du traitement</h2>
           <div className="legal-info-block">
             <p><strong>JABADRIVER</strong></p>
             <p>SIRET : 941 473 217 00011</p>
@@ -26,17 +26,18 @@ export default function Confidentialite() {
 
         <section className="legal-section">
           <h2>Données collectées</h2>
-          <h3>Clients :</h3>
+          <h3>Clients</h3>
           <ul className="legal-list">
             <li>nom</li>
-            <li>téléphone</li>
-            <li>email</li>
-            <li>adresses de trajet</li>
-            <li>informations réservation</li>
+            <li>numéro de téléphone</li>
+            <li>adresse email</li>
+            <li>adresses de prise en charge et destination</li>
+            <li>informations de réservation</li>
           </ul>
-          <h3>Chauffeurs :</h3>
+          <h3>Chauffeurs partenaires</h3>
           <ul className="legal-list">
             <li>identité</li>
+            <li>coordonnées</li>
             <li>documents professionnels</li>
             <li>informations véhicule</li>
           </ul>
@@ -44,9 +45,10 @@ export default function Confidentialite() {
 
         <section className="legal-section">
           <h2>Finalités</h2>
+          <p>Les données sont utilisées pour :</p>
           <ul className="legal-list">
             <li>gestion des réservations</li>
-            <li>mise en relation</li>
+            <li>mise en relation client / chauffeur</li>
             <li>facturation</li>
             <li>support client</li>
             <li>obligations légales</li>
@@ -55,8 +57,8 @@ export default function Confidentialite() {
 
         <section className="legal-section">
           <h2>Partage des données</h2>
-          <p>Les données peuvent être transmises aux chauffeurs partenaires pour la réalisation des courses.</p>
-          <p>JABADRIVER ne revend pas les données.</p>
+          <p>Les données peuvent être transmises aux chauffeurs partenaires uniquement dans le cadre de la réalisation des prestations.</p>
+          <p>JABADRIVER ne revend pas les données personnelles.</p>
         </section>
 
         <section className="legal-section">
@@ -66,19 +68,19 @@ export default function Confidentialite() {
 
         <section className="legal-section">
           <h2>Droits RGPD</h2>
-          <p>Vous disposez :</p>
+          <p>Conformément à la réglementation, vous disposez :</p>
           <ul className="legal-list">
             <li>droit d'accès</li>
-            <li>rectification</li>
-            <li>suppression</li>
-            <li>opposition</li>
+            <li>droit de rectification</li>
+            <li>droit de suppression</li>
+            <li>droit d'opposition</li>
           </ul>
           <p>Contact : contact@jabadriver.fr</p>
         </section>
 
         <section className="legal-section">
           <h2>Cookies</h2>
-          <p>Le site peut utiliser des cookies techniques nécessaires.</p>
+          <p>Le site peut utiliser des cookies techniques nécessaires à son fonctionnement et à l'amélioration de l'expérience utilisateur.</p>
         </section>
       </div>
     </div>
