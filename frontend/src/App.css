@@ -161,13 +161,13 @@
 }
 
 .menu-item:hover {
-    background: rgba(56, 189, 248, 0.1);
-    color: #7dd3fc;
+    background: var(--brand-blue-subtle, rgba(91, 181, 224, 0.1));
+    color: var(--brand-blue-light, #7DD3FC);
     transform: translateX(4px);
 }
 
 .menu-item svg {
-    color: #38bdf8;
+    color: var(--brand-blue, #5BB5E0);
     opacity: 0.8;
     transition: opacity 0.25s ease;
 }
