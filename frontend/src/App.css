@@ -41,9 +41,9 @@
 
 /* Header Logo - Centered, matching mockup size */
 .header-logo-centered {
-    height: 80px;
+    height: 100px;
     width: auto;
-    max-width: 280px;
+    max-width: 320px;
     object-fit: contain;
     filter: drop-shadow(0 2px 15px var(--brand-blue-subtle));
     mix-blend-mode: screen;
@@ -58,15 +58,15 @@
 
 @media (min-width: 640px) {
     .header-logo-centered {
-        height: 100px;
-        max-width: 350px;
+        height: 130px;
+        max-width: 400px;
     }
 }
 
 @media (min-width: 1024px) {
     .header-logo-centered {
-        height: 120px;
-        max-width: 420px;
+        height: 150px;
+        max-width: 480px;
     }
 }
 
