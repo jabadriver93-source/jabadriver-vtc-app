@@ -408,21 +408,9 @@ export default function BookingPage() {
       {/* Overlay */}
       <div className="hero-map-overlay" />
       
-      {/* Start Marker */}
-      <div className="absolute left-[24px] top-[110px] flex flex-col items-center gap-1 z-30">
-        <div className="text-xs font-semibold uppercase tracking-wider text-green-500 bg-black/70 px-2 py-1 rounded">Départ</div>
-        <div className="w-14 h-14 rounded-full border-2 border-green-500/50 flex items-center justify-center animate-pulse">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-green-600 shadow-[0_0_20px_rgba(34,197,94,0.6)]" />
-        </div>
-      </div>
+      {/* Start Marker - REMOVED */}
       
-      {/* End Marker */}
-      <div className="absolute right-[24px] top-[110px] flex flex-col items-center gap-1 z-30">
-        <div className="text-xs font-semibold uppercase tracking-wider text-red-500 bg-black/70 px-2 py-1 rounded">Arrivée</div>
-        <div className="w-14 h-14 rounded-full border-2 border-red-500/50 flex items-center justify-center animate-pulse">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-red-600 shadow-[0_0_20px_rgba(239,68,68,0.6)]" />
-        </div>
-      </div>
+      {/* End Marker - REMOVED */}
       
       {/* Content */}
       <div className="hero-map-content">
