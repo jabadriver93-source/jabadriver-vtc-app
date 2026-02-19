@@ -56,6 +56,12 @@ function App() {
           
           {/* Payment success page */}
           <Route path="/payment/success" element={<PaymentSuccessPage />} />
+          
+          {/* Legal pages */}
+          <Route path="/mentions-legales" element={<MentionsLegales />} />
+          <Route path="/cgv" element={<CGV />} />
+          <Route path="/confidentialite" element={<Confidentialite />} />
+          <Route path="/conditions-chauffeurs" element={<ConditionsChauffeurs />} />
         </Routes>
       </BrowserRouter>
       <Toaster position="top-center" richColors />
