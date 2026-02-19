@@ -39,38 +39,38 @@
     }
 }
 
-/* Header Logo - Smaller, centered in header bar */
+/* Header Logo - Centered, matching mockup size */
 .header-logo-centered {
-    height: 50px;
+    height: 80px;
     width: auto;
-    max-width: 220px;
+    max-width: 280px;
     object-fit: contain;
-    filter: drop-shadow(0 2px 12px rgba(56, 189, 248, 0.2));
+    filter: drop-shadow(0 2px 15px var(--brand-blue-subtle));
     mix-blend-mode: screen;
-    opacity: 0.95;
+    opacity: 0.98;
     transition: filter 0.3s ease, opacity 0.3s ease;
 }
 
 .header-logo-centered:hover {
     opacity: 1;
-    filter: drop-shadow(0 4px 16px rgba(56, 189, 248, 0.35));
+    filter: drop-shadow(0 4px 20px var(--brand-blue-glow));
 }
 
 @media (min-width: 640px) {
     .header-logo-centered {
-        height: 60px;
-        max-width: 280px;
+        height: 100px;
+        max-width: 350px;
     }
 }
 
 @media (min-width: 1024px) {
     .header-logo-centered {
-        height: 70px;
-        max-width: 340px;
+        height: 120px;
+        max-width: 420px;
     }
 }
 
-/* Hamburger Button - Neon blue style */
+/* Hamburger Button - Brand blue neon style */
 .hamburger-btn {
     display: flex;
     align-items: center;
@@ -79,15 +79,15 @@
     height: 44px;
     background: transparent;
     border: none;
-    color: #38bdf8;
+    color: var(--brand-blue);
     cursor: pointer;
     transition: all 0.3s ease;
-    filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.4));
+    filter: drop-shadow(0 0 10px var(--brand-blue-glow));
 }
 
 .hamburger-btn:hover {
-    color: #7dd3fc;
-    filter: drop-shadow(0 0 12px rgba(125, 211, 252, 0.6));
+    color: var(--brand-blue-light);
+    filter: drop-shadow(0 0 15px var(--brand-blue-glow));
     transform: scale(1.05);
 }
 
