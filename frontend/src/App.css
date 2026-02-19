@@ -37,8 +37,14 @@
     max-width: 220px;
     object-fit: contain;
     filter: drop-shadow(0 2px 12px rgba(56, 189, 248, 0.2));
-    mix-blend-mode: lighten;
-    transition: filter 0.3s ease;
+    mix-blend-mode: screen;
+    opacity: 0.95;
+    transition: filter 0.3s ease, opacity 0.3s ease;
+}
+
+.header-logo-centered:hover {
+    opacity: 1;
+    filter: drop-shadow(0 4px 16px rgba(56, 189, 248, 0.35));
 }
 
 @media (min-width: 640px) {
