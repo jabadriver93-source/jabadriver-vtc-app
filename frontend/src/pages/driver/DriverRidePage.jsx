@@ -1053,7 +1053,7 @@ export default function DriverRidePage() {
         </div>
       )}
 
-      {/* Fixed Bottom Action Button - positioned above Emergent banner */}
+      {/* Fixed Bottom Action Button */}
       {(ride?.status === 'ASSIGNED' || ride?.status === 'DRIVER_ARRIVED' || ride?.status === 'IN_PROGRESS') && (
         <div 
           className="fixed left-0 right-0 p-4 bg-gradient-to-t from-gray-950 via-gray-950 to-transparent pt-8 z-50"

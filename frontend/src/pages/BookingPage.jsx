@@ -857,7 +857,7 @@ export default function BookingPage() {
       {/* Floating WhatsApp Button - Overlay with responsive positioning */}
       <style>
         {`
-          /* Safe zone for mobile - avoid overlap with "Made with Emergent" badge */
+          /* Safe zone for mobile */
           @media (max-width: 640px) {
             .hero-map {
               padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px)) !important;
