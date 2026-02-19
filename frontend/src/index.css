@@ -351,62 +351,62 @@ h1, h2, h3, h4, h5, h6 {
     position: relative;
     display: inline-block;
     text-shadow: 
-        0 0 30px var(--brand-blue-glow, rgba(91, 181, 224, 0.6)),
-        0 0 60px var(--brand-blue-subtle, rgba(91, 181, 224, 0.3)),
-        0 0 100px var(--brand-blue-subtle, rgba(91, 181, 224, 0.2));
+        0 0 40px var(--brand-blue-glow, rgba(91, 181, 224, 0.7)),
+        0 0 80px var(--brand-blue-subtle, rgba(91, 181, 224, 0.4)),
+        0 0 120px var(--brand-blue-subtle, rgba(91, 181, 224, 0.2));
 }
 
-/* Halo effect behind VTC */
+/* Halo effect behind VTC - Subtle radial glow */
 .hero-title-accent-map::before {
     content: '';
     position: absolute;
-    top: 50%;
+    top: 80%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 200%;
-    height: 200%;
+    width: 250%;
+    height: 150%;
     background: radial-gradient(
-        ellipse at center,
-        var(--brand-blue-subtle, rgba(91, 181, 224, 0.15)) 0%,
-        transparent 60%
+        ellipse 50% 40% at center,
+        var(--brand-blue-glow, rgba(91, 181, 224, 0.25)) 0%,
+        transparent 70%
     );
     z-index: -1;
     pointer-events: none;
 }
 
-/* Luminous bar under VTC */
+/* Luminous bar under VTC - Horizontal gradient with central glow */
 .hero-accent-line {
-    width: 200px;
-    height: 3px;
+    width: 220px;
+    height: 2px;
     background: linear-gradient(
         90deg, 
         transparent 0%,
-        var(--brand-blue-dark, #3A9BC9) 20%,
+        var(--brand-blue-dark, #3A9BC9) 15%,
         var(--brand-blue, #5BB5E0) 50%,
-        var(--brand-blue-dark, #3A9BC9) 80%,
+        var(--brand-blue-dark, #3A9BC9) 85%,
         transparent 100%
     );
-    border-radius: 2px;
-    margin: 16px auto 0;
+    border-radius: 1px;
+    margin: 12px auto 0;
     box-shadow: 
-        0 0 15px var(--brand-blue-glow, rgba(91, 181, 224, 0.5)),
-        0 0 30px var(--brand-blue-subtle, rgba(91, 181, 224, 0.3));
+        0 0 20px var(--brand-blue-glow, rgba(91, 181, 224, 0.6)),
+        0 0 40px var(--brand-blue-subtle, rgba(91, 181, 224, 0.3));
     position: relative;
 }
 
-/* Central glow on bar */
+/* Central intense glow on bar */
 .hero-accent-line::after {
     content: '';
     position: absolute;
-    top: -10px;
+    top: -15px;
     left: 50%;
     transform: translateX(-50%);
-    width: 60%;
-    height: 20px;
+    width: 50%;
+    height: 30px;
     background: radial-gradient(
-        ellipse at center,
-        var(--brand-blue-glow, rgba(91, 181, 224, 0.4)) 0%,
-        transparent 70%
+        ellipse 100% 100% at center,
+        var(--brand-blue-glow, rgba(91, 181, 224, 0.5)) 0%,
+        transparent 60%
     );
     pointer-events: none;
 }
