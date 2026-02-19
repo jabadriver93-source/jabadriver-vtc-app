@@ -441,20 +441,25 @@ export default function BookingPage() {
                 JABA DRIVER
               </span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 sm:gap-3">
+              {/* Chauffeur Button - Premium gold accent */}
               <a 
                 href="/driver/login" 
-                className="flex items-center gap-1 px-2 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded-lg text-xs font-medium transition-colors"
+                className="header-btn-driver group"
                 data-testid="driver-space-link"
               >
-                🚗 Chauffeur
+                <Car className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110" />
+                <span className="hidden sm:inline">Espace</span>
+                <span>Chauffeur</span>
               </a>
+              {/* Admin Button - Subtle glass style */}
               <a 
                 href="/admin" 
-                className="flex items-center gap-1 px-2 py-1.5 bg-white/10 hover:bg-white/20 text-white/80 hover:text-white rounded-lg text-xs font-medium transition-colors"
+                className="header-btn-admin group"
                 data-testid="admin-link"
               >
-                ⚙️ Admin
+                <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:rotate-90" style={{ transition: 'transform 0.3s ease' }} />
+                <span>Admin</span>
               </a>
             </div>
           </div>
