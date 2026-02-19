@@ -337,11 +337,11 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Title Styling */
 .hero-title-map {
-    font-size: clamp(3rem, 10vw, 6rem);
+    font-size: clamp(1.8rem, 6vw, 3.5rem);
     font-weight: 800;
     color: #ffffff;
-    line-height: 1;
-    letter-spacing: -0.04em;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
     margin: 0;
     text-shadow: 0 4px 40px rgba(0,0,0,0.8);
 }
