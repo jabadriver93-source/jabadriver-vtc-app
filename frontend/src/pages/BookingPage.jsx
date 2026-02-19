@@ -415,8 +415,8 @@ export default function BookingPage() {
       
       {/* Content */}
       <div className="hero-map-content">
-        {/* Header - Logo centered + Hamburger aligned with logo text */}
-        <header className="px-4 pt-4 pb-0 relative z-50">
+        {/* Header - Logo centered + Hamburger aligned with JABADRIVER text */}
+        <header className="px-4 pt-6 sm:pt-8 pb-0 relative z-50">
           <div className="max-w-5xl mx-auto flex items-start justify-between">
             {/* Spacer for balance */}
             <div className="w-11"></div>
@@ -431,7 +431,7 @@ export default function BookingPage() {
             {/* Hamburger Menu Button - Aligned with JABADRIVER text */}
             <button 
               onClick={() => setMenuOpen(!menuOpen)}
-              className="hamburger-btn mt-1"
+              className="hamburger-btn mt-2 sm:mt-3"
               aria-label="Menu"
               data-testid="hamburger-menu-btn"
             >
