@@ -415,33 +415,28 @@ export default function BookingPage() {
       
       {/* Content */}
       <div className="hero-map-content">
-        {/* Header - Logo centered + Hamburger aligned with JABADRIVER text */}
-        <header className="px-3 pt-8 sm:pt-10 pb-0 relative z-50">
-          <div className="max-w-5xl mx-auto flex items-start justify-between">
-            {/* Spacer for balance */}
-            <div className="w-10"></div>
-            
-            {/* Centered Logo */}
-            <img 
-              src={LOGO_HEADER_URL}
-              alt="JABADRIVER" 
-              className="header-logo-centered"
-            />
-            
-            {/* Hamburger Menu Button - Aligned horizontally with JABADRIVER text */}
-            <button 
-              onClick={() => setMenuOpen(!menuOpen)}
-              className="hamburger-btn mt-0"
-              aria-label="Menu"
-              data-testid="hamburger-menu-btn"
-            >
-              {menuOpen ? (
-                <X className="w-8 h-8" />
-              ) : (
-                <Menu className="w-8 h-8" />
-              )}
-            </button>
-          </div>
+        {/* Header - Logo absolutely centered + Hamburger fixed right */}
+        <header className="header-mobile-fixed">
+          {/* Centered Logo using absolute positioning */}
+          <img 
+            src={LOGO_HEADER_URL}
+            alt="JABADRIVER" 
+            className="header-logo-centered"
+          />
+          
+          {/* Hamburger Menu Button - Fixed right with safe margin */}
+          <button 
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="hamburger-btn-fixed"
+            aria-label="Menu"
+            data-testid="hamburger-menu-btn"
+          >
+            {menuOpen ? (
+              <X className="w-7 h-7" />
+            ) : (
+              <Menu className="w-7 h-7" />
+            )}
+          </button>
         </header>
 
         {/* Mobile Menu Overlay */}
