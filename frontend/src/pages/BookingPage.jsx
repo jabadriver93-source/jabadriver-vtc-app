@@ -504,14 +504,14 @@ export default function BookingPage() {
             <div className="hero-accent-line animate-fadeIn" style={{ animationDelay: '0.2s' }} />
             
             <p 
-              className="hero-subtitle-map mt-4 sm:mt-6 mb-8 sm:mb-10 animate-fadeIn text-sm sm:text-base"
+              className="hero-subtitle-map animate-fadeIn text-sm sm:text-base"
               style={{ animationDelay: '0.25s', lineHeight: '1.5' }}
             >
               Service premium, votre chauffeur privé en Île-de-France
             </p>
 
             {/* Badges - horizontal layout restored */}
-            <div className="flex flex-wrap justify-center gap-3 sm:gap-4 mb-10 sm:mb-6 animate-fadeIn" style={{ animationDelay: '0.35s' }}>
+            <div className="flex flex-wrap justify-center gap-3 sm:gap-4 mb-10 sm:mb-6 mt-8 sm:mt-10 animate-fadeIn" style={{ animationDelay: '0.35s' }}>
               <div className="badge-map">
                 <div className="badge-map-icon">
                   <Clock className="w-5 h-5" />
