@@ -445,20 +445,23 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 
-/* Sticky button mobile - Glass effect iOS compatible */
+/* Sticky button mobile - Floating button only, no background */
 @media (max-width: 640px) {
     .sticky-btn-mobile {
         position: fixed;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        padding: 12px 16px;
-        padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
-        background: rgba(10, 15, 20, 0.35);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
-        z-index: 50;
+        left: 16px;
+        right: 16px;
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+        z-index: 9999;
+        /* No background, border, shadow - completely transparent wrapper */
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        height: auto !important;
     }
 }
 
