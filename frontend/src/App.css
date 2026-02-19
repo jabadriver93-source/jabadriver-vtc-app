@@ -115,7 +115,7 @@
     max-width: 85vw;
     height: 100vh;
     background: linear-gradient(180deg, rgba(10, 20, 35, 0.98) 0%, rgba(5, 15, 30, 0.98) 100%);
-    border-left: 1px solid rgba(56, 189, 248, 0.15);
+    border-left: 1px solid var(--brand-blue-subtle, rgba(91, 181, 224, 0.15));
     box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
     z-index: 9999;
     padding: 80px 20px 40px;
