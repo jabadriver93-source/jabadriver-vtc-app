@@ -347,20 +347,68 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .hero-title-accent-map {
-    color: #7dd3fc;
-    animation: glowPulse 3s ease-in-out infinite;
+    color: var(--brand-blue, #5BB5E0);
     position: relative;
     display: inline-block;
+    text-shadow: 
+        0 0 30px var(--brand-blue-glow, rgba(91, 181, 224, 0.6)),
+        0 0 60px var(--brand-blue-subtle, rgba(91, 181, 224, 0.3)),
+        0 0 100px var(--brand-blue-subtle, rgba(91, 181, 224, 0.2));
 }
 
-/* Accent line */
+/* Halo effect behind VTC */
+.hero-title-accent-map::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(
+        ellipse at center,
+        var(--brand-blue-subtle, rgba(91, 181, 224, 0.15)) 0%,
+        transparent 60%
+    );
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* Luminous bar under VTC */
 .hero-accent-line {
-    width: 80px;
-    height: 4px;
-    background: linear-gradient(90deg, #7dd3fc, transparent);
+    width: 200px;
+    height: 3px;
+    background: linear-gradient(
+        90deg, 
+        transparent 0%,
+        var(--brand-blue-dark, #3A9BC9) 20%,
+        var(--brand-blue, #5BB5E0) 50%,
+        var(--brand-blue-dark, #3A9BC9) 80%,
+        transparent 100%
+    );
     border-radius: 2px;
-    margin: 20px auto 0;
-    box-shadow: 0 0 20px rgba(125, 211, 252, 0.5);
+    margin: 16px auto 0;
+    box-shadow: 
+        0 0 15px var(--brand-blue-glow, rgba(91, 181, 224, 0.5)),
+        0 0 30px var(--brand-blue-subtle, rgba(91, 181, 224, 0.3));
+    position: relative;
+}
+
+/* Central glow on bar */
+.hero-accent-line::after {
+    content: '';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60%;
+    height: 20px;
+    background: radial-gradient(
+        ellipse at center,
+        var(--brand-blue-glow, rgba(91, 181, 224, 0.4)) 0%,
+        transparent 70%
+    );
+    pointer-events: none;
 }
 
 /* Subtitle */
