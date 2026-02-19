@@ -486,8 +486,8 @@ export default function BookingPage() {
           </>
         )}
 
-        {/* Hero Section */}
-        <section className="px-5 pt-6 sm:pt-10 pb-4 sm:pb-8">
+        {/* Hero Section - Compact spacing */}
+        <section className="px-5 pt-3 sm:pt-5 pb-4 sm:pb-6">
           <div className="max-w-5xl mx-auto text-center">
             <h1 
               className="hero-title-map mb-2 animate-fadeIn"
