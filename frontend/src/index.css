@@ -414,10 +414,12 @@ h1, h2, h3, h4, h5, h6 {
 /* Subtitle */
 .hero-subtitle-map {
     color: rgba(255, 255, 255, 0.7);
-    font-size: clamp(0.85rem, 2.5vw, 1.2rem);
+    font-size: clamp(0.85rem, 2.5vw, 1.1rem);
     font-weight: 400;
     max-width: 450px;
     margin: 0 auto;
+    margin-top: 28px;
+    margin-bottom: 12px;
     line-height: 1.6;
     position: relative;
     z-index: 10;
@@ -428,6 +430,7 @@ h1, h2, h3, h4, h5, h6 {
         font-size: 0.85rem;
         max-width: 280px;
         line-height: 1.5;
+        margin-top: 24px;
         padding: 0 10px;
     }
 }
