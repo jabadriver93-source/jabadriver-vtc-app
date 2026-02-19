@@ -18,6 +18,11 @@ import PaymentSuccessPage from "@/pages/PaymentSuccessPage";
 // Client portal
 import ClientPortalPage from "@/pages/ClientPortalPage";
 import ConfirmRidePage from "@/pages/ConfirmRidePage";
+// Legal pages
+import MentionsLegales from "@/pages/legal/MentionsLegales";
+import CGV from "@/pages/legal/CGV";
+import Confidentialite from "@/pages/legal/Confidentialite";
+import ConditionsChauffeurs from "@/pages/legal/ConditionsChauffeurs";
 
 function App() {
   return (
