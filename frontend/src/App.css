@@ -1,3 +1,12 @@
+/* ===== JABADRIVER Brand Colors ===== */
+:root {
+    --brand-blue: #5BB5E0;
+    --brand-blue-light: #7DD3FC;
+    --brand-blue-dark: #3A9BC9;
+    --brand-blue-glow: rgba(91, 181, 224, 0.6);
+    --brand-blue-subtle: rgba(91, 181, 224, 0.15);
+}
+
 /* Premium Header Buttons - Uber/Bolt inspired */
 
 /* Hero Logo Centered - Seamless integration */
@@ -6,7 +15,7 @@
     height: auto;
     max-width: 90vw;
     opacity: 0.95;
-    filter: drop-shadow(0 4px 20px rgba(125, 211, 252, 0.15));
+    filter: drop-shadow(0 4px 20px rgba(91, 181, 224, 0.15));
     mix-blend-mode: screen;
     transition: opacity 0.3s ease, filter 0.3s ease;
     image-rendering: -webkit-optimize-contrast;
