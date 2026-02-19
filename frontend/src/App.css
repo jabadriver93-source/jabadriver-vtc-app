@@ -39,11 +39,11 @@
     }
 }
 
-/* Header Logo - Centered, +80% larger */
+/* Header Logo - Centered, +150% larger, aligned with hamburger */
 .header-logo-centered {
-    height: 234px;
+    height: 585px;
     width: auto;
-    max-width: 90vw;
+    max-width: 95vw;
     object-fit: contain;
     filter: drop-shadow(0 2px 15px var(--brand-blue-subtle));
     mix-blend-mode: multiply;
@@ -58,15 +58,15 @@
 
 @media (min-width: 640px) {
     .header-logo-centered {
-        height: 306px;
-        max-width: 85vw;
+        height: 765px;
+        max-width: 90vw;
     }
 }
 
 @media (min-width: 1024px) {
     .header-logo-centered {
-        height: 351px;
-        max-width: 800px;
+        height: 877px;
+        max-width: 1200px;
     }
 }
 
