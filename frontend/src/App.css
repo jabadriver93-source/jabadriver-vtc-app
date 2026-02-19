@@ -30,6 +30,136 @@
     }
 }
 
+/* Header Logo - Smaller, centered in header bar */
+.header-logo-centered {
+    height: 50px;
+    width: auto;
+    max-width: 220px;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 12px rgba(56, 189, 248, 0.2));
+    transition: filter 0.3s ease;
+}
+
+@media (min-width: 640px) {
+    .header-logo-centered {
+        height: 60px;
+        max-width: 280px;
+    }
+}
+
+@media (min-width: 1024px) {
+    .header-logo-centered {
+        height: 70px;
+        max-width: 340px;
+    }
+}
+
+/* Hamburger Button - Neon blue style */
+.hamburger-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    background: transparent;
+    border: none;
+    color: #38bdf8;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.4));
+}
+
+.hamburger-btn:hover {
+    color: #7dd3fc;
+    filter: drop-shadow(0 0 12px rgba(125, 211, 252, 0.6));
+    transform: scale(1.05);
+}
+
+.hamburger-btn:active {
+    transform: scale(0.95);
+}
+
+/* Menu Backdrop */
+.menu-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 9998;
+    animation: fadeIn 0.2s ease;
+}
+
+/* Menu Drawer */
+.menu-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 280px;
+    max-width: 85vw;
+    height: 100vh;
+    background: linear-gradient(180deg, rgba(10, 20, 35, 0.98) 0%, rgba(5, 15, 30, 0.98) 100%);
+    border-left: 1px solid rgba(56, 189, 248, 0.15);
+    box-shadow: -10px 0 40px rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    padding: 80px 20px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Menu Items */
+.menu-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    color: rgba(255, 255, 255, 0.85);
+    text-decoration: none;
+    font-size: 15px;
+    font-weight: 500;
+    border-radius: 12px;
+    background: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+
+.menu-item:hover {
+    background: rgba(56, 189, 248, 0.1);
+    color: #7dd3fc;
+    transform: translateX(4px);
+}
+
+.menu-item svg {
+    color: #38bdf8;
+    opacity: 0.8;
+    transition: opacity 0.25s ease;
+}
+
+.menu-item:hover svg {
+    opacity: 1;
+}
+
 .header-btn-driver {
     display: inline-flex;
     align-items: center;
