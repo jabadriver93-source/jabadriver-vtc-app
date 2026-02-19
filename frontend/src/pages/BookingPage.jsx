@@ -428,10 +428,11 @@ export default function BookingPage() {
               className="header-logo-centered"
             />
             
-            {/* Hamburger Menu Button - Aligned horizontally with JABADRIVER text */}
+            {/* Hamburger Menu Button - Aligned horizontally with JABADRIVER text (approx 25% from top of logo) */}
             <button 
               onClick={() => setMenuOpen(!menuOpen)}
-              className="hamburger-btn mt-[2.5%]"
+              className="hamburger-btn"
+              style={{ marginTop: 'calc(min(70vw, 1100px) * 0.08)' }}
               aria-label="Menu"
               data-testid="hamburger-menu-btn"
             >
