@@ -962,11 +962,27 @@ export default function ClientPortalPage() {
               <div>
                 <Label className="text-gray-300 text-sm">Nombre de passagers</Label>
                 <Input
-                  type="number"
-                  min="1"
-                  max="8"
-                  value={modifyData.passengers}
-                  onChange={(e) => setModifyData({...modifyData, passengers: parseInt(e.target.value) || 1})}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[1-8]"
+                  value={modifyData.passengers === '' ? '' : modifyData.passengers}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '') {
+                      setModifyData({...modifyData, passengers: ''});
+                    } else {
+                      const num = parseInt(val, 10);
+                      if (!isNaN(num) && num >= 1 && num <= 8) {
+                        setModifyData({...modifyData, passengers: num});
+                      }
+                    }
+                  }}
+                  onBlur={(e) => {
+                    const val = e.target.value;
+                    if (val === '' || isNaN(parseInt(val, 10))) {
+                      setModifyData({...modifyData, passengers: 1});
+                    }
+                  }}
                   className="bg-gray-800 border-gray-700 text-white"
                   data-testid="modify-passengers-input"
                 />
