@@ -451,7 +451,7 @@ export default function BookingPage() {
         </div>
 
         {/* Hero Section */}
-        <section className="px-5 pt-32 sm:pt-40 pb-4 sm:pb-8">
+        <section className="px-5 pt-6 sm:pt-10 pb-4 sm:pb-8">
           <div className="max-w-5xl mx-auto text-center">
             <h1 
               className="hero-title-map mb-2 animate-fadeIn"
