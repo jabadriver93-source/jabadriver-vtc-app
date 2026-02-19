@@ -89,6 +89,7 @@ export default function BookingPage() {
   const [priceLoading, setPriceLoading] = useState(false);
   const [priceData, setPriceData] = useState(null);
   const [mapsReady, setMapsReady] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   
   const pickupInputRef = useRef(null);
   const dropoffInputRef = useRef(null);
