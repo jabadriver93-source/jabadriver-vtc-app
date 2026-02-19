@@ -62,9 +62,8 @@
     width: 85vw;
     max-width: 350px;
     object-fit: contain;
-    filter: drop-shadow(0 2px 15px var(--brand-blue-subtle));
-    mix-blend-mode: multiply;
-    opacity: 0.98;
+    filter: drop-shadow(0 2px 15px var(--brand-blue-subtle)) brightness(1.1);
+    opacity: 1;
     transition: filter 0.3s ease, opacity 0.3s ease;
 }
 
