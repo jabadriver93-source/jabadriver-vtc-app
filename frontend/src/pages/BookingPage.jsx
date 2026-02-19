@@ -4,13 +4,13 @@ import { toast } from "sonner";
 import { 
   MapPin, Calendar, Users, Briefcase, MessageSquare, 
   Phone, Mail, Loader2, Clock, CheckCircle, Shield, CreditCard,
-  User, Euro, Car, Settings
+  User, Euro, Car, Settings, Menu, X, FileText
 } from "lucide-react";
 import axios from "axios";
 import MapBackground from "@/components/MapBackground";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-const LOGO_URL = "/logo.png";
+const LOGO_HEADER_URL = "/jabadriver-logo-header.png";
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 // Pricing constants
