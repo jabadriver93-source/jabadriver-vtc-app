@@ -878,6 +878,22 @@ export default function BookingPage() {
       </section>
       </div>
       
+      {/* Legal Footer */}
+      <footer className="legal-footer">
+        <div className="legal-footer-container">
+          <div className="legal-footer-links">
+            <a href="/mentions-legales" className="legal-footer-link">Mentions légales</a>
+            <span className="legal-footer-separator">•</span>
+            <a href="/cgv" className="legal-footer-link">CGV</a>
+            <span className="legal-footer-separator">•</span>
+            <a href="/confidentialite" className="legal-footer-link">Confidentialité</a>
+            <span className="legal-footer-separator">•</span>
+            <a href="/conditions-chauffeurs" className="legal-footer-link">Conditions chauffeurs</a>
+          </div>
+          <p className="legal-footer-copyright">© 2025 JABADRIVER — Tous droits réservés</p>
+        </div>
+      </footer>
+
       {/* Floating WhatsApp Button - Overlay with responsive positioning */}
       <style>
         {`
