@@ -1113,6 +1113,8 @@
     background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.3) 100%);
     padding: 32px 16px 24px;
     margin-top: 40px;
+    position: relative;
+    z-index: 1;
 }
 
 .legal-footer-container {
@@ -1134,12 +1136,16 @@
     color: #9ca3af;
     font-size: 13px;
     text-decoration: none;
-    transition: color 0.2s ease;
-    padding: 4px 8px;
+    transition: color 0.2s ease, background-color 0.2s ease;
+    padding: 8px 12px;
+    border-radius: 6px;
+    display: inline-block;
 }
 
-.legal-footer-link:hover {
+.legal-footer-link:hover,
+.legal-footer-link:active {
     color: #00c8ff;
+    background-color: rgba(0, 200, 255, 0.1);
 }
 
 .legal-footer-separator {
@@ -1153,10 +1159,17 @@
     margin: 0;
 }
 
+/* Mobile: Add padding to avoid sticky button overlap */
+@media (max-width: 640px) {
+    .legal-footer {
+        padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+    }
+}
+
 @media (max-width: 480px) {
     .legal-footer-links {
         flex-direction: column;
-        gap: 4px;
+        gap: 0;
     }
     
     .legal-footer-separator {
@@ -1164,6 +1177,9 @@
     }
     
     .legal-footer-link {
-        padding: 8px 12px;
+        padding: 14px 20px;
+        font-size: 14px;
+        width: 100%;
+        max-width: 280px;
     }
 }
