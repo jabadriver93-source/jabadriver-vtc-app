@@ -857,10 +857,10 @@ export default function BookingPage() {
       {/* Floating WhatsApp Button - Overlay with responsive positioning */}
       <style>
         {`
-          /* Safe zone for mobile - space for sticky CTA */
+          /* Safe zone for mobile - space for floating CTA button */
           @media (max-width: 640px) {
             .hero-map {
-              padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px)) !important;
+              padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px)) !important;
             }
           }
           
@@ -868,7 +868,7 @@ export default function BookingPage() {
             position: fixed;
             bottom: 24px;
             right: 24px;
-            z-index: 9999;
+            z-index: 9998;
             width: 60px;
             height: 60px;
             background-color: #25D366;
@@ -885,19 +885,19 @@ export default function BookingPage() {
             transform: scale(1.1);
             box-shadow: 0 6px 16px rgba(0,0,0,0.4);
           }
-          /* Mobile: above the sticky CTA button */
+          /* Mobile: above the floating CTA button */
           @media (max-width: 640px) {
             .whatsapp-floating-btn {
-              bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+              bottom: calc(75px + env(safe-area-inset-bottom, 0px));
               right: 16px;
-              width: 56px;
-              height: 56px;
+              width: 52px;
+              height: 52px;
             }
           }
           /* Very small screens */
           @media (max-width: 380px) {
             .whatsapp-floating-btn {
-              bottom: calc(85px + env(safe-area-inset-bottom, 0px));
+              bottom: calc(80px + env(safe-area-inset-bottom, 0px));
             }
           }
         `}
