@@ -59,30 +59,30 @@
 /* Header Logo - EXACT size from official mockup - LARGE */
 .header-logo-centered {
     height: auto;
-    width: 75vw;
-    max-width: 420px;
+    width: 80vw;
+    max-width: 450px;
     object-fit: contain;
-    filter: drop-shadow(0 4px 25px rgba(0, 200, 255, 0.4));
+    filter: drop-shadow(0 4px 30px rgba(0, 200, 255, 0.5));
     opacity: 1;
     transition: filter 0.3s ease, opacity 0.3s ease;
 }
 
 .header-logo-centered:hover {
     opacity: 1;
-    filter: drop-shadow(0 6px 35px rgba(0, 200, 255, 0.6));
+    filter: drop-shadow(0 6px 40px rgba(0, 200, 255, 0.7));
 }
 
 @media (min-width: 640px) {
     .header-logo-centered {
-        width: 65vw;
-        max-width: 520px;
+        width: 70vw;
+        max-width: 550px;
     }
 }
 
 @media (min-width: 1024px) {
     .header-logo-centered {
-        width: 50vw;
-        max-width: 600px;
+        width: 55vw;
+        max-width: 650px;
     }
 }
 
