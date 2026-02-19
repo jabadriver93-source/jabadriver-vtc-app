@@ -39,11 +39,11 @@
     }
 }
 
-/* Header Logo - Centered, large size, aligned with hamburger */
+/* Header Logo - Compact size matching mockup */
 .header-logo-centered {
     height: auto;
-    width: 85vw;
-    max-width: 700px;
+    width: 65vw;
+    max-width: 320px;
     object-fit: contain;
     filter: drop-shadow(0 2px 15px var(--brand-blue-subtle));
     mix-blend-mode: multiply;
@@ -58,15 +58,15 @@
 
 @media (min-width: 640px) {
     .header-logo-centered {
-        width: 80vw;
-        max-width: 900px;
+        width: 50vw;
+        max-width: 400px;
     }
 }
 
 @media (min-width: 1024px) {
     .header-logo-centered {
-        width: 70vw;
-        max-width: 1100px;
+        width: 40vw;
+        max-width: 500px;
     }
 }
 
