@@ -56,33 +56,33 @@
     }
 }
 
-/* Header Logo - EXACT size from mockup mobile - LARGE */
+/* Header Logo - EXACT size from official mockup - LARGE */
 .header-logo-centered {
     height: auto;
-    width: 85vw;
-    max-width: 350px;
+    width: 75vw;
+    max-width: 420px;
     object-fit: contain;
-    filter: drop-shadow(0 2px 15px var(--brand-blue-subtle)) brightness(1.1);
+    filter: drop-shadow(0 4px 25px rgba(0, 200, 255, 0.4));
     opacity: 1;
     transition: filter 0.3s ease, opacity 0.3s ease;
 }
 
 .header-logo-centered:hover {
     opacity: 1;
-    filter: drop-shadow(0 4px 20px var(--brand-blue-glow));
+    filter: drop-shadow(0 6px 35px rgba(0, 200, 255, 0.6));
 }
 
 @media (min-width: 640px) {
     .header-logo-centered {
-        width: 70vw;
-        max-width: 550px;
+        width: 65vw;
+        max-width: 520px;
     }
 }
 
 @media (min-width: 1024px) {
     .header-logo-centered {
-        width: 55vw;
-        max-width: 750px;
+        width: 50vw;
+        max-width: 600px;
     }
 }
 
