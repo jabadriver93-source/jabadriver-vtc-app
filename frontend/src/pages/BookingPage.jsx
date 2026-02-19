@@ -415,41 +415,76 @@ export default function BookingPage() {
       
       {/* Content */}
       <div className="hero-map-content">
-        {/* Header - Buttons only */}
-        <header className="px-5 py-4">
-          <div className="max-w-5xl mx-auto flex items-center justify-end">
-            <div className="flex items-center gap-2 sm:gap-3">
-              {/* Chauffeur Button - Premium gold accent */}
-              <a 
-                href="/driver/login" 
-                className="header-btn-driver group"
-                data-testid="driver-space-link"
-              >
-                <Car className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:scale-110" />
-                <span className="hidden sm:inline">Espace</span>
-                <span>Chauffeur</span>
-              </a>
-              {/* Admin Button - Subtle glass style */}
-              <a 
-                href="/admin" 
-                className="header-btn-admin group"
-                data-testid="admin-link"
-              >
-                <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:rotate-90" style={{ transition: 'transform 0.3s ease' }} />
-                <span>Admin</span>
-              </a>
-            </div>
+        {/* Header - Logo centered + Hamburger right */}
+        <header className="px-4 py-3 relative z-50">
+          <div className="max-w-5xl mx-auto flex items-center justify-center relative">
+            {/* Centered Logo */}
+            <img 
+              src={LOGO_HEADER_URL}
+              alt="JABADRIVER" 
+              className="header-logo-centered"
+            />
+            
+            {/* Hamburger Menu Button - Right */}
+            <button 
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="hamburger-btn absolute right-0"
+              aria-label="Menu"
+              data-testid="hamburger-menu-btn"
+            >
+              {menuOpen ? (
+                <X className="w-6 h-6" />
+              ) : (
+                <Menu className="w-6 h-6" />
+              )}
+            </button>
           </div>
         </header>
 
-        {/* Centered Hero Logo */}
-        <div className="flex justify-center px-5 pt-2 sm:pt-4">
-          <img 
-            src="/jabadriver-logo-hero.png" 
-            alt="JABADRIVER" 
-            className="hero-logo-centered"
-          />
-        </div>
+        {/* Mobile Menu Overlay */}
+        {menuOpen && (
+          <>
+            {/* Backdrop */}
+            <div 
+              className="menu-backdrop"
+              onClick={() => setMenuOpen(false)}
+            />
+            {/* Menu Drawer */}
+            <nav className="menu-drawer" data-testid="menu-drawer">
+              <button 
+                onClick={() => {
+                  setMenuOpen(false);
+                  document.getElementById('booking-form')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="menu-item"
+              >
+                <Calendar className="w-5 h-5" />
+                <span>Réserver</span>
+              </button>
+              <a href="/driver/login" className="menu-item">
+                <Car className="w-5 h-5" />
+                <span>Espace Chauffeur</span>
+              </a>
+              <a href="/admin" className="menu-item">
+                <Settings className="w-5 h-5" />
+                <span>Admin</span>
+              </a>
+              <a 
+                href="https://wa.me/33756923711?text=Bonjour%20je%20souhaite%20un%20renseignement"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="menu-item"
+              >
+                <MessageSquare className="w-5 h-5" />
+                <span>Contact WhatsApp</span>
+              </a>
+              <a href="/mentions-legales" className="menu-item">
+                <FileText className="w-5 h-5" />
+                <span>Mentions légales</span>
+              </a>
+            </nav>
+          </>
+        )}
 
         {/* Hero Section */}
         <section className="px-5 pt-6 sm:pt-10 pb-4 sm:pb-8">
