@@ -39,11 +39,11 @@
     }
 }
 
-/* Header Logo - Compact size matching mockup */
+/* Header Logo - Exact size matching mockup */
 .header-logo-centered {
     height: auto;
-    width: 65vw;
-    max-width: 320px;
+    width: 82vw;
+    max-width: 340px;
     object-fit: contain;
     filter: drop-shadow(0 2px 15px var(--brand-blue-subtle));
     mix-blend-mode: multiply;
@@ -58,15 +58,15 @@
 
 @media (min-width: 640px) {
     .header-logo-centered {
-        width: 50vw;
-        max-width: 400px;
+        width: 70vw;
+        max-width: 550px;
     }
 }
 
 @media (min-width: 1024px) {
     .header-logo-centered {
-        width: 40vw;
-        max-width: 500px;
+        width: 55vw;
+        max-width: 700px;
     }
 }
 
