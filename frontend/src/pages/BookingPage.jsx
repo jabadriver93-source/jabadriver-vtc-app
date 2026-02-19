@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { 
   MapPin, Calendar, Users, Briefcase, MessageSquare, 
   Phone, Mail, Loader2, Clock, CheckCircle, Shield, CreditCard,
-  User, Euro
+  User, Euro, Car, Settings
 } from "lucide-react";
 import axios from "axios";
 import MapBackground from "@/components/MapBackground";
