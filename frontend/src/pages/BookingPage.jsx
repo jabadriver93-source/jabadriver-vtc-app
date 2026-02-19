@@ -586,8 +586,15 @@ export default function BookingPage() {
 
             {/* Email */}
             <div className="mb-5">
-              <label htmlFor="email" className="form-label">
-                Email (optionnel)
+              <label htmlFor="email" className="form-label flex items-center gap-2">
+                Email recommandé
+                <span className="text-sky-400 cursor-help" title="Recevez votre confirmation, les informations chauffeur et le suivi de votre course.">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M12 16v-4"></path>
+                    <path d="M12 8h.01"></path>
+                  </svg>
+                </span>
               </label>
               <div className="relative">
                 <input
@@ -602,6 +609,9 @@ export default function BookingPage() {
                 />
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
               </div>
+              <p className="text-xs text-gray-500 mt-1.5 ml-1">
+                Recevez votre confirmation, les informations chauffeur et le suivi de votre course.
+              </p>
             </div>
 
             {/* Pickup Address with Autocomplete */}
