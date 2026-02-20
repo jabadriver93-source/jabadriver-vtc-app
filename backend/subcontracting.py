@@ -3440,9 +3440,15 @@ async def end_ride(ride_id: str, token: Optional[str] = Query(None, description=
     # Generate client confirmation token
     client_confirmation_token = secrets.token_urlsafe(32)
     
-    # Update status to DRIVER_COMPLETED with audit fields
+    # ============================================
+    # CALCULATE AND PERSIST FINAL TOTALS
+    # ============================================
+    # Use calculate_course_totals as the SINGLE SOURCE OF TRUTH
+    totals = calculate_course_totals(course)
+    
+    # Update status to DRIVER_COMPLETED with audit fields and final pricing
     ended_at = datetime.now(timezone.utc).isoformat()
-    logger.info(f"[RIDE-END] 🔄 Attempting atomic update | ride={ride_id[:8]} | new_status=DRIVER_COMPLETED | ended_at={ended_at}")
+    logger.info(f"[RIDE-END] 🔄 Attempting atomic update | ride={ride_id[:8]} | new_status=DRIVER_COMPLETED | ended_at={ended_at} | final_total={totals['final_total_eur']}€")
     
     update_result = await db.courses.update_one(
         {
@@ -3453,7 +3459,14 @@ async def end_ride(ride_id: str, token: Optional[str] = Query(None, description=
             "status": CourseStatusEnum.DRIVER_COMPLETED,
             "ended_at": ended_at,
             "ended_by_driver_id": authenticated_driver_id,
-            "client_confirmation_token": client_confirmation_token
+            "client_confirmation_token": client_confirmation_token,
+            # Persist final calculated values
+            "final_total_price": totals["final_total_eur"],
+            "final_waiting_fee": totals["waiting_fee_eur"],
+            "final_manual_supplements": totals["manual_supplements_capped_eur"],
+            "final_commission": totals["commission_base_eur"],
+            "final_net_driver": totals["net_driver_eur"],
+            "price_with_supplements": totals["final_total_eur"]  # Keep backward compatibility
         }}
     )
     
