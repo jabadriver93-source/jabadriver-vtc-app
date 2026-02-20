@@ -50,6 +50,7 @@ def calculate_totals(course: dict) -> dict:
     price_base = course.get('price_base') or course.get('price_total', 0) or 0
     supplement_peage = course.get('supplement_peage', 0) or 0
     supplement_parking = course.get('supplement_parking', 0) or 0
+    supplement_traffic = course.get('supplement_traffic', 0) or 0  # Traffic delay supplement
     
     # Use persisted waiting values when available
     supplement_attente_minutes = course.get('waiting_billable_minutes') or course.get('supplement_attente_minutes', 0) or 0
@@ -59,7 +60,11 @@ def calculate_totals(course: dict) -> dict:
     if supplement_attente == 0 and supplement_attente_minutes > 0:
         supplement_attente = float(supplement_attente_minutes)  # 1€/min
     
-    total = price_base + supplement_peage + supplement_parking + supplement_attente
+    # Manual supplements total (péage + parking + traffic)
+    manual_supplements = supplement_peage + supplement_parking + supplement_traffic
+    
+    # Total = base + waiting + manual supplements
+    total = price_base + supplement_attente + manual_supplements
     
     # COMMISSION: 10% of BASE PRICE ONLY (never on final total)
     commission_rate = 0.10
@@ -70,12 +75,14 @@ def calculate_totals(course: dict) -> dict:
         "price_base": price_base,
         "supplement_peage": supplement_peage,
         "supplement_parking": supplement_parking,
+        "supplement_traffic": supplement_traffic,
         "supplement_attente_minutes": supplement_attente_minutes,
         "supplement_attente": supplement_attente,
+        "manual_supplements": manual_supplements,
         "total": total,
         "commission": commission,  # 10% of base only
         "driver_net": driver_net,
-        "has_supplements": supplement_peage > 0 or supplement_parking > 0 or supplement_attente > 0
+        "has_supplements": manual_supplements > 0 or supplement_attente > 0
     }
 
 
