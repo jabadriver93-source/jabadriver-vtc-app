@@ -680,6 +680,28 @@ export default function AdminSubcontractingPage() {
                       </div>
                     </div>
                     
+                    {/* Price breakdown if supplements present */}
+                    {((course.supplement_peage || 0) > 0 || 
+                      (course.supplement_parking || 0) > 0 || 
+                      (course.supplement_traffic || 0) > 0 || 
+                      (course.waiting_price || course.supplement_attente_amount || 0) > 0) && (
+                      <div className="bg-slate-700/30 p-2 rounded mb-3 text-xs flex flex-wrap gap-3">
+                        <span className="text-slate-500">Base: {(course.price_base || course.price_total)?.toFixed(2)}€</span>
+                        {(course.supplement_peage || 0) > 0 && (
+                          <span className="text-amber-400">Péage: +{course.supplement_peage.toFixed(2)}€</span>
+                        )}
+                        {(course.supplement_parking || 0) > 0 && (
+                          <span className="text-amber-400">Parking: +{course.supplement_parking.toFixed(2)}€</span>
+                        )}
+                        {(course.supplement_traffic || 0) > 0 && (
+                          <span className="text-amber-400">Trafic: +{course.supplement_traffic.toFixed(2)}€</span>
+                        )}
+                        {((course.waiting_price || course.supplement_attente_amount || 0) > 0) && (
+                          <span className="text-amber-400">Attente: +{(course.waiting_price || course.supplement_attente_amount).toFixed(2)}€</span>
+                        )}
+                      </div>
+                    )}
+                    
                     <div className="text-sm text-slate-400 mb-3">
                       <span className="text-green-400">▶</span> {course.pickup_address?.slice(0,40)}...
                       <br />
