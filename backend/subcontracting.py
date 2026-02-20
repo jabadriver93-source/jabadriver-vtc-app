@@ -2039,7 +2039,82 @@ async def send_ride_ended_to_client(course: dict, driver: dict):
     
     course_id_short = course.get('id', '')[:8].upper()
     driver_name = driver.get('company_name') or driver.get('name', 'Votre chauffeur')
-    price_total = course.get('price_with_supplements') or course.get('price_total', 0)
+    
+    # Use SINGLE SOURCE OF TRUTH - calculate_course_totals
+    totals = calculate_course_totals(course)
+    base_price = totals["base_price_eur"]
+    waiting_fee = totals["waiting_fee_eur"]
+    peage = totals["extras_peage_eur"]
+    parking = totals["extras_parking_eur"]
+    traffic = totals["extras_traffic_eur"]
+    final_total = totals["final_total_eur"]
+    
+    # Build price breakdown HTML (only show lines with values > 0)
+    price_breakdown_rows = []
+    
+    # Base price (always show)
+    price_breakdown_rows.append(f"""
+        <tr>
+            <td style="padding: 6px 0; color: #64748b;">Prix initial :</td>
+            <td style="padding: 6px 0; text-align: right;">{base_price:.2f}€</td>
+        </tr>
+    """)
+    
+    # Waiting fee
+    if waiting_fee > 0:
+        price_breakdown_rows.append(f"""
+            <tr>
+                <td style="padding: 6px 0; color: #64748b;">Attente :</td>
+                <td style="padding: 6px 0; text-align: right; color: #f59e0b;">+{waiting_fee:.2f}€</td>
+            </tr>
+        """)
+    
+    # Péage
+    if peage > 0:
+        price_breakdown_rows.append(f"""
+            <tr>
+                <td style="padding: 6px 0; color: #64748b;">Péage :</td>
+                <td style="padding: 6px 0; text-align: right; color: #f59e0b;">+{peage:.2f}€</td>
+            </tr>
+        """)
+    
+    # Parking
+    if parking > 0:
+        price_breakdown_rows.append(f"""
+            <tr>
+                <td style="padding: 6px 0; color: #64748b;">Parking :</td>
+                <td style="padding: 6px 0; text-align: right; color: #f59e0b;">+{parking:.2f}€</td>
+            </tr>
+        """)
+    
+    # Traffic / Circulation
+    if traffic > 0:
+        price_breakdown_rows.append(f"""
+            <tr>
+                <td style="padding: 6px 0; color: #64748b;">Trafic / Circulation :</td>
+                <td style="padding: 6px 0; text-align: right; color: #f59e0b;">+{traffic:.2f}€</td>
+            </tr>
+        """)
+    
+    # Total row (always show)
+    price_breakdown_rows.append(f"""
+        <tr style="border-top: 1px solid #e2e8f0;">
+            <td style="padding: 10px 0; font-weight: bold; color: #1e3a5f;">TOTAL :</td>
+            <td style="padding: 10px 0; text-align: right; font-weight: bold; font-size: 20px; color: #22c55e;">{final_total:.2f}€</td>
+        </tr>
+    """)
+    
+    price_breakdown_html = "".join(price_breakdown_rows)
+    
+    # Add note if price was adjusted
+    has_supplements = waiting_fee > 0 or peage > 0 or parking > 0 or traffic > 0
+    price_note = ""
+    if has_supplements:
+        price_note = """
+            <p style="font-size: 12px; color: #64748b; margin-top: 10px; font-style: italic;">
+                Le prix a été ajusté en fonction des conditions réelles de la course.
+            </p>
+        """
     
     # Client confirmation link
     confirmation_token = course.get('client_confirmation_token')
@@ -2095,11 +2170,15 @@ async def send_ride_ended_to_client(course: dict, driver: dict):
                         <td style="padding: 8px 0; color: #64748b;">Arrivée :</td>
                         <td style="padding: 8px 0;">{course.get('dropoff_address', 'N/A')}</td>
                     </tr>
-                    <tr>
-                        <td style="padding: 8px 0; color: #64748b;">Montant :</td>
-                        <td style="padding: 8px 0; font-weight: bold; font-size: 18px; color: #22c55e;">{int(price_total)}€</td>
-                    </tr>
                 </table>
+            </div>
+            
+            <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                <h3 style="margin-top: 0; color: #1e3a5f;">💰 Détail du prix</h3>
+                <table style="width: 100%; border-collapse: collapse;">
+                    {price_breakdown_html}
+                </table>
+                {price_note}
             </div>
             
             {confirmation_button}
@@ -2121,7 +2200,7 @@ async def send_ride_ended_to_client(course: dict, driver: dict):
             "subject": f"✅ Votre course est terminée – Merci de confirmer #{course_id_short}",
             "html": html_content
         }
-        logger.info(f"[EMAIL] Sending ride ended to client | Course: {course_id_short}")
+        logger.info(f"[EMAIL] Sending ride ended to client | Course: {course_id_short} | Total: {final_total}€")
         response = await asyncio.to_thread(resend.Emails.send, params)
         logger.info(f"[EMAIL] ✅ Ride ended to client sent | Resend ID: {response.get('id', 'N/A')}")
     except Exception as e:
