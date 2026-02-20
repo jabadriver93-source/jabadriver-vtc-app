@@ -381,6 +381,7 @@ class Course(BaseModel):
     # Supplements (only modifiable when invoice_status = DRAFT)
     supplement_peage: float = 0.0  # Péage - montant libre
     supplement_parking: float = 0.0  # Parking - montant libre
+    supplement_traffic: float = 0.0  # Trafic - temps supplémentaire dû aux conditions de circulation
     supplement_attente_minutes: int = 0  # Minutes d'attente
     supplement_attente_amount: float = 0.0  # Calculé: 0.50€/min
     # Total recalculé
