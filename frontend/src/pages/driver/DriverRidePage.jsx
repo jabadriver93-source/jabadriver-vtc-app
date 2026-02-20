@@ -832,6 +832,7 @@ export default function DriverRidePage() {
                     setSupplements({
                       peage: ride?.supplement_peage?.toString() || '',
                       parking: ride?.supplement_parking?.toString() || '',
+                      traffic: ride?.supplement_traffic?.toString() || '',
                       attente_minutes: ride?.supplement_attente_minutes?.toString() || ''
                     });
                     setShowSupplementsModal(true);
