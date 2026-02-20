@@ -68,6 +68,7 @@ export default function DriverRidePage() {
   const [supplements, setSupplements] = useState({
     peage: '',
     parking: '',
+    traffic: '',
     attente_minutes: ''
   });
   const [savingSupplements, setSavingSupplements] = useState(false);
