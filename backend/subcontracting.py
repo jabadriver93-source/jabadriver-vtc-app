@@ -4012,7 +4012,8 @@ async def get_ride_for_confirmation(ride_id: str, token: str = Query(..., descri
             {"_id": 0, "password_hash": 0}
         )
     
-    price_total = course.get('price_with_supplements') or course.get('price_total', 0)
+    # Calculate totals using SINGLE SOURCE OF TRUTH
+    totals = calculate_course_totals(course)
     
     return {
         "id": course.get("id"),
@@ -4023,7 +4024,15 @@ async def get_ride_for_confirmation(ride_id: str, token: str = Query(..., descri
         "dropoff_address": course.get("dropoff_address"),
         "date": course.get("date"),
         "time": course.get("time"),
-        "price_total": price_total,
+        "price_total": totals["final_total_eur"],
+        "price_base": totals["base_price_eur"],
+        "waiting_price": totals["waiting_fee_eur"],
+        "waiting_billable_minutes": totals["waiting_billable_minutes"],
+        "supplement_peage": course.get("supplement_peage", 0),
+        "supplement_parking": course.get("supplement_parking", 0),
+        "supplement_traffic": course.get("supplement_traffic", 0),
+        "price_with_supplements": totals["final_total_eur"],
+        "totals": totals,  # Full breakdown for frontend
         "started_at": course.get("started_at"),
         "ended_at": course.get("ended_at"),
         "driver": {
