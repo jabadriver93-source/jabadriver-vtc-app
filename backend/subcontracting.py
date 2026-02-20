@@ -4410,35 +4410,51 @@ async def token_update_supplements(ride_id: str, token: str = Query(...), data: 
     if client_confirmed:
         raise HTTPException(status_code=400, detail="Course confirmée par client - suppléments verrouillés")
     
-    # Update supplements
+    # Update supplements (including new traffic field)
     supplement_peage = data.supplement_peage if data and data.supplement_peage is not None else 0
     supplement_parking = data.supplement_parking if data and data.supplement_parking is not None else 0
+    supplement_traffic = data.supplement_traffic if data and data.supplement_traffic is not None else 0
     supplement_attente_minutes = data.supplement_attente_minutes if data and data.supplement_attente_minutes is not None else 0
-    supplement_attente = supplement_attente_minutes * 0.5  # 0.50€/min
+    supplement_attente = supplement_attente_minutes * 0.5  # 0.50€/min (manual waiting entry)
+    
+    # VALIDATE: Manual supplements cap (péage + parking + traffic) - excluding automatic waiting
+    manual_supplements_total = supplement_peage + supplement_parking + supplement_traffic
+    if manual_supplements_total > MAX_DRIVER_SUPPLEMENTS_EUR:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Le plafond de suppléments autorisé est de {MAX_DRIVER_SUPPLEMENTS_EUR}€. Total demandé: {manual_supplements_total}€"
+        )
     
     update_fields = {
         "supplement_peage": supplement_peage,
         "supplement_parking": supplement_parking,
+        "supplement_traffic": supplement_traffic,
         "supplement_attente_minutes": supplement_attente_minutes,
         "supplement_attente": supplement_attente
     }
     
-    # Recalculate total with supplements
+    # Recalculate total with supplements using calculate_course_totals for consistency
     price_base = course.get("price_base") or course.get("price_total", 0)
-    price_with_supplements = price_base + supplement_peage + supplement_parking + supplement_attente
-    update_fields["price_with_supplements"] = round(price_with_supplements, 2)
+    
+    # Calculate using the new course data (merge update fields with existing course)
+    temp_course = {**course, **update_fields, "price_total": price_base}
+    totals = calculate_course_totals(temp_course)
+    
+    update_fields["price_with_supplements"] = totals["final_total_eur"]
     
     await db.courses.update_one({"id": ride_id}, {"$set": update_fields})
     
-    logger.info(f"[DRIVER-ACTIONS] Supplements updated via token | ride={ride_id[:8]} | total={price_with_supplements}€")
+    logger.info(f"[DRIVER-ACTIONS] Supplements updated via token | ride={ride_id[:8]} | total={totals['final_total_eur']}€ | manual_total={manual_supplements_total}€")
     
     return {
         "success": True,
         "message": "Suppléments enregistrés",
         "supplement_peage": supplement_peage,
         "supplement_parking": supplement_parking,
+        "supplement_traffic": supplement_traffic,
         "supplement_attente_minutes": supplement_attente_minutes,
-        "price_with_supplements": price_with_supplements
+        "price_with_supplements": totals["final_total_eur"],
+        "totals": totals
     }
 
 # ============================================
