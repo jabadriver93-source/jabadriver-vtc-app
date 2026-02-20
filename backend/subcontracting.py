@@ -3101,6 +3101,7 @@ async def get_driver_ride(ride_id: str, token: Optional[str] = Query(None, descr
         "price_with_supplements": totals["final_total_eur"],
         "supplement_peage": totals["extras_peage_eur"],
         "supplement_parking": totals["extras_parking_eur"],
+        "supplement_traffic": totals["extras_traffic_eur"],
         "supplement_attente_minutes": totals["waiting_billable_minutes"],
         "supplement_attente_amount": totals["waiting_fee_eur"],
         "commission_amount": totals["commission_base_eur"],  # 10% of BASE only
