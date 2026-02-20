@@ -243,13 +243,52 @@ export default function ConfirmRidePage() {
                 </div>
               </div>
 
-              {/* Price */}
-              <div className="flex items-center justify-between pt-3 border-t border-gray-700">
-                <div className="flex items-center gap-2">
+              {/* Price Breakdown */}
+              <div className="pt-3 border-t border-gray-700 space-y-2">
+                <div className="flex items-center gap-2 mb-2">
                   <Euro className="w-4 h-4 text-green-400" />
-                  <span className="text-gray-400">Montant total</span>
+                  <span className="text-gray-400 font-medium">Détail du prix</span>
                 </div>
-                <span className="text-green-400 font-bold text-xl">{ride?.price_total}€</span>
+                
+                {/* Base price */}
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Prix initial</span>
+                  <span className="text-white">{ride?.totals?.base_price_eur || ride?.price_base || ride?.price_total}€</span>
+                </div>
+                
+                {/* Waiting fee (if any) */}
+                {(ride?.totals?.waiting_fee_eur > 0 || ride?.waiting_price > 0) && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Attente ({ride?.totals?.waiting_billable_minutes || ride?.waiting_billable_minutes || 0} min)</span>
+                    <span className="text-amber-400">+{ride?.totals?.waiting_fee_eur || ride?.waiting_price || 0}€</span>
+                  </div>
+                )}
+                
+                {/* Manual supplements (if any) */}
+                {(ride?.totals?.manual_supplements_capped_eur > 0 || 
+                  (ride?.supplement_peage || 0) + (ride?.supplement_parking || 0) + (ride?.supplement_traffic || 0) > 0) && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-400">Suppléments</span>
+                    <span className="text-amber-400">+{ride?.totals?.manual_supplements_capped_eur || 
+                      ((ride?.supplement_peage || 0) + (ride?.supplement_parking || 0) + (ride?.supplement_traffic || 0))}€</span>
+                  </div>
+                )}
+                
+                {/* Total */}
+                <div className="flex justify-between pt-2 border-t border-gray-700/50">
+                  <span className="text-white font-semibold">Total</span>
+                  <span className="text-green-400 font-bold text-xl">
+                    {ride?.totals?.final_total_eur || ride?.price_with_supplements || ride?.price_total}€
+                  </span>
+                </div>
+                
+                {/* Price adjustment notice */}
+                {(ride?.totals?.extras_total_eur > 0 || ride?.waiting_price > 0 || 
+                  (ride?.supplement_peage || 0) + (ride?.supplement_parking || 0) + (ride?.supplement_traffic || 0) > 0) && (
+                  <p className="text-gray-500 text-xs mt-2 text-center">
+                    Le prix a été ajusté en fonction des conditions réelles de la course.
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
