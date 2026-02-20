@@ -943,6 +943,20 @@ export default function DriverRidePage() {
                 </div>
                 
                 <div>
+                  <Label className="text-gray-300">Trafic / Circulation (€)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    value={supplements.traffic}
+                    onChange={(e) => setSupplements(prev => ({ ...prev, traffic: e.target.value }))}
+                    className="bg-gray-800 border-gray-700 text-white mt-1"
+                  />
+                  <p className="text-gray-500 text-xs mt-1">Temps supplémentaire dû aux conditions de circulation</p>
+                </div>
+                
+                <div>
                   <Label className="text-gray-300">Temps d'attente (minutes)</Label>
                   <Input
                     type="number"
@@ -953,6 +967,11 @@ export default function DriverRidePage() {
                     className="bg-gray-800 border-gray-700 text-white mt-1"
                   />
                   <p className="text-gray-500 text-xs mt-1">Tarif: 0.50€/min après 15min gratuites</p>
+                </div>
+                
+                <div className="bg-gray-800/50 border border-amber-500/30 rounded-lg p-3 text-sm">
+                  <p className="text-amber-400 font-medium">Plafond suppléments : 20€ max</p>
+                  <p className="text-gray-400 text-xs mt-1">Péage + Parking + Trafic combinés ne peuvent pas dépasser 20€</p>
                 </div>
               </div>
               
