@@ -46,6 +46,9 @@ WAITING_MAX_BILLABLE_MINUTES = 20  # Cap at 20 minutes (= 20€ max)
 WAITING_NO_SHOW_THRESHOLD_MINUTES = 20  # Can declare no-show after 20 minutes
 ARRIVAL_GPS_MAX_DISTANCE_METERS = 200  # Max distance from pickup to confirm arrival
 
+# Driver supplements cap (excluding automatic waiting fee)
+MAX_DRIVER_SUPPLEMENTS_EUR = 20  # Maximum 20€ for manual supplements (péage, parking, traffic)
+
 # Email rate limit protection
 EMAIL_RETRY_MAX_ATTEMPTS = 3
 EMAIL_RETRY_INITIAL_DELAY = 1.0  # seconds
