@@ -6454,23 +6454,37 @@ async def driver_update_supplements(request: Request, course_id: str, data: Supp
     if not course.get("price_base"):
         update_fields["price_base"] = price_base
     
-    # Update supplements
+    # Update supplements (including new traffic field)
     if data.supplement_peage is not None:
         update_fields["supplement_peage"] = max(0, data.supplement_peage)
     if data.supplement_parking is not None:
         update_fields["supplement_parking"] = max(0, data.supplement_parking)
+    if data.supplement_traffic is not None:
+        update_fields["supplement_traffic"] = max(0, data.supplement_traffic)
     if data.supplement_attente_minutes is not None:
         minutes = max(0, data.supplement_attente_minutes)
         update_fields["supplement_attente_minutes"] = minutes
         update_fields["supplement_attente_amount"] = round(minutes * 0.50, 2)  # 0.50€/min
     
-    # Recalculate total with supplements
+    # Get final values for validation
     supplement_peage = update_fields.get("supplement_peage", course.get("supplement_peage", 0))
     supplement_parking = update_fields.get("supplement_parking", course.get("supplement_parking", 0))
+    supplement_traffic = update_fields.get("supplement_traffic", course.get("supplement_traffic", 0))
     supplement_attente = update_fields.get("supplement_attente_amount", course.get("supplement_attente_amount", 0))
     
-    price_with_supplements = price_base + supplement_peage + supplement_parking + supplement_attente
-    update_fields["price_with_supplements"] = round(price_with_supplements, 2)
+    # VALIDATE: Manual supplements cap (péage + parking + traffic) - excluding automatic waiting
+    manual_supplements_total = supplement_peage + supplement_parking + supplement_traffic
+    if manual_supplements_total > MAX_DRIVER_SUPPLEMENTS_EUR:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Le plafond de suppléments autorisé est de {MAX_DRIVER_SUPPLEMENTS_EUR}€. Total demandé: {manual_supplements_total}€"
+        )
+    
+    # Recalculate total using calculate_course_totals for consistency
+    temp_course = {**course, **update_fields, "price_total": price_base}
+    totals = calculate_course_totals(temp_course)
+    
+    update_fields["price_with_supplements"] = totals["final_total_eur"]
     update_fields["last_modified_at"] = datetime.now(timezone.utc).isoformat()
     update_fields["last_modified_by"] = "driver"
     
@@ -6479,15 +6493,17 @@ async def driver_update_supplements(request: Request, course_id: str, data: Supp
         {"$set": update_fields}
     )
     
-    logger.info(f"[DRIVER] Supplements updated for course {course_id[:8]} | Total: {price_with_supplements}€")
+    logger.info(f"[DRIVER] Supplements updated for course {course_id[:8]} | Total: {totals['final_total_eur']}€ | manual={manual_supplements_total}€")
     
     return {
         "message": "Suppléments mis à jour",
         "price_base": price_base,
         "supplement_peage": supplement_peage,
         "supplement_parking": supplement_parking,
+        "supplement_traffic": supplement_traffic,
         "supplement_attente_amount": supplement_attente,
-        "price_with_supplements": price_with_supplements
+        "price_with_supplements": totals["final_total_eur"],
+        "totals": totals
     }
 
 @driver_router.post("/courses/{course_id}/issue-invoice")
