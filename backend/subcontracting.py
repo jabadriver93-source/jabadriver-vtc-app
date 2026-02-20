@@ -199,16 +199,19 @@ def calculate_course_totals(course: dict) -> dict:
     
     All screens and PDFs must use these calculated values:
     - base_price_eur: Original course price (price_total)
-    - waiting_fee_eur: Waiting fee (after 5 min free, 1€/min, max 20€)
-    - extras_total_eur: Other supplements (péage, parking)
-    - final_total_eur: Total price client pays (base + waiting + extras)
+    - waiting_fee_eur: Waiting fee (after 5 min free, 1€/min, max 20€) - AUTOMATIC
+    - manual_supplements_eur: Driver supplements (péage + parking + traffic) - CAPPED at 20€
+    - extras_total_eur: Total of all extras (waiting + manual supplements)
+    - final_total_eur: Total price client pays (base + all extras)
     - commission_base_eur: Platform commission (10% of BASE PRICE ONLY, not final total)
     - net_driver_eur: What driver receives (final_total - commission)
     
     IMPORTANT RULES:
     1. Commission = 10% of base_price ONLY (never on waiting/extras)
     2. Minutes use ceil() - any started minute counts
-    3. All amounts rounded to 2 decimals
+    3. Manual supplements (péage + parking + traffic) capped at MAX_DRIVER_SUPPLEMENTS_EUR
+    4. Automatic waiting fee NOT included in manual supplements cap
+    5. All amounts rounded to 2 decimals
     """
     # Base price (original price_total)
     base_price = float(course.get("price_total", 0) or 0)
@@ -226,13 +229,20 @@ def calculate_course_totals(course: dict) -> dict:
     waiting_billable_minutes = int(course.get("waiting_billable_minutes", 0) or max(0, waiting_minutes - WAITING_FREE_MINUTES))
     waiting_billable_minutes = min(waiting_billable_minutes, WAITING_MAX_BILLABLE_MINUTES)
     
-    # Other extras (péage, parking)
+    # Manual driver supplements (péage, parking, traffic) - CAPPED at MAX_DRIVER_SUPPLEMENTS_EUR
     extras_peage = float(course.get("supplement_peage", 0) or 0)
     extras_parking = float(course.get("supplement_parking", 0) or 0)
-    extras_total = extras_peage + extras_parking
+    extras_traffic = float(course.get("supplement_traffic", 0) or 0)
+    
+    # Calculate manual supplements total and apply cap
+    manual_supplements_raw = extras_peage + extras_parking + extras_traffic
+    manual_supplements_capped = min(manual_supplements_raw, MAX_DRIVER_SUPPLEMENTS_EUR)
+    
+    # Total extras (automatic waiting + capped manual supplements)
+    extras_total = waiting_fee + manual_supplements_capped
     
     # Final total (what client pays)
-    final_total = base_price + waiting_fee + extras_total
+    final_total = base_price + extras_total
     
     # COMMISSION: 10% of BASE PRICE ONLY (never on final_total)
     commission_rate = float(course.get("commission_rate", COMMISSION_RATE) or COMMISSION_RATE)
@@ -248,6 +258,10 @@ def calculate_course_totals(course: dict) -> dict:
         "waiting_fee_eur": round(waiting_fee, 2),
         "extras_peage_eur": round(extras_peage, 2),
         "extras_parking_eur": round(extras_parking, 2),
+        "extras_traffic_eur": round(extras_traffic, 2),
+        "manual_supplements_raw_eur": round(manual_supplements_raw, 2),
+        "manual_supplements_capped_eur": round(manual_supplements_capped, 2),
+        "manual_supplements_cap_exceeded": manual_supplements_raw > MAX_DRIVER_SUPPLEMENTS_EUR,
         "extras_total_eur": round(extras_total, 2),
         "final_total_eur": round(final_total, 2),
         "commission_rate": commission_rate,
