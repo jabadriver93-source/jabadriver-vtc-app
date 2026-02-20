@@ -397,6 +397,13 @@ def generate_unified_pdf(
         c.drawRightString(row_right, card_y, f"+{totals['supplement_parking']:.2f} €")
         card_y -= 0.5 * cm
     
+    if totals.get('supplement_traffic', 0) > 0:
+        c.setFillColor(COLORS['text_secondary'])
+        c.drawString(row_left, card_y, "Trafic / Circulation")
+        c.setFillColor(COLORS['amber'])
+        c.drawRightString(row_right, card_y, f"+{totals['supplement_traffic']:.2f} €")
+        card_y -= 0.5 * cm
+    
     if totals['supplement_attente_minutes'] > 0:
         c.setFillColor(COLORS['text_secondary'])
         c.drawString(row_left, card_y, f"Attente ({totals['supplement_attente_minutes']} min)")
