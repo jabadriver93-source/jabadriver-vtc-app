@@ -481,6 +481,7 @@ export default function DriverRidePage() {
         body: JSON.stringify({
           supplement_peage: parseFloat(supplements.peage) || 0,
           supplement_parking: parseFloat(supplements.parking) || 0,
+          supplement_traffic: parseFloat(supplements.traffic) || 0,
           supplement_attente_minutes: parseInt(supplements.attente_minutes) || 0
         })
       };
