@@ -93,6 +93,7 @@ export function CourseFinancialSummary({ course, showCommission = true, compact 
   const basePrice = totals.base_price_eur ?? course.price_base ?? course.price_total ?? 0;
   const peage = totals.extras_peage_eur ?? course.supplement_peage ?? 0;
   const parking = totals.extras_parking_eur ?? course.supplement_parking ?? 0;
+  const traffic = totals.extras_traffic_eur ?? course.supplement_traffic ?? 0;
   const attenteBillableMinutes = totals.waiting_billable_minutes ?? course.supplement_attente_minutes ?? 0;
   const attenteAmount = totals.waiting_fee_eur ?? course.supplement_attente_amount ?? course.waiting_price ?? 0;
   const total = totals.final_total_eur ?? course.price_with_supplements ?? calculateTotalWithSupplements(course);
@@ -101,7 +102,7 @@ export function CourseFinancialSummary({ course, showCommission = true, compact 
   const commission = totals.commission_base_eur ?? course.commission_amount ?? (basePrice * 0.10);
   const driverNet = totals.net_driver_eur ?? course.net_driver ?? (total - commission);
   
-  const hasSupplements = peage > 0 || parking > 0 || attenteBillableMinutes > 0;
+  const hasSupplements = peage > 0 || parking > 0 || traffic > 0 || attenteBillableMinutes > 0;
   
   if (compact) {
     return (
@@ -122,6 +123,12 @@ export function CourseFinancialSummary({ course, showCommission = true, compact 
               <div className="flex justify-between items-center text-sm mt-1">
                 <span className="text-slate-400">Parking</span>
                 <span className="text-amber-400">+{parking.toFixed(2)}€</span>
+              </div>
+            )}
+            {traffic > 0 && (
+              <div className="flex justify-between items-center text-sm mt-1">
+                <span className="text-slate-400">Trafic / Circulation</span>
+                <span className="text-amber-400">+{traffic.toFixed(2)}€</span>
               </div>
             )}
             {attenteBillableMinutes > 0 && (
@@ -175,6 +182,13 @@ export function CourseFinancialSummary({ course, showCommission = true, compact 
             <div className="flex justify-between items-center text-sm">
               <span className="text-gray-400">Parking</span>
               <span className="text-amber-400">+{parking.toFixed(2)}€</span>
+            </div>
+          )}
+          
+          {traffic > 0 && (
+            <div className="flex justify-between items-center text-sm">
+              <span className="text-gray-400">Trafic / Circulation</span>
+              <span className="text-amber-400">+{traffic.toFixed(2)}€</span>
             </div>
           )}
           
