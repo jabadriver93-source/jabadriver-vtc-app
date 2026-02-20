@@ -3550,7 +3550,8 @@ async def end_ride(ride_id: str, token: Optional[str] = Query(None, description=
         "message": "Course terminée ! Le client et l'admin ont été notifiés.",
         "status": CourseStatusEnum.DRIVER_COMPLETED,
         "ended_at": ended_at,
-        "ended_by_driver_id": authenticated_driver_id
+        "ended_by_driver_id": authenticated_driver_id,
+        "totals": totals  # Include final pricing details
     }
 
 # ============================================
