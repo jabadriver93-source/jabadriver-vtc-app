@@ -429,6 +429,7 @@ class ClaimToken(BaseModel):
 class SupplementsUpdate(BaseModel):
     supplement_peage: Optional[float] = None
     supplement_parking: Optional[float] = None
+    supplement_traffic: Optional[float] = None  # Traffic delay supplement
     supplement_attente_minutes: Optional[int] = None
 
 # ============================================
